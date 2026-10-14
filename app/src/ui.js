@@ -1,6 +1,7 @@
 // Small UI toolkit: DOM builder, bound controls (slider/toggle/select/…), menus and dialogs. Exposes window.UI
 (() => {
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const tr = s => (typeof s === 'string' && window.t ? window.t(s) : s);   // auto-translate UI labels
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function el(tag, props = {}, ...kids) {
@@ -75,7 +76,7 @@ function toggle(binding, onChange) {
 function select(options, binding, onChange) {
   const b = B(binding);
   const s = el('select.sel');
-  const fill = opts => { s.innerHTML = opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(''); };
+  const fill = opts => { s.innerHTML = opts.map(([v, l]) => `<option value="${esc(v)}">${esc(tr(l))}</option>`).join(''); };
   fill(typeof options === 'function' ? options() : options);
   const draw = () => { if (typeof options === 'function') fill(options()); s.value = String(b.get()); };
   s.addEventListener('change', () => { const o = (typeof options === 'function' ? options() : options).find(([v]) => String(v) === s.value); b.set(o ? o[0] : s.value); onChange && onChange(b.get()); });
@@ -85,7 +86,7 @@ function select(options, binding, onChange) {
 function segmented(options, binding) {
   const b = B(binding);
   const w = el('div.seg');
-  options.forEach(([v, l]) => w.append(el('button', { type: 'button', dataset: { v }, onclick: () => { b.set(v); draw(); } }, l)));
+  options.forEach(([v, l]) => w.append(el('button', { type: 'button', dataset: { v }, onclick: () => { b.set(v); draw(); } }, tr(l))));
   const draw = () => $$('button', w).forEach(x => x.classList.toggle('on', x.dataset.v === String(b.get())));
   draw(); track(b.path, draw, w);
   return w;
@@ -101,6 +102,7 @@ function swatches(colors, binding) {
 // horizontal slider in the design style: label + value on top, thick track below
 function slider({ label, min, max, step = 1, binding, fmt = v => v, ticks = 0, box = false, center = false, vertical = false }) {
   const b = B(binding);
+  label = tr(label);
   const input = el('input.vs', { type: 'range', min, max, step });
   if (vertical) input.classList.add('vertical');
   const val = box ? el('input.valbox', { type: 'text' }) : el('span.val');
@@ -131,27 +133,28 @@ function color(binding) {
 }
 function textInput(binding, placeholder = '') {
   const b = B(binding);
-  const i = el('input.txt', { type: 'text', placeholder });
+  const i = el('input.txt', { type: 'text', placeholder: tr(placeholder) });
   const draw = () => { if (document.activeElement !== i) i.value = b.get() ?? ''; };
   i.addEventListener('change', () => b.set(i.value));
   draw(); track(b.path, draw, i);
   return i;
 }
 function row(label, control, { info, stacked, cls } = {}) {
+  label = tr(label); info = tr(info);
   const l = el('span.rlabel', {}, label);
   if (info) l.append(el('span.info', { title: info, html: icon('info') }));
   return el('div.frow' + (stacked ? '.stacked' : '') + (cls ? '.' + cls : ''), { dataset: { search: (typeof label === 'string' ? label : '') + ' ' + (info || '') } }, l, control);
 }
-function collapse(children, { open = false, onLabel = 'Instellingen inklappen', offLabel = 'Uitgebreide instellingen' } = {}) {
+function collapse(children, { open = false, onLabel = 'Collapse settings', offLabel = 'Expand settings' } = {}) {
   const body = el('div.cbody', {}, children);
   const head = el('button.chead', { type: 'button' }, el('span'), el('span.chev', { html: icon('chevron') }));
   const w = el('div.collapse', {}, head, body);
-  const draw = () => { w.classList.toggle('open', open); head.firstChild.textContent = open ? onLabel : offLabel; };
+  const draw = () => { w.classList.toggle('open', open); head.firstChild.textContent = tr(open ? onLabel : offLabel); };
   head.addEventListener('click', () => { open = !open; draw(); });
   draw();
   return w;
 }
-function button(label, onclick, cls = '') { return el('button.btn' + (cls ? '.' + cls : ''), { type: 'button', onclick }, label); }
+function button(label, onclick, cls = '') { return el('button.btn' + (cls ? '.' + cls : ''), { type: 'button', onclick }, tr(label)); }
 
 /* ---------- context / popup menus with submenus ---------- */
 let menuRoot = null;
@@ -169,11 +172,11 @@ function openLevel(items, x, y, depth, parentRect) {
   for (const it of (typeof items === 'function' ? items() : items)) {
     if (!it) continue;
     if (it.sep) { m.append(el('hr')); continue; }
-    if (it.header) { m.append(el('div.mhead', {}, it.header)); continue; }
+    if (it.header) { m.append(el('div.mhead', {}, tr(it.header))); continue; }
     const b = el('button.mitem' + (it.disabled ? '.disabled' : '') + (it.danger ? '.danger' : ''), { type: 'button' },
       el('span.micon' + (it.accent ? '.accent' : ''), { html: it.checked ? icon('check') : (it.icon ? icon(it.icon) : '') }),
-      el('span.mlabel', {}, it.label),
-      el('span.mkbd', { html: it.sub ? icon('chevron') : esc(it.kbd || '') }));
+      el('span.mlabel', {}, tr(it.label)),
+      el('span.mkbd', { html: it.sub ? icon('chevron') : esc(tr(it.kbd || '')) }));
     if (it.sub) {
       const openSub = () => { const r = b.getBoundingClientRect(); openLevel(it.sub, r.right + 2, r.top - 4, depth + 1, r); };
       b.addEventListener('mouseenter', () => { clearTimeout(b._t); b._t = setTimeout(openSub, 120); });
@@ -203,10 +206,10 @@ function dialog({ title, body, buttons = [{ label: 'OK', value: true, primary: t
     const layer = el('div.dlg-layer');
     const box = el('div.dlg' + (cls ? '.' + cls : ''), { style: { width: `min(${width}px, calc(100% - 32px))` } });
     const close = v => { layer.remove(); stack.splice(stack.indexOf(close), 1); res(v); };
-    const head = el('div.dlg-head', {}, el('span', {}, title), el('button.ibtn', { type: 'button', html: icon('x'), onclick: () => close(null), title: 'Sluiten' }));
+    const head = el('div.dlg-head', {}, el('span', {}, tr(title)), el('button.ibtn', { type: 'button', html: icon('x'), onclick: () => close(null), title: tr('Close') }));
     const content = el('div.dlg-body', {}, body);
     const foot = el('div.dlg-foot');
-    buttons.forEach(bt => foot.append(el('button.btn' + (bt.primary ? '.primary' : ''), { type: 'button', onclick: () => close(typeof bt.value === 'function' ? bt.value() : bt.value) }, bt.label)));
+    buttons.forEach(bt => foot.append(el('button.btn' + (bt.primary ? '.primary' : ''), { type: 'button', onclick: () => close(typeof bt.value === 'function' ? bt.value() : bt.value) }, tr(bt.label))));
     box.append(head, content); if (buttons.length) box.append(foot);
     layer.append(box);
     layer.addEventListener('mousedown', e => { if (e.target === layer) close(null); });
@@ -225,19 +228,19 @@ document.addEventListener('keydown', e => {
 const dialogOpen = () => stack.length > 0;
 
 async function prompt(title, { text = '', value = '', placeholder = '', ok = 'OK' } = {}) {
-  const i = el('input.txt.wide', { value, placeholder });
-  const r = await dialog({ title, body: el('div', {}, text ? el('p.dlg-text', {}, text) : null, i), buttons: [{ label: 'Annuleren', value: null }, { label: ok, primary: true, value: () => i.value }],
+  const i = el('input.txt.wide', { value, placeholder: tr(placeholder) });
+  const r = await dialog({ title, body: el('div', {}, text ? el('p.dlg-text', {}, tr(text)) : null, i), buttons: [{ label: 'Cancel', value: null }, { label: ok, primary: true, value: () => i.value }],
     onOpen: (box, close) => i.addEventListener('keydown', e => { if (e.key === 'Enter') close(i.value); }) });
   return r;
 }
 async function confirm(title, text, ok = 'OK', force = false) {
   if (!force && !S.get('confirmDialogs')) return true;
-  return !!(await dialog({ title, body: el('p.dlg-text', {}, text), buttons: [{ label: 'Annuleren', value: false }, { label: ok, primary: true, value: true }] }));
+  return !!(await dialog({ title, body: el('p.dlg-text', {}, tr(text)), buttons: [{ label: 'Cancel', value: false }, { label: ok, primary: true, value: true }] }));
 }
 function choose(title, options, ok = 'OK') {
   const s = el('select.sel.wide', {}, ...options.map((o, i) => el('option', { value: i }, o)));
-  return dialog({ title, body: s, buttons: [{ label: 'Annuleren', value: null }, { label: ok, primary: true, value: () => +s.value }] });
+  return dialog({ title, body: s, buttons: [{ label: 'Cancel', value: null }, { label: ok, primary: true, value: () => +s.value }] });
 }
 
-window.UI = { $, $$, esc, el, icon, P, toggle, select, segmented, swatches, slider, color, textInput, row, collapse, button, menu, closeMenus, dialog, dialogOpen, prompt, confirm, choose, refreshAll };
+window.UI = { $, $$, esc, tr, el, icon, P, toggle, select, segmented, swatches, slider, color, textInput, row, collapse, button, menu, closeMenus, dialog, dialogOpen, prompt, confirm, choose, refreshAll };
 })();

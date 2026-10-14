@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   devtools: on => inv('devtools', on),
   pathFor: file => webUtils.getPathForFile(file),
   win: act => ipcRenderer.send('win', act),
+  setLang: l => ipcRenderer.send('set-lang', l),
   quit: () => ipcRenderer.send('quit'),
   ready: () => ipcRenderer.send('ready'),
   onOpenPaths: cb => ipcRenderer.on('open-paths', (_e, p) => cb(p)),

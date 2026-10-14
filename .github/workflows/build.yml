@@ -3,7 +3,7 @@ name: Build & Release
 # Builds the app for Windows, macOS (Apple Silicon + Intel) and Linux.
 #  - Manually: "Actions" tab → "Build & Release" → "Run workflow" (files appear under "Artifacts").
 #  - Release:  push a tag that matches the version in app/package.json, e.g.
-#                git tag v1.2.2 && git push origin v1.2.2
+#                git tag v1.3.0 && git push origin v1.3.0
 #              A GitHub Release with a download table per operating system is then created automatically.
 on:
   workflow_dispatch:

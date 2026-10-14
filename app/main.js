@@ -18,6 +18,15 @@ const MIME = { mp4:'video/mp4', m4v:'video/mp4', mov:'video/mp4', webm:'video/we
   mp3:'audio/mpeg', m4a:'audio/mp4', aac:'audio/aac', flac:'audio/flac', wav:'audio/wav', ogg:'audio/ogg', oga:'audio/ogg', opus:'audio/ogg' };
 
 let win = null;
+// The few strings the main process shows itself (file-dialog filters, default track names), per UI language.
+let LANG = 'en';
+const MT = {
+  'All files': { nl: 'Alle bestanden', de: 'Alle Dateien', fr: 'Tous les fichiers', es: 'Todos los archivos', it: 'Tutti i file', pt: 'Todos os ficheiros' },
+  'Subtitles': { nl: 'Ondertitels', de: 'Untertitel', fr: 'Sous-titres', es: 'Subtítulos', it: 'Sottotitoli', pt: 'Legendas' },
+  'Track': { nl: 'Spoor', de: 'Spur', fr: 'Piste', es: 'Pista', it: 'Traccia', pt: 'Faixa' },
+  'Subtitle': { nl: 'Ondertitel', de: 'Untertitel', fr: 'Sous-titre', es: 'Subtítulo', it: 'Sottotitolo', pt: 'Legenda' },
+};
+const mt = k => (MT[k] && MT[k][LANG]) || k;
 let pendingPaths = [];
 const TOKEN = crypto.randomBytes(16).toString('hex');
 let PORT = 0;
@@ -128,8 +137,8 @@ async function probe(src) {
     duration: +(j.format && j.format.duration) || 0,
     format: (j.format && j.format.format_name) || '',
     vcodec: v ? v.codec_name : null, pix: v ? v.pix_fmt : null, width: v ? v.width : 0, height: v ? v.height : 0,
-    audio: S.filter(s => s.codec_type === 'audio').map((s, i) => ({ i, codec: s.codec_name, label: tag(s) || `Spoor ${i + 1}`, lang: s.tags && s.tags.language, ch: s.channels })),
-    subs: S.filter(s => s.codec_type === 'subtitle').map((s, i) => ({ i, codec: s.codec_name, label: tag(s) || `Ondertitel ${i + 1}`, lang: s.tags && s.tags.language })),
+    audio: S.filter(s => s.codec_type === 'audio').map((s, i) => ({ i, codec: s.codec_name, label: tag(s) || `${mt('Track')} ${i + 1}`, lang: s.tags && s.tags.language, ch: s.channels })),
+    subs: S.filter(s => s.codec_type === 'subtitle').map((s, i) => ({ i, codec: s.codec_name, label: tag(s) || `${mt('Subtitle')} ${i + 1}`, lang: s.tags && s.tags.language })),
     cover: S.some(s => s.disposition && s.disposition.attached_pic),
   };
 }
@@ -176,7 +185,7 @@ ipcMain.handle('info', () => ({ port: PORT, token: TOKEN }));
 ipcMain.handle('open-files', async () => {
   const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: [
     { name: 'Media', extensions: ['mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
-    { name: 'Alle bestanden', extensions: ['*'] }] });
+    { name: mt('All files'), extensions: ['*'] }] });
   return r.canceled ? [] : expand(r.filePaths);
 });
 ipcMain.handle('open-folder', async () => {
@@ -184,7 +193,7 @@ ipcMain.handle('open-folder', async () => {
   return r.canceled ? [] : expand(r.filePaths);
 });
 ipcMain.handle('open-subtitle', async () => {
-  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Ondertitels', extensions: ['srt', 'vtt', 'ass', 'ssa'] }] });
+  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: mt('Subtitles'), extensions: ['srt', 'vtt', 'ass', 'ssa'] }] });
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('expand', (_e, paths) => expand(paths));
@@ -230,6 +239,7 @@ ipcMain.handle('rec-start', (_e, dir, name) => { fs.mkdirSync(dir, { recursive: 
 ipcMain.handle('rec-chunk', (_e, file, buf) => { const fd = recs.get(file); if (fd != null) fs.writeSync(fd, Buffer.from(buf)); });
 ipcMain.handle('rec-stop', (_e, file) => { const fd = recs.get(file); if (fd != null) { fs.closeSync(fd); recs.delete(file); } return file; });
 ipcMain.on('quit', () => app.quit());
+ipcMain.on('set-lang', (_e, l) => { LANG = String(l || 'en'); });
 ipcMain.on('win', (_e, act) => {
   if (!win) return;
   if (act === 'min') win.minimize();

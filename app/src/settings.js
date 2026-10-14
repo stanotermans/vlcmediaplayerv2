@@ -3,7 +3,7 @@
 const KEY = 'vlcx-settings';
 const DEFAULTS = {
   // general
-  onboarded: false, language: 'nl', theme: 'dark', accent: '#f28c1b',
+  onboarded: false, language: '', theme: 'dark', accent: '#f28c1b',
   confirmDialogs: true, devMode: false, logOn: false, logFile: '', logLevel: 'error',
   // interface
   navExpanded: false, miniPlayer: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,

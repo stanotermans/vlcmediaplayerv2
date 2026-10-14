@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' http://127.0.0.1:* https: http: blob:; connect-src http://127.0.0.1:*; style-src 'self' 'unsafe-inline'; script-src 'self'">
@@ -10,39 +10,39 @@
 <div id="app">
   <header id="titlebar">
     <svg width="18" height="18" viewBox="0 0 24 24" aria-label="VLC"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="var(--accent)"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#fff"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="var(--accent)"/><path d="M3 18h18l1 3H2z" fill="var(--accent)"/></svg>
-    <button class="ibtn" id="menuBtn" title="Menu"><svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
-    <button class="ibtn" id="sideToggle" title="Zijbalk (Q)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+    <button class="ibtn" id="menuBtn" title="Menu" data-i18n-title="Menu"><svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+    <button class="ibtn" id="sideToggle" title="Sidebar (Q)" data-i18n-title="Sidebar (Q)"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
     <span class="tsep"></span>
     <div id="crumbs"><svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span id="crumbText">Videos</span></div>
     <div id="wintitle">VLC Media Player</div>
     <div class="spacer"></div>
     <div id="winctl">
-      <button id="minBtn" title="Minimaliseren"><svg class="icon" viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
-      <button id="maxBtn" title="Maximaliseren"><svg class="icon" viewBox="0 0 24 24" id="maxIcon"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
-      <button id="fsBtn2" title="Volledig scherm (F)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-      <button id="closeBtn" title="Sluiten"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button id="minBtn" title="Minimize" data-i18n-title="Minimize"><svg class="icon" viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+      <button id="maxBtn" title="Maximize" data-i18n-title="Maximize"><svg class="icon" viewBox="0 0 24 24" id="maxIcon"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
+      <button id="fsBtn2" title="Fullscreen (F)" data-i18n-title="Fullscreen (F)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button id="closeBtn" title="Close" data-i18n-title="Close"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </header>
 
   <div id="body">
     <nav id="rail">
-      <button class="nav" data-view="home" title="Home"><svg class="icon" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></button>
-      <button class="nav on" data-view="videos" title="Video's"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg><span class="lbl">Video's</span></button>
-      <button class="nav" data-view="music" title="Muziek"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="10" cy="15" r="2"/><path d="M12 15V8l4 1"/></svg><span class="lbl">Muziek</span></button>
-      <button class="nav" data-view="network" title="Netwerk"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg><span class="lbl">Netwerk</span></button>
-      <button class="nav" data-view="playlists" title="Afspeellijsten"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h12M4 11h12M4 16h7"/><path d="M15 14l5 3-5 3z" fill="currentColor"/></svg><span class="lbl">Afspeellijsten</span></button>
-      <button class="nav" data-view="recent" title="Recent"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg><span class="lbl">Recent</span></button>
-      <button class="nav" id="addBtn" title="Item toevoegen"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">Item toevoegen</span></button>
+      <button class="nav" data-view="home" title="Home" data-i18n-title="Home"><svg class="icon" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg><span class="lbl" data-i18n="Home">Home</span></button>
+      <button class="nav on" data-view="videos" title="Videos" data-i18n-title="Videos"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg><span class="lbl" data-i18n="Videos">Videos</span></button>
+      <button class="nav" data-view="music" title="Music" data-i18n-title="Music"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="10" cy="15" r="2"/><path d="M12 15V8l4 1"/></svg><span class="lbl" data-i18n="Music">Music</span></button>
+      <button class="nav" data-view="network" title="Network" data-i18n-title="Network"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg><span class="lbl" data-i18n="Network">Network</span></button>
+      <button class="nav" data-view="playlists" title="Playlists" data-i18n-title="Playlists"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h12M4 11h12M4 16h7"/><path d="M15 14l5 3-5 3z" fill="currentColor"/></svg><span class="lbl" data-i18n="Playlists">Playlists</span></button>
+      <button class="nav" data-view="recent" title="Recent" data-i18n-title="Recent"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg><span class="lbl" data-i18n="Recent">Recent</span></button>
+      <button class="nav" id="addBtn" title="Add item" data-i18n-title="Add item"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="lbl" data-i18n="Add item">Add item</span></button>
     </nav>
 
     <aside id="side">
       <div class="side-head">
-        <button class="ibtn" id="backBtn" style="width:26px;height:26px" title="Terug"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-        <h3 id="sideTitle">Video's</h3>
-        <button class="ibtn" id="sideMore" style="width:26px;height:26px" title="Meer"><svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+        <button class="ibtn" id="backBtn" style="width:26px;height:26px" title="Back" data-i18n-title="Back"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+        <h3 id="sideTitle">Videos</h3>
+        <button class="ibtn" id="sideMore" style="width:26px;height:26px" title="More" data-i18n-title="More"><svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
       </div>
       <div class="side-sub"><span id="sideCount">0 items</span><span class="spacer"></span>
-        <button class="ibtn" id="sortBtn" title="Sorteren" style="width:26px;height:26px"><svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg></button>
+        <button class="ibtn" id="sortBtn" title="Sort" data-i18n-title="Sort" style="width:26px;height:26px"><svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg></button>
       </div>
       <div id="sideList"></div>
     </aside>
@@ -50,24 +50,24 @@
     <main id="main">
       <section id="browser">
         <div id="toolbar">
-          <button class="ibtn" id="navBack" title="Terug"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-          <button class="ibtn" id="navFwd" title="Vooruit"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button class="ibtn" id="navBack" title="Back" data-i18n-title="Back"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <button class="ibtn" id="navFwd" title="Forward" data-i18n-title="Forward"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
           <div class="path" id="pathText"></div>
           <span id="count"></span>
-          <button class="ibtn" id="sortBtn2" title="Sorteren"><svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg></button>
-          <button class="ibtn" id="viewToggle" title="Lijst/raster"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg></button>
-          <div class="searchwrap"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="search" placeholder="Zoeken" autocomplete="off"></div>
-          <button class="ibtn" id="moreBtn" title="Meer"><svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+          <button class="ibtn" id="sortBtn2" title="Sort" data-i18n-title="Sort"><svg class="icon" viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg></button>
+          <button class="ibtn" id="viewToggle" title="Grid / list" data-i18n-title="Grid / list"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg></button>
+          <div class="searchwrap"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="search" placeholder="Search" data-i18n-ph="Search" autocomplete="off"></div>
+          <button class="ibtn" id="moreBtn" title="More" data-i18n-title="More"><svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
         </div>
         <div id="grid"></div>
         <div id="empty">
           <svg width="90" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="var(--accent)"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#ddd"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="var(--accent)"/><path d="M3 18h18l1 3H2z" fill="var(--accent)"/></svg>
-          <h2 id="emptyTitle">Nog geen media</h2>
-          <p id="emptyText">Sleep video- of audiobestanden hierheen, of open een bestand of map.</p>
+          <h2 id="emptyTitle"></h2>
+          <p id="emptyText"></p>
           <div class="row" id="emptyActions">
-            <button class="btn primary" id="openFiles">Bestanden openen</button>
-            <button class="btn" id="openFolder">Mediamap toevoegen</button>
-            <button class="btn" id="openUrl">Netwerkstream…</button>
+            <button class="btn primary" id="openFiles" data-i18n="Open files">Open files</button>
+            <button class="btn" id="openFolder" data-i18n="Add media folder">Add media folder</button>
+            <button class="btn" id="openUrl" data-i18n="Network stream…">Network stream…</button>
           </div>
         </div>
       </section>
@@ -85,7 +85,7 @@
       </section>
 
       <div id="mini">
-        <div id="miniCanvasWrap" title="Terug naar speler"><canvas id="miniCanvas" width="320" height="180"></canvas></div>
+        <div id="miniCanvasWrap" title="Back to player" data-i18n-title="Back to player"><canvas id="miniCanvas" width="320" height="180"></canvas></div>
         <div id="miniProg"><div></div></div>
         <div id="miniName">—</div>
         <div id="miniBar"><span id="miniTime">00:00</span><span class="spacer"></span>
@@ -99,25 +99,32 @@
   </div>
 
   <footer id="controls">
-    <button class="ibtn" id="prevBtn" title="Vorige (P)"><svg class="icon" viewBox="0 0 24 24"><path d="M6 5v14"/><path d="M19 5L9 12l10 7z" fill="currentColor"/></svg></button>
-    <button id="playBtn" title="Afspelen (Spatie)"><svg width="14" height="14" viewBox="0 0 24 24" id="playIcon"><path d="M6 4l14 8-14 8z"/></svg></button>
-    <button class="ibtn" id="nextBtn" title="Volgende (N)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 5v14"/><path d="M5 5l10 7-10 7z" fill="currentColor"/></svg></button>
+    <button class="ibtn" id="prevBtn" title="Previous (P)" data-i18n-title="Previous (P)"><svg class="icon" viewBox="0 0 24 24"><path d="M6 5v14"/><path d="M19 5L9 12l10 7z" fill="currentColor"/></svg></button>
+    <button id="playBtn" title="Play (Space)" data-i18n-title="Play (Space)"><svg width="14" height="14" viewBox="0 0 24 24" id="playIcon"><path d="M6 4l14 8-14 8z"/></svg></button>
+    <button class="ibtn" id="nextBtn" title="Next (N)" data-i18n-title="Next (N)"><svg class="icon" viewBox="0 0 24 24"><path d="M18 5v14"/><path d="M5 5l10 7-10 7z" fill="currentColor"/></svg></button>
     <span class="time" id="cur">00:00:00</span>
     <div id="seek"><div id="seekTrack"><div id="seekBuf"></div><div id="seekFill"></div><div id="seekHandle"></div></div><div id="seekTip"></div></div>
     <span class="time" id="dur">00:00:00</span>
-    <button class="ibtn" id="muteBtn" title="Dempen (M)"><svg class="icon" viewBox="0 0 24 24" id="muteIcon"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>
-    <div id="vol" title="Volume"><div id="volFill"></div></div>
+    <button class="ibtn" id="muteBtn" title="Mute (M)" data-i18n-title="Mute (M)"><svg class="icon" viewBox="0 0 24 24" id="muteIcon"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>
+    <div id="vol" title="Volume" data-i18n-title="Volume"><div id="volFill"></div></div>
     <div class="sep hide-sm"></div>
-    <button class="ibtn hide-sm" id="eqBtn" title="Audio"><svg class="icon" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button>
-    <button class="ibtn hide-sm" id="subBtn" title="Ondertitels"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 14h4M13 14h4"/></svg></button>
-    <button class="ibtn" id="setBtn" title="Instellingen"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5l2 2.6 3.2-.6.9 3.1 3 1.4-1.2 3 1.2 3-3 1.4-.9 3.1-3.2-.6-2 2.6-2-2.6-3.2.6-.9-3.1-3-1.4 1.2-3-1.2-3 3-1.4.9-3.1 3.2.6z"/></svg></button>
-    <button class="ibtn" id="listBtn" title="Bibliotheek / speler (L)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+    <button class="ibtn hide-sm" id="eqBtn" title="Audio" data-i18n-title="Audio"><svg class="icon" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button>
+    <button class="ibtn hide-sm" id="subBtn" title="Subtitles" data-i18n-title="Subtitles"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 14h4M13 14h4"/></svg></button>
+    <button class="ibtn" id="setBtn" title="Settings" data-i18n-title="Settings"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5l2 2.6 3.2-.6.9 3.1 3 1.4-1.2 3 1.2 3-3 1.4-.9 3.1-3.2-.6-2 2.6-2-2.6-3.2.6-.9-3.1-3-1.4 1.2-3-1.2-3 3-1.4.9-3.1 3.2.6z"/></svg></button>
+    <button class="ibtn" id="listBtn" title="Library / player (L)" data-i18n-title="Library / player (L)"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
   </footer>
 </div>
 
-<div id="drop">Laat los om toe te voegen</div>
+<div id="drop" data-i18n="Drop to add">Drop to add</div>
 
 <script src="settings.js"></script>
+<script src="i18n.js"></script>
+<script src="lang/nl.js"></script>
+<script src="lang/de.js"></script>
+<script src="lang/fr.js"></script>
+<script src="lang/es.js"></script>
+<script src="lang/it.js"></script>
+<script src="lang/pt.js"></script>
 <script src="ui.js"></script>
 <script src="effects.js"></script>
 <script src="panels.js"></script>

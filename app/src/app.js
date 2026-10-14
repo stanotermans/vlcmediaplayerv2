@@ -58,7 +58,7 @@ const sepOf = p => p.includes('\\') ? '\\' : '/';   // Windows vs. Linux/macOS p
 const under = (p, dir) => { const a = p.toLowerCase(), b = norm(dir).toLowerCase(); return a.startsWith(b + '\\') || a.startsWith(b + '/'); };
 const fmt = s => { if (!isFinite(s) || s < 0) s = 0; s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return [h, m, x].map(n => String(n).padStart(2, '0')).join(':'); };
 const shortFmt = s => { if (!isFinite(s) || !s) return ''; s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
-function osd(text) { const o = $('#osd'); o.textContent = text; o.classList.add('show'); clearTimeout(osd.t); osd.t = setTimeout(() => o.classList.remove('show'), 1500); }
+function osd(text) { const o = $('#osd'); o.textContent = t(text); o.classList.add('show'); clearTimeout(osd.t); osd.t = setTimeout(() => o.classList.remove('show'), 1500); }
 const isWatched = it => watched.has(it.src);
 
 /* ---------- adding media ---------- */
@@ -81,7 +81,7 @@ async function addSources(srcs, { play = true, silent = false, added, manual = t
   renderSoon();
   if (subs.length && state.current >= 0) for (const s of subs) addSubFile(s, true);
   if (play && first) playItem(state.items.indexOf(first));
-  else if (!silent && newOnes.length) osd(newOnes.length + ' item(s) toegevoegd');
+  else if (!silent && newOnes.length) osd(t('{n} item(s) added', { n: newOnes.length }));
   return newOnes;
 }
 let running = 0; const waiting = [];
@@ -117,14 +117,17 @@ async function scanFolders() {
 let curItemRef = null;
 async function addFolder(f) {
   if (!S.get('mediaFolders').includes(f)) S.set('mediaFolders', [...S.get('mediaFolders'), f]);
-  osd('Map wordt gescand…');
+  osd('Scanning folder…');
   await scanFolders();
-  osd('Mediamap toegevoegd');
+  osd('Media folder added');
 }
 async function removeFolder(f) { S.set('mediaFolders', S.get('mediaFolders').filter(x => x !== f)); state.dir = { videos: null, music: null }; await scanFolders(); }
 
 /* ---------- views & navigation ---------- */
-const VIEW_TITLES = { home: 'Home', videos: "Video's", music: 'Muziek', network: 'Netwerk', playlists: 'Afspeellijsten', recent: 'Recent' };
+const VIEW_TITLES = { home: 'Home', videos: 'Videos', music: 'Music', network: 'Network', playlists: 'Playlists', recent: 'Recent' };
+const viewTitle = v => t(VIEW_TITLES[v]);
+const itemsLabel = n => t(n === 1 ? '1 item' : '{n} items', { n });
+const REPEAT_NAMES = { off: 'Off', one: 'Current', all: 'All' };
 const typeOf = view => view === 'music' ? 'audio' : 'video';
 function sortItems(list) {
   return list.slice().sort(state.sort === 'name' ? (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }) : (a, b) => b.added - a.added);
@@ -189,19 +192,19 @@ function cardHTML(it) {
 }
 function folderHTML(f) {
   const t = S.get('showThumbs') && f.items.find(i => i.thumb);
-  return `<div class="card folder" data-dir="${esc(f.path)}" title="${esc(f.path)}"><div class="thumb">${t ? `<img src="${t.thumb}" alt="">` : ''}<span class="fic">${icon('folder')}</span><span class="fcount">${f.items.length} ${f.items.length === 1 ? 'item' : 'items'}</span></div><div class="name">${esc(f.name)}</div></div>`;
+  return `<div class="card folder" data-dir="${esc(f.path)}" title="${esc(f.path)}"><div class="thumb">${t ? `<img src="${t.thumb}" alt="">` : ''}<span class="fic">${icon('folder')}</span><span class="fcount">${itemsLabel(f.items.length)}</span></div><div class="name">${esc(f.name)}</div></div>`;
 }
-const sectionHead = t => `<div style="grid-column:1/-1;font-size:15px;font-weight:600;color:var(--text);margin-top:4px">${esc(t)}</div>`;
+const sectionHead = s => `<div style="grid-column:1/-1;font-size:15px;font-weight:600;color:var(--text);margin-top:4px">${esc(t(s))}</div>`;
 
 function render() {
   curItemRef = state.items[state.current] || null;
   const cur = curItemRef, v = state.view;
   $$('#rail [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === v));
   document.body.classList.toggle('nav-expanded', S.get('navExpanded'));
-  $('#crumbText').textContent = VIEW_TITLES[v];
+  $('#crumbText').textContent = viewTitle(v);
 
   // breadcrumb
-  const crumbs = [[VIEW_TITLES[v], () => navigate(v === 'playlists' ? { activePlaylist: null } : { dir: { ...state.dir, [v]: null } })]];
+  const crumbs = [[viewTitle(v), () => navigate(v === 'playlists' ? { activePlaylist: null } : { dir: { ...state.dir, [v]: null } })]];
   let b = null;
   if ((v === 'videos' || v === 'music') && !state.query) {
     b = browse(v);
@@ -213,11 +216,11 @@ function render() {
     }
   }
   if (v === 'playlists' && state.activePlaylist) crumbs.push([state.activePlaylist.name, null]);
-  if (state.query) crumbs.push([`Zoeken: "${state.query}"`, null]);
+  if (state.query) crumbs.push([t('Search: "{q}"', { q: state.query }), null]);
   const path = $('#pathText'); path.replaceChildren();
-  crumbs.forEach(([t, fn], i) => {
+  crumbs.forEach(([label, fn], i) => {
     if (i) path.append(el('span.crumb-sep', { text: '▶' }));
-    path.append(el('button.crumb' + (i === crumbs.length - 1 ? '.last' : ''), { type: 'button', onclick: fn && i < crumbs.length - 1 ? fn : null }, t));
+    path.append(el('button.crumb' + (i === crumbs.length - 1 ? '.last' : ''), { type: 'button', onclick: fn && i < crumbs.length - 1 ? fn : null }, label));
   });
   $('#navBack').style.opacity = history.back.length || mode === 'player' ? 1 : .35;
   $('#navFwd').style.opacity = history.fwd.length ? 1 : .35;
@@ -228,12 +231,12 @@ function render() {
   if (v === 'home' && !state.query) {
     const cont = state.items.filter(i => positions[i.src] && !isWatched(i)).slice(0, 10);
     const recentAdded = sortItems(state.items).sort((a, b) => b.added - a.added).slice(0, 15);
-    if (cont.length) html += sectionHead('Verder kijken') + cont.map(cardHTML).join('');
-    if (recentAdded.length) html += sectionHead('Onlangs toegevoegd') + recentAdded.map(cardHTML).join('');
+    if (cont.length) html += sectionHead('Continue watching') + cont.map(cardHTML).join('');
+    if (recentAdded.length) html += sectionHead('Recently added') + recentAdded.map(cardHTML).join('');
     count = state.items.length;
   } else if (v === 'playlists' && !state.activePlaylist && !state.query) {
-    html = state.playlists.map((p, i) => `<div class="card" data-pl="${i}"><div class="thumb" style="background:${p.cover ? `url('${p.cover}') center/cover` : 'var(--panel2)'};display:grid;place-items:center">${p.cover ? '' : `<span class="fic" style="color:var(--muted)">${icon('playlist', 'icon big')}</span>`}<span class="fcount" style="position:absolute;left:8px;bottom:6px;font-size:11px;color:#fff;background:#000a;padding:1px 6px;border-radius:3px">${p.srcs.length} items</span></div><div class="name">${esc(p.name)}</div></div>`).join('')
-      + `<div class="card" data-act="newpl"><div class="thumb" style="background:transparent;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted)">${icon('plus', 'icon big')}</div><div class="name" style="color:var(--muted)">Afspeellijst maken</div></div>`;
+    html = state.playlists.map((p, i) => `<div class="card" data-pl="${i}"><div class="thumb" style="background:${p.cover ? `url('${p.cover}') center/cover` : 'var(--panel2)'};display:grid;place-items:center">${p.cover ? '' : `<span class="fic" style="color:var(--muted)">${icon('playlist', 'icon big')}</span>`}<span class="fcount" style="position:absolute;left:8px;bottom:6px;font-size:11px;color:#fff;background:#000a;padding:1px 6px;border-radius:3px">${itemsLabel(p.srcs.length)}</span></div><div class="name">${esc(p.name)}</div></div>`).join('')
+      + `<div class="card" data-act="newpl"><div class="thumb" style="background:transparent;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted)">${icon('plus', 'icon big')}</div><div class="name" style="color:var(--muted)">${esc(t('Create playlist'))}</div></div>`;
     count = state.playlists.length;
   } else {
     const list = visibleItems();
@@ -242,17 +245,17 @@ function render() {
     count = list.length + (b && !state.query ? b.folders.length : 0);
   }
   grid.innerHTML = html;
-  $('#count').textContent = count ? count + (count === 1 ? ' item' : ' items') : '';
+  $('#count').textContent = count ? itemsLabel(count) : '';
   const empty = $('#empty'); const isEmpty = !html;
   empty.classList.toggle('show', isEmpty);
   if (isEmpty) {
-    const T = (t, x) => { $('#emptyTitle').textContent = t; $('#emptyText').textContent = x; };
-    if (state.query) T('Niets gevonden', 'Probeer een andere zoekterm.');
-    else if (v === 'playlists') T('Afspeellijst is leeg', 'Klik met rechts op een video of nummer en kies "Toevoegen aan afspeellijst".');
-    else if (v === 'network') T('Netwerkstreams', 'Open een URL (http/https, ook .m3u8-streams).');
-    else if (v === 'recent') T('Nog niets afgespeeld', 'Recent afgespeelde media verschijnen hier.');
-    else if (v === 'music') T('Nog geen muziek', 'Voeg een mediamap toe of sleep audiobestanden hierheen.');
-    else T('Nog geen media', 'Voeg een mediamap toe, sleep bestanden hierheen of open een bestand.');
+    const T = (a, b) => { $('#emptyTitle').textContent = t(a); $('#emptyText').textContent = t(b); };
+    if (state.query) T('Nothing found', 'Try a different search term.');
+    else if (v === 'playlists') T('Playlist is empty', 'Right-click a video or song and choose "Add to playlist".');
+    else if (v === 'network') T('Network streams', 'Open a URL (http/https, including .m3u8 streams).');
+    else if (v === 'recent') T('Nothing played yet', 'Recently played media will appear here.');
+    else if (v === 'music') T('No music yet', 'Add a media folder or drag audio files here.');
+    else T('No media yet', 'Add a media folder, drag files here or open a file.');
   }
   renderSide();
   $('#wintitle').textContent = cur ? cur.name : 'VLC Media Player';
@@ -260,24 +263,24 @@ function render() {
   updateMini();
 }
 function renderSide() {
-  const v = state.view; let html = '', title = VIEW_TITLES[v], n = 0;
+  const v = state.view; let html = '', title = viewTitle(v), n = 0;
   if (state.sideMode === 'queue') {
-    title = 'Wachtrij';
+    title = t('Queue');
     const q = queue(); n = q.length;
     html = q.map(it => { const idx = state.items.indexOf(it); return `<div class="srow ${idx === state.current ? 'on' : ''}" data-idx="${idx}" title="${esc(it.src)}">${idx === state.current ? ICON_PLAY : (isAudio(it) ? ICON_AUDIO : ICON_VIDEO)}<span>${esc(it.name)}</span></div>`; }).join('');
   } else if (v === 'playlists') {
     n = state.playlists.length;
-    html = `<div class="srow muted" data-act="newpl">${icon('plus')}<span>Afspeellijst maken</span></div>` +
+    html = `<div class="srow muted" data-act="newpl">${icon('plus')}<span>${esc(t('Create playlist'))}</span></div>` +
       state.playlists.map((p, i) => `<div class="srow ${state.activePlaylist === p ? 'on' : ''}" data-pl="${i}">${p.cover ? `<span class="cov" style="background-image:url('${p.cover}')"></span>` : icon('playlist')}<span>${esc(p.name)}</span></div>`).join('');
   } else {
     let entries = [];
     if ((v === 'videos' || v === 'music') && !state.query) { const b = browse(v); entries = b.folders.map(f => `<div class="srow" data-dir="${esc(f.path)}">${icon('folder')}<span>${esc(f.name)}</span></div>`); }
     const list = visibleItems(); n = list.length + entries.length;
     html = entries.join('') + list.map(it => { const idx = state.items.indexOf(it); return `<div class="srow ${idx === state.current ? 'on' : ''}" data-idx="${idx}" title="${esc(it.src)}">${idx === state.current ? ICON_PLAY : (isAudio(it) ? ICON_AUDIO : ICON_VIDEO)}<span>${esc(it.name)}</span></div>`; }).join('');
-    if (!n) html = `<div class="srow muted" data-act="files">${icon('plus')}<span>Media toevoegen</span></div>`;
+    if (!n) html = `<div class="srow muted" data-act="files">${icon('plus')}<span>${esc(t('Add media'))}</span></div>`;
   }
   $('#sideTitle').textContent = title;
-  $('#sideCount').textContent = n + (n === 1 ? ' item' : ' items');
+  $('#sideCount').textContent = itemsLabel(n);
   $('#sideList').innerHTML = html;
 }
 
@@ -303,7 +306,7 @@ function canDirect(info) {
   return P.audio === 0;
 }
 function setSpinner(on) { $('#spinner').classList.toggle('show', on); }
-function setBadge() { const b = $('#badge'); b.textContent = P.tx ? (P.vcopy ? 'ffmpeg · audio omgezet' : 'ffmpeg · omgezet') : ''; b.classList.toggle('show', P.tx && S.get('showBadge')); }
+function setBadge() { const b = $('#badge'); b.textContent = P.tx ? t(P.vcopy ? 'ffmpeg · audio converted' : 'ffmpeg · converted') : ''; b.classList.toggle('show', P.tx && S.get('showBadge')); }
 
 let loadSeq = 0;
 async function loadSource(at, autoplay) {
@@ -347,7 +350,7 @@ async function playItem(idx, autoplay = true) {
   P.tx = S.get('forceTx') || !canDirect(it.info);
   const resumeAt = S.get('resume') && positions[it.src] && positions[it.src] < (it.duration || 1e9) - 5 ? positions[it.src] : 0;
   loadSource(resumeAt, autoplay);
-  if (resumeAt) osd('Hervat vanaf ' + shortFmt(resumeAt));
+  if (resumeAt) osd(t('Resuming from {time}', { time: shortFmt(resumeAt) }));
   setIdle(it);
   if (S.get('rememberRecent')) { state.recent = [it.src, ...state.recent.filter(s => s !== it.src)]; saveRecent(); }
   setupSubs(it);
@@ -357,19 +360,19 @@ video.addEventListener('loadedmetadata', () => {
   const it = curItem(); if (!it) return;
   if (!P.tx && P.pendingSeek) { video.currentTime = P.pendingSeek; P.pendingSeek = 0; }
   if (!P.tx && isFinite(video.duration) && video.duration > 0) it.duration = video.duration;
-  if (!P.tx && it.info && it.info.vcodec && !video.videoWidth) return fallbackToTx('Video-codec niet ondersteund');
+  if (!P.tx && it.info && it.info.vcodec && !video.videoWidth) return fallbackToTx('Video codec not supported');
   setIdle(it);
 });
 video.addEventListener('error', () => {
   if (!curItem() || !video.getAttribute('src')) return;
-  if (!P.tx) return fallbackToTx('Formaat niet ondersteund');
+  if (!P.tx) return fallbackToTx('Format not supported');
   if (P.vcopy && !P.forceReencode) { P.forceReencode = true; return loadSource(curTime(), true); }
-  setSpinner(false); osd('Kan dit bestand niet afspelen');
+  setSpinner(false); osd('Cannot play this file');
 });
 function fallbackToTx(why) {
   if (P.retried) return; P.retried = true;
   const t = P.pendingSeek || video.currentTime || 0;
-  P.tx = true; osd(why + ' – omzetten met ffmpeg…'); loadSource(t, true);
+  P.tx = true; osd(t('{reason} – converting with ffmpeg…', { reason: t(why) })); loadSource(t, true);
 }
 video.addEventListener('waiting', () => setSpinner(true));
 video.addEventListener('playing', () => setSpinner(false));
@@ -413,7 +416,7 @@ function step(dir, auto) {
   const q = queue(); if (!q.length) return;
   if (S.get('shuffle') && q.length > 1) { let n; do { n = q[Math.floor(Math.random() * q.length)]; } while (state.items.indexOf(n) === state.current); return playItem(state.items.indexOf(n)); }
   let pos = q.findIndex(i => state.items.indexOf(i) === state.current) + dir;
-  if (pos >= q.length) { if (S.get('repeat') === 'all') pos = 0; else { setPlayIcon(); render(); return auto ? null : osd('Einde van de lijst'); } }
+  if (pos >= q.length) { if (S.get('repeat') === 'all') pos = 0; else { setPlayIcon(); render(); return auto ? null : osd('End of the list'); } }
   if (pos < 0) pos = S.get('repeat') === 'all' ? q.length - 1 : 0;
   playItem(state.items.indexOf(q[pos]));
 }
@@ -430,7 +433,7 @@ function setPlayIcon() {
   const p = video.paused;
   $('#playIcon').innerHTML = p ? '<path d="M6 4l14 8-14 8z"/>' : '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
   $('#miniPlay').innerHTML = icon(p ? 'play' : 'pause');
-  $('#playBtn').title = p ? 'Afspelen (Spatie)' : 'Pauzeren (Spatie)';
+  $('#playBtn').title = t(p ? 'Play (Space)' : 'Pause (Space)');
 }
 let dragging = false;
 function updateTime() {
@@ -457,15 +460,15 @@ function setMuteIcon() { const m = video.muted || volume === 0; $('#muteIcon').i
 const vol = $('#vol'); let vdrag = false;
 vol.addEventListener('pointerdown', e => { vdrag = true; vol.setPointerCapture(e.pointerId); video.muted = false; setVol(frac(e, vol)); });
 vol.addEventListener('pointermove', e => { if (vdrag) setVol(frac(e, vol)); });
-vol.addEventListener('pointerup', () => { vdrag = false; osd('Volume ' + Math.round(volume * 100) + '%'); });
-const volWheel = e => { e.preventDefault(); video.muted = false; setVol(volume + (e.deltaY < 0 ? .05 : -.05)); osd('Volume ' + Math.round(volume * 100) + '%'); };
+vol.addEventListener('pointerup', () => { vdrag = false; osd(t('Volume {v}%', { v: Math.round(volume * 100) })); });
+const volWheel = e => { e.preventDefault(); video.muted = false; setVol(volume + (e.deltaY < 0 ? .05 : -.05)); osd(t('Volume {v}%', { v: Math.round(volume * 100) })); };
 vol.addEventListener('wheel', volWheel, { passive: false });
 $('#player').addEventListener('wheel', e => {
   const w = S.get('wheel') || 'volume';
   if (w === 'volume') volWheel(e);
   else if (w === 'seek') { e.preventDefault(); seekTo(curTime() + (e.deltaY < 0 ? 5 : -5)); }
 }, { passive: false });
-const toggleMute = () => { video.muted = !video.muted; setMuteIcon(); osd(video.muted ? 'Gedempt' : 'Volume ' + Math.round(volume * 100) + '%'); };
+const toggleMute = () => { video.muted = !video.muted; setMuteIcon(); osd(video.muted ? 'Muted' : t('Volume {v}%', { v: Math.round(volume * 100) })); };
 $('#muteBtn').onclick = toggleMute;
 setVol(volume);
 
@@ -489,7 +492,7 @@ $('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('button
 function toggleFs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
 document.addEventListener('fullscreenchange', () => { document.body.classList.toggle('fullscreen', !!document.fullscreenElement); if (document.fullscreenElement) showPlayer(); });
 let hideT; document.addEventListener('mousemove', () => { document.body.classList.remove('hidecursor'); clearTimeout(hideT); hideT = setTimeout(() => { if (!video.paused) document.body.classList.add('hidecursor'); }, S.get('hideCursorDelay') * 1000); });
-function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); if (on) showPlayer(); osd(on ? 'Interface verborgen – Ctrl+\\ om terug te zetten' : 'Interface zichtbaar'); }
+function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); if (on) showPlayer(); osd(on ? 'Interface hidden – press Ctrl+\\ to show it again' : 'Interface visible'); }
 
 /* ---------- per-frame: mini preview + subtitles ---------- */
 const mctx = $('#miniCanvas').getContext('2d');
@@ -529,7 +532,7 @@ function parseVTT(text) {
 }
 function clearSubs() { SUB.tracks = []; SUB.active = -1; subSync.delay = 0; subSync.speed = 1; subSync.dur = 0; }
 async function setupSubs(it) {
-  if (it.info) it.info.subs.forEach(s => SUB.tracks.push({ label: s.label + (BITMAP.test(s.codec) ? ' (beeld – niet ondersteund)' : ''), lang: s.lang, src: it.src, idx: s.i, bitmap: BITMAP.test(s.codec) }));
+  if (it.info) it.info.subs.forEach(s => SUB.tracks.push({ label: s.label + (BITMAP.test(s.codec) ? ' (' + t('image-based, not supported') + ')' : ''), lang: s.lang, src: it.src, idx: s.i, bitmap: BITMAP.test(s.codec) }));
   if (!it.remote && S.get('subAuto')) {
     const sib = await api.siblingSubs(it.src); if (curItem() !== it) return;
     for (const f of sib) SUB.tracks.push({ label: baseName(f), src: f, idx: null });
@@ -540,15 +543,15 @@ async function setupSubs(it) {
 }
 async function addSubFile(file, select) { SUB.tracks.push({ label: baseName(file), src: file, idx: null }); if (select) await selectSub(SUB.tracks.length - 1); quick && quick.refresh(); }
 async function selectSub(i) {
-  if (i < 0) { SUB.active = -1; osd('Ondertitels uit'); return; }
+  if (i < 0) { SUB.active = -1; osd('Subtitles off'); return; }
   SUB.active = i;
   const tr = SUB.tracks[i]; if (!tr) return;
-  if (tr.bitmap) { osd('Beeld-ondertitels worden niet ondersteund'); SUB.active = -1; return; }
-  if (!tr.cues) { osd('Ondertitels laden…'); const txt = await api.subs(tr.src, tr.idx); tr.cues = txt ? parseVTT(txt) : []; }
-  osd(tr.cues.length ? 'Ondertitels: ' + tr.label : 'Geen ondertitels gevonden');
+  if (tr.bitmap) { osd('Image-based subtitles are not supported'); SUB.active = -1; return; }
+  if (!tr.cues) { osd('Loading subtitles…'); const txt = await api.subs(tr.src, tr.idx); tr.cues = txt ? parseVTT(txt) : []; }
+  osd(tr.cues.length ? t('Subtitles: {name}', { name: tr.label }) : 'No subtitles found');
 }
-async function loadSubFile() { if (state.current < 0) return osd('Speel eerst iets af'); const f = await api.openSubtitle(); if (f) addSubFile(f, true); }
-function cycleSubs() { if (!SUB.tracks.length) return osd('Geen ondertitels'); const n = SUB.active + 1 >= SUB.tracks.length ? -1 : SUB.active + 1; selectSub(n); }
+async function loadSubFile() { if (state.current < 0) return osd('Play something first'); const f = await api.openSubtitle(); if (f) addSubFile(f, true); }
+function cycleSubs() { if (!SUB.tracks.length) return osd('No subtitles'); const n = SUB.active + 1 >= SUB.tracks.length ? -1 : SUB.active + 1; selectSub(n); }
 function applySubStyle() {
   const r = document.documentElement.style;
   r.setProperty('--subsize', S.get('subSize') / 100); r.setProperty('--subcolor', S.get('subColor')); r.setProperty('--subout', S.get('subOutline'));
@@ -558,14 +561,14 @@ function applySubStyle() {
 applySubStyle();
 
 /* ---------- audio tracks ---------- */
-const audioTracks = () => { const it = curItem(); const t = it && it.info ? it.info.audio : []; return t.length ? t.map(a => [a.i, `${a.label} (${a.codec}${a.ch ? ', ' + a.ch + 'ch' : ''})`]) : [[0, 'Standaard']]; };
-function setAudioTrack(i) { if (!curItem()) return; P.audio = i; P.tx = S.get('forceTx') || !canDirect(curItem().info) || P.audio > 0; loadSource(curTime(), !video.paused); const t = audioTracks().find(x => x[0] === i); osd('Audiospoor: ' + (t ? t[1] : i)); }
-function cycleAudio() { const n = audioTracks().length; if (n < 2) return osd('Maar één audiospoor'); setAudioTrack((P.audio + 1) % n); }
+const audioTracks = () => { const it = curItem(); const t = it && it.info ? it.info.audio : []; return t.length ? t.map(a => [a.i, `${a.label} (${a.codec}${a.ch ? ', ' + a.ch + 'ch' : ''})`]) : [[0, 'Default']]; };
+function setAudioTrack(i) { if (!curItem()) return; P.audio = i; P.tx = S.get('forceTx') || !canDirect(curItem().info) || P.audio > 0; loadSource(curTime(), !video.paused); const tk = audioTracks().find(x => x[0] === i); osd(t('Audio track: {name}', { name: tk ? tk[1] : i })); }
+function cycleAudio() { const n = audioTracks().length; if (n < 2) return osd('Only one audio track'); setAudioTrack((P.audio + 1) % n); }
 
 /* ---------- recording ---------- */
 async function toggleRecord() { rec ? stopRecord() : startRecord(); }
 async function startRecord() {
-  const it = curItem(); if (!it) return osd('Speel eerst iets af');
+  const it = curItem(); if (!it) return osd('Play something first');
   try {
     const stream = video.captureStream();
     if (!S.get('recAudio')) stream.getAudioTracks().forEach(t => stream.removeTrack(t));
@@ -576,25 +579,25 @@ async function startRecord() {
     const file = await api.recStart(S.get('recDir') || PATHS.recordings, name);
     let chain = Promise.resolve();
     mr.ondataavailable = e => { if (e.data.size) chain = chain.then(async () => api.recChunk(file, await e.data.arrayBuffer())); };
-    mr.onstop = () => { chain = chain.then(() => api.recStop(file)).then(f => osd('Opname opgeslagen in ' + (S.get('recDir') || 'Video\'s\\VLC'))); };
+    mr.onstop = () => { chain = chain.then(() => api.recStop(file)).then(f => osd(t('Recording saved to {dir}', { dir: S.get('recDir') || PATHS.recordings }))); };
     mr.start(1000);
     rec = { mr, file, t0: performance.now() };
     $('#rec').classList.add('show');
-    osd('Opnemen gestart');
+    osd('Recording started');
     if (video.paused) video.play();
-  } catch (e) { console.error(e); osd('Opnemen niet mogelijk'); }
+  } catch (e) { console.error(e); osd('Recording not possible'); }
 }
 function stopRecord() { if (!rec) return; try { rec.mr.stop(); } catch {} rec = null; $('#rec').classList.remove('show'); }
 
 /* ---------- snapshot ---------- */
 async function snapshot() {
-  if (!video.videoWidth) return osd('Geen videobeeld');
+  if (!video.videoWidth) return osd('No video image');
   const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
   const x = c.getContext('2d'); x.filter = FX.filterString(); x.drawImage(video, 0, 0);
   const ext = S.get('snapshotFormat') === 'jpg' ? 'jpg' : 'png';
   const name = `vlcsnap-${(curItem()?.name || 'video').replace(/\.[^.]+$/, '').replace(/[^\w.-]+/g, '_')}-${fmt(curTime()).replace(/:/g, '-')}.${ext}`;
-  try { await api.snapshot(c.toDataURL(ext === 'jpg' ? 'image/jpeg' : 'image/png', 0.92), name, S.get('snapshotDir') || PATHS.snapshots); osd('Momentopname opgeslagen'); }
-  catch { osd('Momentopname mislukt'); }
+  try { await api.snapshot(c.toDataURL(ext === 'jpg' ? 'image/jpeg' : 'image/png', 0.92), name, S.get('snapshotDir') || PATHS.snapshots); osd('Snapshot saved'); }
+  catch { osd('Snapshot failed'); }
 }
 
 /* ---------- playlists ---------- */
@@ -604,15 +607,15 @@ function createPlaylist(name, srcs = [], cover = null, open = false) {
   if (srcs.length) addSources(srcs, { play: false, silent: true });
   if (open) navigate({ view: 'playlists', activePlaylist: p });
   else render();
-  osd('Afspeellijst "' + name + '" gemaakt');
+  osd(t('Playlist "{name}" created', { name }));
   return p;
 }
 async function addToPlaylist(it) {
   if (!state.playlists.length) { const p = await Panels.newPlaylist(App); if (!p) return; }
-  const i = await UI.choose('Toevoegen aan afspeellijst', state.playlists.map(p => p.name), 'Toevoegen');
+  const i = await UI.choose('Add to playlist', state.playlists.map(p => p.name), 'Add');
   if (i == null) return;
   const p = state.playlists[i]; if (!p.srcs.includes(it.src)) p.srcs.push(it.src);
-  savePlaylists(); osd('Toegevoegd aan ' + p.name); render();
+  savePlaylists(); osd(t('Added to {name}', { name: p.name })); render();
 }
 function removeItem(it) {
   const idx = state.items.indexOf(it);
@@ -634,9 +637,9 @@ $('#sideToggle').onclick = () => { if (S.get('navExpanded')) return S.set('navEx
 $('#backBtn').onclick = $('#navBack').onclick = goBack;
 $('#navFwd').onclick = goFwd;
 $('#sideMore').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu([
-  { label: state.sideMode === 'queue' ? 'Bibliotheek tonen' : 'Wachtrij tonen', icon: 'queue', kbd: 'Q', action: toggleQueue },
-  { label: 'Zijbalk met labels', icon: 'pointer', checked: S.get('navExpanded'), action: () => S.set('navExpanded', !S.get('navExpanded')) },
-  { label: 'Zijbalk verbergen', icon: 'hide', action: () => $('#side').classList.add('hidden') },
+  { label: state.sideMode === 'queue' ? 'Show library' : 'Show queue', icon: 'queue', kbd: 'Q', action: toggleQueue },
+  { label: 'Sidebar with labels', icon: 'pointer', checked: S.get('navExpanded'), action: () => S.set('navExpanded', !S.get('navExpanded')) },
+  { label: 'Hide sidebar', icon: 'hide', action: () => $('#side').classList.add('hidden') },
 ], r.left, r.bottom + 4); };
 $('#sideList').addEventListener('click', e => {
   const r = e.target.closest('.srow'); if (!r) return;
@@ -655,12 +658,12 @@ $('#grid').addEventListener('click', e => {
 });
 $('#search').addEventListener('input', e => { state.query = e.target.value.trim().toLowerCase(); render(); });
 $('#viewToggle').onclick = () => { state.list = !state.list; render(); };
-$('#sortBtn').onclick = $('#sortBtn2').onclick = () => { state.sort = state.sort === 'name' ? 'added' : 'name'; osd(state.sort === 'name' ? 'Sorteren op naam' : 'Sorteren op datum toegevoegd'); render(); };
+$('#sortBtn').onclick = $('#sortBtn2').onclick = () => { state.sort = state.sort === 'name' ? 'added' : 'name'; osd(state.sort === 'name' ? 'Sort by name' : 'Sort by date added'); render(); };
 $('#moreBtn').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu([
-  { label: 'Raster / lijst', icon: 'queue', action: () => { state.list = !state.list; render(); } },
-  { label: state.sort === 'name' ? 'Sorteren op datum' : 'Sorteren op naam', icon: 'speed', action: () => $('#sortBtn').click() },
+  { label: 'Grid / list', icon: 'queue', action: () => { state.list = !state.list; render(); } },
+  { label: state.sort === 'name' ? 'Sort by date' : 'Sort by name', icon: 'speed', action: () => $('#sortBtn').click() },
   { sep: true }, ...openMediaItems(), { sep: true },
-  { label: 'Mediamappen beheren…', icon: 'library', action: () => Panels.openSettings(App, 'library') },
+  { label: 'Manage media folders…', icon: 'library', action: () => Panels.openSettings(App, 'library') },
 ], r.right - 260, r.bottom + 4); };
 $('#openFiles').onclick = () => doAct('files');
 $('#openFolder').onclick = () => doAct('addfolder');
@@ -684,31 +687,31 @@ document.addEventListener('contextmenu', e => {
   if (card) {
     const it = state.items[+card.dataset.idx];
     UI.menu([
-      { label: 'Afspelen', icon: 'play', accent: true, action: () => playItem(state.items.indexOf(it)) },
-      { label: 'Toevoegen aan afspeellijst…', icon: 'playlist', action: () => addToPlaylist(it) },
-      { label: isWatched(it) ? 'Markeren als niet bekeken' : 'Markeren als bekeken', icon: 'eye', action: () => { isWatched(it) ? watched.delete(it.src) : watched.add(it.src); saveWatched(); render(); } },
-      !it.remote ? { label: 'Tonen in Verkenner', icon: 'folder', action: () => api.reveal(it.src) } : null,
-      { label: 'Media-informatie', icon: 'info', action: () => mediaInfo(it) },
+      { label: 'Play', icon: 'play', accent: true, action: () => playItem(state.items.indexOf(it)) },
+      { label: 'Add to playlist…', icon: 'playlist', action: () => addToPlaylist(it) },
+      { label: isWatched(it) ? 'Mark as unwatched' : 'Mark as watched', icon: 'eye', action: () => { isWatched(it) ? watched.delete(it.src) : watched.add(it.src); saveWatched(); render(); } },
+      !it.remote ? { label: 'Show in folder', icon: 'folder', action: () => api.reveal(it.src) } : null,
+      { label: 'Media information', icon: 'info', action: () => mediaInfo(it) },
       { sep: true },
       state.view === 'playlists' && state.activePlaylist
-        ? { label: 'Uit afspeellijst halen', icon: 'trash', danger: true, action: () => { const p = state.activePlaylist; p.srcs = p.srcs.filter(s => s !== it.src); savePlaylists(); render(); } }
-        : { label: 'Verwijderen uit bibliotheek', icon: 'trash', danger: true, action: () => removeItem(it) },
+        ? { label: 'Remove from playlist', icon: 'trash', danger: true, action: () => { const p = state.activePlaylist; p.srcs = p.srcs.filter(s => s !== it.src); savePlaylists(); render(); } }
+        : { label: 'Remove from library', icon: 'trash', danger: true, action: () => removeItem(it) },
     ], e.clientX, e.clientY);
   } else if (pl) {
     const p = state.playlists[+pl.dataset.pl];
     UI.menu([
-      { label: 'Afspelen', icon: 'play', accent: true, action: () => { const f = bySrc(p.srcs[0]); if (f) { state.queueList = p.srcs.map(bySrc).filter(Boolean); playItem(state.items.indexOf(f)); } else osd('Afspeellijst is leeg'); } },
-      { label: 'Naam wijzigen…', icon: 'general', action: async () => { const n = await UI.prompt('Naam wijzigen', { value: p.name }); if (n && n.trim()) { p.name = n.trim(); savePlaylists(); render(); } } },
-      { label: 'Omslag kiezen…', icon: 'camera', action: async () => { const f = await api.chooseFile('Omslagafbeelding', ['png', 'jpg', 'jpeg', 'webp']); if (f) { p.cover = await api.readImage(f); savePlaylists(); render(); } } },
+      { label: 'Play', icon: 'play', accent: true, action: () => { const f = bySrc(p.srcs[0]); if (f) { state.queueList = p.srcs.map(bySrc).filter(Boolean); playItem(state.items.indexOf(f)); } else osd('Playlist is empty'); } },
+      { label: 'Rename…', icon: 'general', action: async () => { const n = await UI.prompt('Rename', { value: p.name }); if (n && n.trim()) { p.name = n.trim(); savePlaylists(); render(); } } },
+      { label: 'Choose cover…', icon: 'camera', action: async () => { const f = await api.chooseFile(t('Cover image'), ['png', 'jpg', 'jpeg', 'webp']); if (f) { p.cover = await api.readImage(f); savePlaylists(); render(); } } },
       { sep: true },
-      { label: 'Verwijderen', icon: 'trash', danger: true, action: async () => { if (await UI.confirm('Afspeellijst verwijderen?', p.name, 'Verwijderen')) { state.playlists.splice(state.playlists.indexOf(p), 1); if (state.activePlaylist === p) state.activePlaylist = null; savePlaylists(); render(); } } },
+      { label: 'Delete', icon: 'trash', danger: true, action: async () => { if (await UI.confirm('Delete playlist?', p.name, 'Delete')) { state.playlists.splice(state.playlists.indexOf(p), 1); if (state.activePlaylist === p) state.activePlaylist = null; savePlaylists(); render(); } } },
     ], e.clientX, e.clientY);
   } else if (dir) {
     const path = dir.dataset.dir;
     UI.menu([
-      { label: 'Openen', icon: 'folder', action: () => navigate({ dir: { ...state.dir, [state.view]: path } }) },
-      { label: 'Alles afspelen', icon: 'play', accent: true, action: () => { const list = sortItems(state.items.filter(i => under(i.src, path) && i.type === typeOf(state.view))); if (list.length) { state.queueList = list; playItem(state.items.indexOf(list[0])); } } },
-      { label: 'Tonen in Verkenner', icon: 'open', action: () => api.openPath(path) },
+      { label: 'Open', icon: 'folder', action: () => navigate({ dir: { ...state.dir, [state.view]: path } }) },
+      { label: 'Play all', icon: 'play', accent: true, action: () => { const list = sortItems(state.items.filter(i => under(i.src, path) && i.type === typeOf(state.view))); if (list.length) { state.queueList = list; playItem(state.items.indexOf(list[0])); } } },
+      { label: 'Show in folder', icon: 'open', action: () => api.openPath(path) },
     ], e.clientX, e.clientY);
   }
 });
@@ -716,111 +719,111 @@ document.addEventListener('contextmenu', e => {
 /* ---------- player right-click menu (design: right-click menu.png) ---------- */
 function openMediaItems() {
   return [
-    { label: 'Bestanden openen…', icon: 'file', kbd: 'Ctrl + O', action: () => doAct('files') },
-    { label: 'Map openen…', icon: 'folder', kbd: 'Ctrl + F', action: () => doAct('folder') },
-    { label: 'Mediamap toevoegen…', icon: 'library', action: () => doAct('addfolder') },
-    { label: 'Netwerkstream openen…', icon: 'network', kbd: 'Ctrl + N', action: () => doAct('url') },
+    { label: 'Open files…', icon: 'file', kbd: 'Ctrl + O', action: () => doAct('files') },
+    { label: 'Open folder…', icon: 'folder', kbd: 'Ctrl + F', action: () => doAct('folder') },
+    { label: 'Add media folder…', icon: 'library', action: () => doAct('addfolder') },
+    { label: 'Open network stream…', icon: 'network', kbd: 'Ctrl + N', action: () => doAct('url') },
   ];
 }
 function playerMenu(x, y) {
   const it = curItem(), rate = +video.playbackRate.toFixed(2);
   UI.menu([
-    { label: video.paused ? 'Afspelen' : 'Pauzeren', icon: video.paused ? 'play' : 'pause', accent: true, kbd: 'Spatie', action: togglePlay },
-    { label: 'Stoppen', icon: 'stop', accent: true, kbd: 'S', action: stopPlayback, disabled: !it },
-    { label: 'Vorige', icon: 'prev', accent: true, kbd: 'P', action: prev, disabled: !it },
-    { label: 'Volgende', icon: 'next', accent: true, kbd: 'N', action: () => step(1), disabled: !it },
-    { label: rec ? 'Opname stoppen' : 'Opnemen', icon: 'record', accent: true, kbd: 'R', action: toggleRecord, disabled: !it },
-    { label: document.body.classList.contains('hide-ui') ? 'Interface tonen' : 'Interface verbergen', icon: 'hide', kbd: 'Ctrl + \\', action: toggleHideUI },
+    { label: video.paused ? 'Play' : 'Pause', icon: video.paused ? 'play' : 'pause', accent: true, kbd: 'Space', action: togglePlay },
+    { label: 'Stop', icon: 'stop', accent: true, kbd: 'S', action: stopPlayback, disabled: !it },
+    { label: 'Previous', icon: 'prev', accent: true, kbd: 'P', action: prev, disabled: !it },
+    { label: 'Next', icon: 'next', accent: true, kbd: 'N', action: () => step(1), disabled: !it },
+    { label: rec ? 'Stop recording' : 'Record', icon: 'record', accent: true, kbd: 'R', action: toggleRecord, disabled: !it },
+    { label: document.body.classList.contains('hide-ui') ? 'Show interface' : 'Hide interface', icon: 'hide', kbd: 'Ctrl + \\', action: toggleHideUI },
     { sep: true },
-    { label: 'Afspelen', icon: 'playback', sub: () => [
-      { header: 'Snelheid' }, ...[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3].map(r => ({ label: r + '×', checked: rate === r, action: () => { video.playbackRate = r; osd('Snelheid ' + r + '×'); } })),
+    { label: 'Playback', icon: 'playback', sub: () => [
+      { header: 'Speed' }, ...[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3].map(r => ({ label: r + '×', checked: rate === r, action: () => { video.playbackRate = r; osd(t('Speed {v}×', { v: r })); } })),
       { sep: true },
-      { label: 'Herhalen: ' + ({ off: 'uit', one: 'huidige', all: 'alles' })[S.get('repeat')], icon: 'repeat', action: () => { const n = { off: 'one', one: 'all', all: 'off' }[S.get('repeat')]; S.set('repeat', n); osd('Herhalen: ' + ({ off: 'uit', one: 'huidige', all: 'alles' })[n]); } },
-      { label: 'Willekeurig', icon: 'shuffle', checked: S.get('shuffle'), action: () => S.set('shuffle', !S.get('shuffle')) },
-      { label: 'Automatisch volgende', checked: S.get('autoNext'), action: () => S.set('autoNext', !S.get('autoNext')) },
+      { label: t('Repeat: {mode}', { mode: t(REPEAT_NAMES[S.get('repeat')]) }), icon: 'repeat', action: () => { const n = { off: 'one', one: 'all', all: 'off' }[S.get('repeat')]; S.set('repeat', n); osd(t('Repeat: {mode}', { mode: t(REPEAT_NAMES[n]) })); } },
+      { label: 'Shuffle', icon: 'shuffle', checked: S.get('shuffle'), action: () => S.set('shuffle', !S.get('shuffle')) },
+      { label: 'Autoplay next', checked: S.get('autoNext'), action: () => S.set('autoNext', !S.get('autoNext')) },
       { sep: true },
-      { label: `${S.get('jump')} s vooruit`, kbd: '→', action: () => seekTo(curTime() + S.get('jump')) },
-      { label: `${S.get('jump')} s terug`, kbd: '←', action: () => seekTo(curTime() - S.get('jump')) },
+      { label: t('{n} s forward', { n: S.get('jump') }), kbd: '→', action: () => seekTo(curTime() + S.get('jump')) },
+      { label: t('{n} s back', { n: S.get('jump') }), kbd: '←', action: () => seekTo(curTime() - S.get('jump')) },
     ] },
     { label: 'Video', icon: 'video', sub: () => [
-      { label: 'Volledig scherm', icon: 'fullscreen', kbd: 'F', action: toggleFs },
-      { label: 'Momentopname', icon: 'camera', kbd: 'Shift + S', action: snapshot },
-      { label: 'Beeld-in-beeld', icon: 'pip', action: () => doAct('pip') },
-      { sep: true }, { header: 'Beeldverhouding' },
-      ...[['', 'Standaard'], ['fill', 'Vullen'], ['stretch', 'Uitrekken']].map(([v, l]) => ({ label: l, checked: S.get('aspect') === v, action: () => S.set('aspect', v) })),
+      { label: 'Fullscreen', icon: 'fullscreen', kbd: 'F', action: toggleFs },
+      { label: 'Snapshot', icon: 'camera', kbd: 'Shift + S', action: snapshot },
+      { label: 'Picture-in-picture', icon: 'pip', action: () => doAct('pip') },
+      { sep: true }, { header: 'Aspect ratio' },
+      ...[['', 'Default'], ['fill', 'Fill'], ['stretch', 'Stretch']].map(([v, l]) => ({ label: l, checked: S.get('aspect') === v, action: () => S.set('aspect', v) })),
       { sep: true },
-      { label: 'Draaien 90°', icon: 'rotate', action: () => S.set('vf.rotate', (S.get('vf.rotate') + 90) % 360) },
-      { label: 'Spiegelen', checked: S.get('vf.mirror'), action: () => S.set('vf.mirror', !S.get('vf.mirror')) },
-      { label: 'Videofilters…', icon: 'settings', action: () => quick.toggle('video') },
+      { label: 'Rotate 90°', icon: 'rotate', action: () => S.set('vf.rotate', (S.get('vf.rotate') + 90) % 360) },
+      { label: 'Mirror', checked: S.get('vf.mirror'), action: () => S.set('vf.mirror', !S.get('vf.mirror')) },
+      { label: 'Video filters…', icon: 'settings', action: () => quick.toggle('video') },
     ] },
     { label: 'Audio', icon: 'audio', sub: () => [
-      { header: 'Audiospoor' }, ...audioTracks().map(([i, l]) => ({ label: l, checked: P.audio === i, action: () => setAudioTrack(i) })),
+      { header: 'Audio track' }, ...audioTracks().map(([i, l]) => ({ label: l, checked: P.audio === i, action: () => setAudioTrack(i) })),
       { sep: true },
-      { label: video.muted ? 'Dempen opheffen' : 'Dempen', icon: video.muted ? 'volume' : 'mute', kbd: 'M', action: toggleMute },
+      { label: video.muted ? 'Unmute' : 'Mute', icon: video.muted ? 'volume' : 'mute', kbd: 'M', action: toggleMute },
       { label: 'Equalizer', checked: S.get('eqOn'), action: () => S.set('eqOn', !S.get('eqOn')) },
-      { label: 'Audio-effecten…', icon: 'settings', action: () => quick.toggle('audio') },
+      { label: 'Audio effects…', icon: 'settings', action: () => quick.toggle('audio') },
     ] },
-    { label: 'Ondertitel', icon: 'subtitle', sub: () => [
-      { label: 'Uit', checked: SUB.active < 0, action: () => selectSub(-1) },
+    { label: 'Subtitle', icon: 'subtitle', sub: () => [
+      { label: 'Off', checked: SUB.active < 0, action: () => selectSub(-1) },
       ...SUB.tracks.map((t, i) => ({ label: t.label, checked: SUB.active === i, disabled: t.bitmap, action: () => selectSub(i) })),
       { sep: true },
-      { label: 'Bestand toevoegen…', icon: 'file', action: loadSubFile, disabled: !it },
-      { label: 'Vertraging −0,1 s', kbd: 'G', action: () => nudgeSub(-0.1) },
-      { label: 'Vertraging +0,1 s', kbd: 'H', action: () => nudgeSub(0.1) },
-      { label: 'Ondertitel-instellingen…', icon: 'settings', action: () => quick.toggle('subs') },
+      { label: 'Add file…', icon: 'file', action: loadSubFile, disabled: !it },
+      { label: 'Delay −0.1 s', kbd: 'G', action: () => nudgeSub(-0.1) },
+      { label: 'Delay +0.1 s', kbd: 'H', action: () => nudgeSub(0.1) },
+      { label: 'Subtitle settings…', icon: 'settings', action: () => quick.toggle('subs') },
     ] },
-    { label: 'Meer instellingen', icon: 'settings', sub: () => [
-      { label: 'Snelinstellingen', icon: 'settings', action: () => quick.toggle() },
-      { label: 'Globale instellingen…', icon: 'general', kbd: 'Ctrl + P', action: () => Panels.openSettings(App) },
-      { label: 'Media-informatie', icon: 'info', kbd: 'Ctrl + I', action: () => doAct('mediainfo'), disabled: !it },
-      { label: 'Sneltoetsen', icon: 'keyboard', kbd: 'F1', action: () => Panels.shortcuts() },
+    { label: 'More settings', icon: 'settings', sub: () => [
+      { label: 'Quick settings', icon: 'settings', action: () => quick.toggle() },
+      { label: 'Global settings…', icon: 'general', kbd: 'Ctrl + P', action: () => Panels.openSettings(App) },
+      { label: 'Media information', icon: 'info', kbd: 'Ctrl + I', action: () => doAct('mediainfo'), disabled: !it },
+      { label: 'Keyboard shortcuts', icon: 'keyboard', kbd: 'F1', action: () => Panels.shortcuts() },
     ] },
-    { label: 'Afspeellijst', icon: 'playlist', sub: () => [
-      { label: 'Wachtrij tonen', icon: 'queue', kbd: 'Q', action: toggleQueue },
-      { label: 'Huidige toevoegen aan afspeellijst…', icon: 'plus', action: () => doAct('addpl'), disabled: !it },
-      { label: 'Nieuwe afspeellijst…', icon: 'playlist', action: () => doAct('newpl') },
+    { label: 'Playlist', icon: 'playlist', sub: () => [
+      { label: 'Show queue', icon: 'queue', kbd: 'Q', action: toggleQueue },
+      { label: 'Add current to playlist…', icon: 'plus', action: () => doAct('addpl'), disabled: !it },
+      { label: 'New playlist…', icon: 'playlist', action: () => doAct('newpl') },
       { sep: true }, ...state.playlists.map(p => ({ label: p.name, icon: 'playlist', action: () => navigate({ view: 'playlists', activePlaylist: p }) })),
     ] },
-    { label: 'Media openen', icon: 'open', sub: openMediaItems },
+    { label: 'Open media', icon: 'open', sub: openMediaItems },
     { sep: true },
-    { label: 'VLC afsluiten', icon: 'quit', kbd: 'Ctrl + Q', action: () => $('#closeBtn').click() },
+    { label: 'Quit VLC', icon: 'quit', kbd: 'Ctrl + Q', action: () => $('#closeBtn').click() },
   ], x, y);
 }
 $('#menuBtn').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu([
   ...openMediaItems(), { sep: true },
-  { label: 'Nieuwe afspeellijst…', icon: 'playlist', action: () => doAct('newpl') },
-  { label: 'Huidige toevoegen aan afspeellijst…', icon: 'plus', action: () => doAct('addpl'), disabled: !curItem() },
+  { label: 'New playlist…', icon: 'playlist', action: () => doAct('newpl') },
+  { label: 'Add current to playlist…', icon: 'plus', action: () => doAct('addpl'), disabled: !curItem() },
   { sep: true },
-  { label: 'Momentopname', icon: 'camera', kbd: 'Shift + S', action: snapshot, disabled: !curItem() },
-  { label: rec ? 'Opname stoppen' : 'Opnemen', icon: 'record', kbd: 'R', action: toggleRecord, disabled: !curItem() },
-  { label: 'Beeld-in-beeld', icon: 'pip', action: () => doAct('pip'), disabled: !curItem() },
-  { label: 'Media-informatie', icon: 'info', kbd: 'Ctrl + I', action: () => doAct('mediainfo'), disabled: !curItem() },
+  { label: 'Snapshot', icon: 'camera', kbd: 'Shift + S', action: snapshot, disabled: !curItem() },
+  { label: rec ? 'Stop recording' : 'Record', icon: 'record', kbd: 'R', action: toggleRecord, disabled: !curItem() },
+  { label: 'Picture-in-picture', icon: 'pip', action: () => doAct('pip'), disabled: !curItem() },
+  { label: 'Media information', icon: 'info', kbd: 'Ctrl + I', action: () => doAct('mediainfo'), disabled: !curItem() },
   { sep: true },
-  { label: 'Instellingen…', icon: 'settings', kbd: 'Ctrl + P', action: () => Panels.openSettings(App) },
-  { label: 'Sneltoetsen', icon: 'keyboard', kbd: 'F1', action: () => Panels.shortcuts() },
-  { label: 'Welkomstscherm', icon: 'info', action: showOnboarding },
+  { label: 'Settings…', icon: 'settings', kbd: 'Ctrl + P', action: () => Panels.openSettings(App) },
+  { label: 'Keyboard shortcuts', icon: 'keyboard', kbd: 'F1', action: () => Panels.shortcuts() },
+  { label: 'Welcome screen', icon: 'info', action: showOnboarding },
   { sep: true },
-  { label: 'VLC afsluiten', icon: 'quit', kbd: 'Ctrl + Q', action: () => $('#closeBtn').click() },
+  { label: 'Quit VLC', icon: 'quit', kbd: 'Ctrl + Q', action: () => $('#closeBtn').click() },
 ], r.left, r.bottom + 4); };
 
 async function doAct(a) {
   if (a === 'files') { const p = await api.openFiles(); if (p.length) addSources(p); }
   else if (a === 'folder') { const p = await api.openFolder(); if (p.length) { await addSources(p, { play: false }); state.queueList = null; } }
-  else if (a === 'addfolder') { const f = await api.chooseFolder('Mediamap toevoegen'); if (f) addFolder(f); }
+  else if (a === 'addfolder') { const f = await api.chooseFolder(t('Add media folder')); if (f) addFolder(f); }
   else if (a === 'url') Panels.openNetwork(App);
   else if (a === 'newpl') Panels.newPlaylist(App);
-  else if (a === 'addpl') { const it = curItem(); if (!it) return osd('Er speelt niets af'); addToPlaylist(it); }
-  else if (a === 'pip') { if (document.pictureInPictureElement) document.exitPictureInPicture(); else video.requestPictureInPicture().catch(() => osd('Beeld-in-beeld niet beschikbaar')); }
-  else if (a === 'mediainfo') { const it = curItem(); if (it) mediaInfo(it); else osd('Er speelt niets af'); }
+  else if (a === 'addpl') { const it = curItem(); if (!it) return osd('Nothing is playing'); addToPlaylist(it); }
+  else if (a === 'pip') { if (document.pictureInPictureElement) document.exitPictureInPicture(); else video.requestPictureInPicture().catch(() => osd('Picture-in-picture not available')); }
+  else if (a === 'mediainfo') { const it = curItem(); if (it) mediaInfo(it); else osd('Nothing is playing'); }
 }
 function mediaInfo(it) {
   const i = it.info || {};
-  const rows = [['Bestand', it.src], ['Container', i.format || '?'], ['Duur', fmt(it.duration)], ['Video', i.vcodec ? `${i.vcodec} ${i.width}×${i.height}` : '—'],
-    ['Audio', (i.audio || []).map(a => `${a.label} (${a.codec})`).join(', ') || '—'], ['Ondertitels', (i.subs || []).map(s => `${s.label} (${s.codec})`).join(', ') || '—']];
-  if (it === curItem()) rows.push(['Weergave', P.tx ? (P.vcopy ? 'ffmpeg (audio omgezet)' : 'ffmpeg (omgezet naar H.264)') : 'Direct']);
-  UI.dialog({ title: 'Media-informatie', width: 560, body: el('div.kbtable', { style: { gridTemplateColumns: '1fr' } }, rows.map(([k, v]) => el('div.frow', {}, el('span.rlabel', {}, k), el('span', { style: { wordBreak: 'break-all', textAlign: 'right', color: 'var(--text)' } }, v)))), buttons: [{ label: 'Sluiten', primary: true, value: true }] });
+  const rows = [['File', it.src], ['Container', i.format || '?'], ['Duration', fmt(it.duration)], ['Video', i.vcodec ? `${i.vcodec} ${i.width}×${i.height}` : '—'],
+    ['Audio', (i.audio || []).map(a => `${a.label} (${a.codec})`).join(', ') || '—'], ['Subtitles', (i.subs || []).map(s => `${s.label} (${s.codec})`).join(', ') || '—']];
+  if (it === curItem()) rows.push(['Playback mode', t(P.tx ? (P.vcopy ? 'ffmpeg (audio converted)' : 'ffmpeg (converted to H.264)') : 'Direct')]);
+  UI.dialog({ title: 'Media information', width: 560, body: el('div.kbtable', { style: { gridTemplateColumns: '1fr' } }, rows.map(([k, v]) => el('div.frow', {}, el('span.rlabel', {}, t(k)), el('span', { style: { wordBreak: 'break-all', textAlign: 'right', color: 'var(--text)' } }, v)))), buttons: [{ label: 'Close', primary: true, value: true }] });
 }
-function nudgeSub(d) { subSync.delay = +(subSync.delay + d).toFixed(2); osd('Ondertitelvertraging ' + subSync.delay.toFixed(1) + ' s'); quick && quick.refresh(); }
+function nudgeSub(d) { subSync.delay = +(subSync.delay + d).toFixed(2); osd(t('Subtitle delay {v} s', { v: subSync.delay.toFixed(1) })); quick && quick.refresh(); }
 
 /* drag & drop */
 let dragDepth = 0;
@@ -833,7 +836,7 @@ addEventListener('drop', async e => {
   const paths = [...e.dataTransfer.files].map(f => api.pathFor(f)).filter(Boolean);
   if (!paths.length) { const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text'); if (/^https?:/i.test(url)) addSources([url.trim()]); return; }
   const all = await api.expand(paths);
-  if (all.length && all.every(p => SUB_RE.test(p))) { if (state.current >= 0) all.forEach(f => addSubFile(f, true)); else osd('Speel eerst een video af'); return; }
+  if (all.length && all.every(p => SUB_RE.test(p))) { if (state.current >= 0) all.forEach(f => addSubFile(f, true)); else osd('Play a video first'); return; }
   state.queueList = null;
   addSources(all, { play: true });
 });
@@ -861,8 +864,8 @@ document.addEventListener('keydown', e => {
     case ' ': case 'k': e.preventDefault(); togglePlay(); break;
     case 'ArrowRight': e.preventDefault(); seekTo(curTime() + (e.shiftKey ? 3 : jump)); osd('+' + (e.shiftKey ? 3 : jump) + ' s'); break;
     case 'ArrowLeft': e.preventDefault(); seekTo(curTime() - (e.shiftKey ? 3 : jump)); osd('−' + (e.shiftKey ? 3 : jump) + ' s'); break;
-    case 'ArrowUp': e.preventDefault(); video.muted = false; setVol(volume + .05); osd('Volume ' + Math.round(volume * 100) + '%'); break;
-    case 'ArrowDown': e.preventDefault(); setVol(volume - .05); osd('Volume ' + Math.round(volume * 100) + '%'); break;
+    case 'ArrowUp': e.preventDefault(); video.muted = false; setVol(volume + .05); osd(t('Volume {v}%', { v: Math.round(volume * 100) })); break;
+    case 'ArrowDown': e.preventDefault(); setVol(volume - .05); osd(t('Volume {v}%', { v: Math.round(volume * 100) })); break;
     case 'm': toggleMute(); break;
     case 'f': toggleFs(); break;
     case 'n': case '>': step(1); break;
@@ -874,11 +877,11 @@ document.addEventListener('keydown', e => {
     case 'g': nudgeSub(-0.1); break;
     case 'h': nudgeSub(0.1); break;
     case 'S': snapshot(); break;
-    case 's': if (curItem()) { stopPlayback(); osd('Gestopt'); } break;
+    case 's': if (curItem()) { stopPlayback(); osd('Stopped'); } break;
     case 'r': case 'R': toggleRecord(); break;
-    case '[': video.playbackRate = Math.max(.25, +(video.playbackRate - .25).toFixed(2)); osd('Snelheid ' + video.playbackRate + '×'); break;
-    case ']': video.playbackRate = Math.min(4, +(video.playbackRate + .25).toFixed(2)); osd('Snelheid ' + video.playbackRate + '×'); break;
-    case '=': video.playbackRate = 1; osd('Snelheid 1×'); break;
+    case '[': video.playbackRate = Math.max(.25, +(video.playbackRate - .25).toFixed(2)); osd(t('Speed {v}×', { v: video.playbackRate })); break;
+    case ']': video.playbackRate = Math.min(4, +(video.playbackRate + .25).toFixed(2)); osd(t('Speed {v}×', { v: video.playbackRate })); break;
+    case '=': video.playbackRate = 1; osd(t('Speed {v}×', { v: 1 })); break;
     case '.': case ',': if (!curItem()) break; video.pause(); if (P.tx) seekTo(curTime() + (k === '.' ? 0.04 : -0.04)); else video.currentTime = Math.max(0, video.currentTime + (k === '.' ? 1 / 30 : -1 / 30)); break;
     case 'Escape':
       if (document.body.classList.contains('hide-ui')) toggleHideUI();
@@ -897,16 +900,17 @@ S.on(path => {
   if (path === 'showBadge') setBadge();
   if (path === 'rememberRecent' && !S.get('rememberRecent')) { state.recent = []; saveRecent(); render(); }
   if (path === 'speed' && Math.abs(video.playbackRate - S.get('speed')) > 1e-6) video.playbackRate = S.get('speed');
+  if (path === 'language') { render(); setPlayIcon(); setBadge(); quick && quick.refresh(); api.setLang && api.setLang(I18N.lang()); }
 });
 
 /* ---------- App API for panels / onboarding ---------- */
 const App = {
   video, paths: PATHS, osd, addSources, createPlaylist, addFolder, removeFolder,
-  rescan: async () => { osd('Bibliotheek scannen…'); await scanFolders(); osd('Bibliotheek bijgewerkt'); },
-  clearRecent: () => { state.recent = []; saveRecent(); render(); App.osd('Recent gewist'); },
-  clearPositions: () => { for (const k in positions) delete positions[k]; store.set('pos', positions); watched = new Set(); saveWatched(); state.items.forEach(i => i.progress = 0); render(); App.osd('Afspeelposities gewist'); },
+  rescan: async () => { osd('Scanning library…'); await scanFolders(); osd('Library updated'); },
+  clearRecent: () => { state.recent = []; saveRecent(); render(); App.osd('Recent cleared'); },
+  clearPositions: () => { for (const k in positions) delete positions[k]; store.set('pos', positions); watched = new Set(); saveWatched(); state.items.forEach(i => i.progress = 0); render(); App.osd('Playback positions cleared'); },
   audioTracks, audioTrack: () => P.audio, setAudioTrack,
-  subTracks: () => [[-1, 'Uit'], ...SUB.tracks.map((t, i) => [i, t.label])], subActive: () => SUB.active, selectSub, loadSubFile, sub: subSync,
+  subTracks: () => [[-1, 'Off'], ...SUB.tracks.map((t, i) => [i, t.label])], subActive: () => SUB.active, selectSub, loadSubFile, sub: subSync,
   reloadSource, showOnboarding, applyLog,
 };
 function showOnboarding() {
@@ -923,6 +927,7 @@ $('#subBtn').onclick = () => quick.toggle('subs');
 window.App = App;
 
 /* ---------- start ---------- */
+I18N.apply(); api.setLang && api.setLang(I18N.lang());
 render(); setPlayIcon(); setIdle(null); applyLog();
 if (S.get('devMode')) api.devtools(true);
 const lib = store.get('library', []);

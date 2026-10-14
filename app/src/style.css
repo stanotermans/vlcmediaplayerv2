@@ -414,3 +414,14 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
   #settings{left:12px;width:auto}
   .gwrap{grid-template-columns:180px 1fr}
 }
+
+/* onboarding: language step */
+.ob-language{align-items:center;justify-content:center;padding:40px;text-align:center}
+.ob-language h1{font-size:30px;font-weight:300;margin:26px 0 10px}
+.ob-lead.center{text-align:center;margin-bottom:26px}
+.ob-langs{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:10px;width:min(520px,100%)}
+.ob-lang{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--text2);font-size:15px;transition:border-color .15s,background .15s}
+.ob-lang:hover{border-color:var(--dim)}
+.ob-lang.on{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
+.ob-lcode{font-size:11px;color:var(--muted);letter-spacing:.06em}
+.ob-lang.on .ob-lcode{color:var(--accent)}
