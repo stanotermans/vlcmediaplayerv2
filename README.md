@@ -2,182 +2,183 @@
 
 <img src="docs/icon.png" width="96" alt="">
 
-# VLC Media Player – redesign
+# VLC Media Player – Redesign
 
-**Een moderne desktop-mediaspeler in het VLC-redesign van [Juxtopposed](https://www.youtube.com/@juxtopposed).**
-Voor Windows, macOS en Linux · speelt bijna alles af dankzij de ingebouwde FFmpeg.
+**A modern desktop media player built from the VLC redesign by [Juxtopposed](https://www.youtube.com/@juxtopposed).**
+For Windows, macOS and Linux · plays almost anything thanks to built-in FFmpeg.
 
 [**⬇️ Download**](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest) ·
-[Downloadpagina](https://stanotermans.github.io/vlcmediaplayerv2/) ·
-[Design-video](https://www.youtube.com/watch?v=ERFeOgqk324)
+[Download page](https://stanotermans.github.io/vlcmediaplayerv2/) ·
+[Design video](https://www.youtube.com/watch?v=ERFeOgqk324)
 
-<img src="docs/screenshots/library.png" alt="Bibliotheek" width="860">
+<img src="docs/screenshots/library.png" alt="Library" width="860">
 
 </div>
 
 > [!NOTE]
-> Dit is een **onofficieel fanproject**. Het is niet gemaakt, verbonden aan of goedgekeurd door VideoLAN, de makers van de echte VLC.
-> "VLC" en het pylonlogo zijn handelsmerken van VideoLAN.
+> This is an **unofficial fan project**. It is not made by, affiliated with, or endorsed by VideoLAN, the makers of the real VLC.
+> "VLC" and the cone logo are trademarks of VideoLAN.
 
-## 🎨 Design: credits aan Juxtopposed
+## 🎨 Design credits: Juxtopposed
 
-Het volledige ontwerp van deze app komt van **Juxtopposed**: de bibliotheek, de speler, de onboarding, het instellingenvenster, de menu's en de audio- en video-panelen.
+The entire design of this app comes from **Juxtopposed**: the library, the player, the onboarding, the settings window, the menus and the audio/video panels.
 
-- 📺 Video: **[I Redesigned VLC After 25 Years](https://www.youtube.com/watch?v=ERFeOgqk324)**, door [Juxtopposed](https://www.youtube.com/@juxtopposed)
+- 📺 Video: **[I Redesigned VLC After 25 Years](https://www.youtube.com/watch?v=ERFeOgqk324)** by [Juxtopposed](https://www.youtube.com/@juxtopposed)
 - 🎨 Figma: **[VLC Redesign (Community)](https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-)**
 
-Deze repository maakt van dat ontwerp een werkende app. Alle eer voor het design gaat naar Juxtopposed. Bekijk zeker de video! 🙌
+This repository turns that design into a working app. All credit for the design goes to Juxtopposed. Go watch the video! 🙌
 
-## ⬇️ Downloaden
+## ⬇️ Download
 
-Ga naar de **[nieuwste release](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest)** en kies het bestand voor jouw systeem:
+Open the **[latest release](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest)** and pick the file for your system:
 
-| Besturingssysteem | Bestand |
+| Operating system | File |
 |---|---|
-| 🪟 **Windows 10 / 11** | `VLC-Media-Player-Setup-<versie>-x64.exe` (installer) of `…-Portable-<versie>.exe` |
-| 🪟 Microsoft Store-pakket | `VLC-Media-Player-Store-<versie>-x64.appx` |
-| 🍎 **macOS** (Apple Silicon / Intel) | `VLC-Media-Player-<versie>-mac-arm64.dmg` / `…-mac-x64.dmg` |
-| 🐧 **Debian, Ubuntu, Linux Mint, Chrome OS** | `vlc-redesign-<versie>-amd64.deb` |
-| 🐧 **Fedora, openSUSE, Red Hat** | `vlc-redesign-<versie>-x86_64.rpm` |
-| 🐧 **Arch Linux, Manjaro** | `vlc-redesign-<versie>-x64.pacman` |
-| 🐧 **Elke Linux** (Gentoo, Slackware, …) | `vlc-redesign-<versie>-x86_64.AppImage` of `.tar.gz` |
+| 🪟 **Windows 10 / 11** | `VLC-Media-Player-Setup-<version>-x64.exe` (installer) or `…-Portable-<version>.exe` |
+| 🪟 Microsoft Store package | `VLC-Media-Player-Store-<version>-x64.appx` |
+| 🍎 **macOS** (Apple Silicon / Intel) | `VLC-Media-Player-<version>-mac-arm64.dmg` / `…-mac-x64.dmg` |
+| 🐧 **Debian, Ubuntu, Linux Mint, Chrome OS** | `vlc-redesign-<version>-amd64.deb` |
+| 🐧 **Fedora, openSUSE, Red Hat** | `vlc-redesign-<version>-x86_64.rpm` |
+| 🐧 **Arch Linux, Manjaro** | `vlc-redesign-<version>-x64.pacman` |
+| 🐧 **Any Linux** (Gentoo, Slackware, …) | `vlc-redesign-<version>-x86_64.AppImage` or `.tar.gz` |
 
-Of gebruik de **[downloadpagina](https://stanotermans.github.io/vlcmediaplayerv2/)**: die herkent je systeem automatisch.
+Or use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**, which detects your system automatically.
+
+> The app's interface is in **Dutch**.
 
 <details>
-<summary><b>Installeren op Linux</b></summary>
+<summary><b>Installing on Linux</b></summary>
 
 ```bash
 sudo apt install ./vlc-redesign-*-amd64.deb        # Debian, Ubuntu, Mint, Chrome OS
 sudo dnf install ./vlc-redesign-*-x86_64.rpm       # Fedora, Red Hat
 sudo zypper install ./vlc-redesign-*-x86_64.rpm    # openSUSE
 sudo pacman -U ./vlc-redesign-*-x64.pacman         # Arch, Manjaro
-chmod +x vlc-redesign-*.AppImage && ./vlc-redesign-*.AppImage   # elke distributie
+chmod +x vlc-redesign-*.AppImage && ./vlc-redesign-*.AppImage   # any distribution
 ```
 
-**Chrome OS:** zet *Instellingen → Over ChromeOS → Ontwikkelaars → Linux-ontwikkelomgeving* aan en open daarna het `.deb`-bestand vanuit de app Bestanden.
+**Chrome OS:** turn on *Settings → About ChromeOS → Developers → Linux development environment*, then open the `.deb` file from the Files app.
 </details>
 
 <details>
-<summary><b>Eerste keer openen op Windows of macOS</b></summary>
+<summary><b>First launch on Windows or macOS</b></summary>
 
-De app is niet digitaal ondertekend (dat kost een betaald certificaat), daarom waarschuwt je systeem bij de eerste keer:
+The app is not code-signed (that requires a paid certificate), so your system shows a warning the first time:
 
-- **Windows:** klik bij de blauwe SmartScreen-melding op *Meer info* → *Toch uitvoeren*.
-- **macOS:** klik met rechts op de app → *Open* → *Open*. Of in Terminal:
+- **Windows:** on the blue SmartScreen dialog, click *More info* → *Run anyway*.
+- **macOS:** right-click the app → *Open* → *Open*. Or in Terminal:
   ```bash
   xattr -dr com.apple.quarantine "/Applications/VLC Media Player.app"
   ```
 </details>
 
-## ✨ Functies
+## ✨ Features
 
-- **Speelt bijna alles af.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS en meer. Wat Chromium zelf niet kan afspelen, zet de ingebouwde FFmpeg live om.
-- **Onboarding** bij de eerste start: mediamap kiezen, thema en accentkleur kiezen (met live voorbeeld) en de belangrijkste sneltoetsen leren.
-- **Bibliotheek** met video's, muziek, netwerkstreams, afspeellijsten en recent afgespeeld. Mappen bladeren met een kruimelpad (Video's ▸ Shows ▸ The Wand ▸ S01), "verder kijken" en bekeken items gedimd.
-- **Speler** met minispeler, wachtrij, hervatten waar je gebleven was, herhalen en willekeurig, snelheid, beeld-in-beeld, volledig scherm en interface verbergen.
-- **Ondertitels:** ingebouwde en losse `.srt`/`.ass`/`.vtt`-bestanden worden automatisch geladen. Instelbaar: vertraging, snelheid, duur, lettertype, kleur, rand en achtergrond.
-- **Audio:** meerdere audiosporen, een 10-bands equalizer met 18 voorinstellingen, compressor, ruimtelijk geluid (galm), stereoverbreding en volumeversterking tot 200%.
-- **Video:** helderheid, contrast, verzadiging, tint, gamma, verscherpen, filmkorrel, negatief, posterize, grijstinten, sepia, bijsnijden in pixels, draaien, zoomen en spiegelen.
-- **Thema's:** licht, donker of systeem, met 9 accentkleuren.
-- **Opnemen** (R) en **momentopnames** (Shift+S).
-- **Instellingen:** rechtermuisknop-menu met submenu's, snelinstellingen in de speler en een groot instellingenvenster met zoekveld (Ctrl+P).
+- **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
+- **Onboarding** on first launch: pick a media folder, choose a theme and accent color (with live preview), and learn the key shortcuts.
+- **Library** with videos, music, network streams, playlists and recently played. Browse folders with breadcrumbs (Videos ▸ Shows ▸ The Wand ▸ S01), "continue watching", and watched items dimmed.
+- **Player** with mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.
+- **Subtitles:** embedded and external `.srt`/`.ass`/`.vtt` files load automatically. You can set the delay, speed, duration, font, color, outline and background.
+- **Audio:** multiple audio tracks, a 10-band equalizer with 18 presets, compressor, spatial audio (reverb), stereo widener and volume boost up to 200%.
+- **Video:** brightness, contrast, saturation, hue, gamma, sharpen, film grain, negative, posterize, grayscale, sepia, pixel cropping, rotate, zoom and mirror.
+- **Themes:** light, dark or system, with 9 accent colors.
+- **Recording** (R) and **snapshots** (Shift+S).
+- **Settings:** right-click menu with submenus, quick settings in the player, and a full settings window with search (Ctrl+P).
 
 <details>
-<summary><b>Sneltoetsen</b></summary>
+<summary><b>Keyboard shortcuts</b></summary>
 
-| Toets | Actie | Toets | Actie |
+| Key | Action | Key | Action |
 |---|---|---|---|
-| `Spatie` | Afspelen / pauzeren | `F` | Volledig scherm |
-| `←` `→` | Spoelen | `↑` `↓` | Volume |
-| `<` `>` / `P` `N` | Vorige / volgende | `Q` | Wachtrij |
-| `,` `.` | Vorig / volgend frame | `L` | Bibliotheek / speler |
-| `V` | Ondertitelspoor wisselen | `B` | Audiospoor wisselen |
-| `Shift+S` | Momentopname | `R` | Opnemen |
-| `S` | Stoppen | `M` | Dempen |
-| `[` `]` `=` | Langzamer / sneller / normaal | `G` `H` | Ondertitelvertraging |
-| `Ctrl+O` | Bestanden openen | `Ctrl+N` | Netwerkstream |
-| `Ctrl+P` | Instellingen | `Ctrl+\` | Interface verbergen |
-| `F1` | Alle sneltoetsen | `Ctrl+Q` | Afsluiten |
+| `Space` | Play / pause | `F` | Fullscreen |
+| `←` `→` | Seek | `↑` `↓` | Volume |
+| `<` `>` / `P` `N` | Previous / next | `Q` | Queue |
+| `,` `.` | Previous / next frame | `L` | Library / player |
+| `V` | Cycle subtitle track | `B` | Cycle audio track |
+| `Shift+S` | Snapshot | `R` | Record |
+| `S` | Stop | `M` | Mute |
+| `[` `]` `=` | Slower / faster / normal | `G` `H` | Subtitle delay |
+| `Ctrl+O` | Open files | `Ctrl+N` | Network stream |
+| `Ctrl+P` | Settings | `Ctrl+\` | Hide interface |
+| `F1` | All shortcuts | `Ctrl+Q` | Quit |
 </details>
 
 ## 🖼️ Screenshots
 
-| Onboarding | Speler met snelinstellingen |
+| Onboarding | Player with quick settings |
 |---|---|
-| <img src="docs/screenshots/onboarding.png" alt="Onboarding"> | <img src="docs/screenshots/player.png" alt="Speler"> |
-| **Instellingen** | **Lichte modus** |
-| <img src="docs/screenshots/settings.png" alt="Instellingen"> | <img src="docs/screenshots/light.png" alt="Lichte modus"> |
+| <img src="docs/screenshots/onboarding.png" alt="Onboarding"> | <img src="docs/screenshots/player.png" alt="Player"> |
+| **Settings** | **Light mode** |
+| <img src="docs/screenshots/settings.png" alt="Settings"> | <img src="docs/screenshots/light.png" alt="Light mode"> |
 
-## 🛠️ Zelf bouwen
+## 🛠️ Building from source
 
-Je hebt [Node.js](https://nodejs.org) 20 of nieuwer nodig.
+Requires [Node.js](https://nodejs.org) 20 or newer.
 
 ```bash
 cd app
 npm install
-npm start               # ontwikkelversie starten
-npm run dist:win        # Windows: installer + portable (op Windows)
-npm run dist:store      # Microsoft Store-pakket (op Windows)
-npm run dist:mac        # macOS (op een Mac)
-npm run dist:linux      # Linux: AppImage, deb, rpm, pacman, tar.gz (op Linux)
+npm start               # run the development version
+npm run dist:win        # Windows: installer + portable (on Windows)
+npm run dist:store      # Microsoft Store package (on Windows)
+npm run dist:mac        # macOS (on a Mac)
+npm run dist:linux      # Linux: AppImage, deb, rpm, pacman, tar.gz (on Linux)
 ```
 
-### Een release maken
+### Making a release
 
-De workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) bouwt de app op de servers van GitHub voor Windows, macOS en Linux en maakt automatisch een release met een downloadtabel:
+The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# zet eerst de versie in app/package.json, bijv. "version": "1.2.0"
-git tag v1.2.0
-git push origin v1.2.0
+# first set the version in app/package.json, e.g. "version": "1.2.1"
+git tag v1.2.1
+git push origin v1.2.1
 ```
 
-Zonder tag kun je de workflow ook handmatig starten (*Actions → Build & Release → Run workflow*); de bestanden staan dan bij *Artifacts*.
+You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
 
-### Downloadpagina (GitHub Pages)
+### Download page (GitHub Pages)
 
-De pagina in [`docs/`](docs/index.html) zet je aan via *Settings → Pages → Deploy from a branch → `main` / `/docs`*.
-Daarna staat hij op `https://stanotermans.github.io/vlcmediaplayerv2/` en toont hij altijd de nieuwste release.
+The page in [`docs/`](docs/index.html) is published at `https://stanotermans.github.io/vlcmediaplayerv2/`. To enable it, go to *Settings → Pages → Deploy from a branch → `main` / `/docs`*. It always shows the latest release.
 
 ### BSD
 
-Electron heeft geen officiële builds voor BSD. Op FreeBSD (en OpenBSD) kun je de app wel starten met de Electron-port van het systeem; de app gebruikt dan de FFmpeg van het systeem:
+Electron has no official builds for BSD. On FreeBSD (and OpenBSD) you can run the app with the system's Electron port; it then uses the system's FFmpeg:
 
 ```sh
-pkg install electron36 ffmpeg node npm      # versienummer van de port kan verschillen: pkg search electron
+pkg install electron36 ffmpeg node npm      # the port's version number may differ: pkg search electron
 cd app && npm install --ignore-scripts --omit=dev
 electron36 .
 ```
 
-Eigen FFmpeg gebruiken kan met `VLCX_FFMPEG=/pad/naar/ffmpeg` en `VLCX_FFPROBE=/pad/naar/ffprobe`.
+To use your own FFmpeg, set `VLCX_FFMPEG=/path/to/ffmpeg` and `VLCX_FFPROBE=/path/to/ffprobe`.
 
-### Projectstructuur
+### Project structure
 
 ```
 app/
-  main.js          Electron-hoofdproces: venster, lokale mediaserver, FFmpeg-omzetting, bestandsdialogen
-  preload.js       Veilige brug tussen hoofdproces en interface
+  main.js          Electron main process: window, local media server, FFmpeg transcoding, file dialogs
+  preload.js       Secure bridge between the main process and the UI
   src/
-    index.html     Opbouw van de interface
-    style.css      Design (licht/donker, accentkleur)
-    settings.js    Voorkeuren en thema
-    ui.js          Bouwstenen: schuifregelaars, schakelaars, menu's, dialogen
-    effects.js     Audio-effecten (Web Audio) en videofilters
-    panels.js      Snelinstellingen, instellingenvenster en dialogen
-    onboarding.js  Welkomstscherm
-    app.js         Bibliotheek, speler, ondertitels, sneltoetsen
-  build/icon.png   App-icoon (gemaakt met build/make-icon.js)
-docs/              Downloadpagina voor GitHub Pages
+    index.html     UI layout
+    style.css      Design (light/dark, accent color)
+    settings.js    Preferences and theme
+    ui.js          Building blocks: sliders, toggles, menus, dialogs
+    effects.js     Audio effects (Web Audio) and video filters
+    panels.js      Quick settings, settings window and dialogs
+    onboarding.js  Welcome screen
+    app.js         Library, player, subtitles, keyboard shortcuts
+  build/icon.png   App icon (generated by build/make-icon.js)
+docs/              Download page for GitHub Pages
 ```
 
-## ❓ Waarom niet voor iOS, Android, …?
+## ❓ Why not iOS, Android, …?
 
-De app draait op [Electron](https://www.electronjs.org), en dat werkt alleen op Windows, macOS en Linux. Voor **iOS, Apple TV en Android** zou er een aparte app gebouwd moeten worden. **Windows Phone** bestaat niet meer, en voor **NetBSD, Solaris, QNX en OS/2** is er geen Electron of Chromium.
+The app runs on [Electron](https://www.electronjs.org), which only supports Windows, macOS and Linux. **iOS, Apple TV and Android** would need a separate native app. **Windows Phone** has been discontinued, and **NetBSD, Solaris, QNX and OS/2** have no Electron or Chromium.
 
-## 📄 Licentie
+## 📄 License
 
 - **Code:** [MIT](LICENSE) © Stan Otermans
-- **Design:** © [Juxtopposed](https://www.youtube.com/@juxtopposed). Gebruikt met bronvermelding, op basis van het openbaar gedeelde Figma-communitybestand.
-- Bevat [FFmpeg](https://ffmpeg.org) (LGPL/GPL) via [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) en [ffprobe-static](https://github.com/joshwnj/ffprobe-static).
-- "VLC" en het pylonlogo zijn handelsmerken van [VideoLAN](https://www.videolan.org). Dit project is daar niet mee verbonden.
+- **Design:** © [Juxtopposed](https://www.youtube.com/@juxtopposed), used with attribution based on the publicly shared Figma community file.
+- Includes [FFmpeg](https://ffmpeg.org) (LGPL/GPL) via [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) and [ffprobe-static](https://github.com/joshwnj/ffprobe-static).
+- "VLC" and the cone logo are trademarks of [VideoLAN](https://www.videolan.org). This project is not affiliated with VideoLAN.

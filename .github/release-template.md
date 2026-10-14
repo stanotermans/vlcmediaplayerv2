@@ -1,27 +1,31 @@
-## ⬇️ Download voor jouw besturingssysteem
+## ⬇️ Download for your operating system
 
-| Besturingssysteem | Download | Opmerking |
+| Operating system | Download | Notes |
 |---|---|---|
-| 🪟 **Windows 10 / 11** | {{WIN_SETUP}} | Aanbevolen: installer met snelkoppeling en "Openen met" |
-| 🪟 Windows (zonder installeren) | {{WIN_PORTABLE}} | Eén bestand, direct starten |
-| 🪟 Microsoft Store-pakket | {{WIN_STORE}} | Alleen voor inzending in de Store (niet ondertekend) |
-| 🍎 **macOS – Apple Silicon** (M1 t/m M4) | {{MAC_ARM}} | macOS 11 of nieuwer |
-| 🍎 macOS – Intel | {{MAC_X64}} | macOS 11 of nieuwer |
-| 🐧 **Debian / Ubuntu / Linux Mint / Chrome OS** | {{DEB}} | `sudo apt install ./bestand.deb` |
-| 🐧 **Fedora / openSUSE / Red Hat** | {{RPM}} | `sudo dnf install ./bestand.rpm` |
-| 🐧 **Arch Linux / Manjaro** | {{PACMAN}} | `sudo pacman -U ./bestand.pacman` |
-| 🐧 **Elke Linux** (Gentoo, Slackware, …) | {{APPIMAGE}} | `chmod +x` en starten |
-| 🐧 Linux-archief | {{TARGZ}} | Uitpakken en `vlc-redesign` starten |
+| 🪟 **Windows 10 / 11** | {{WIN_SETUP}} | Recommended: installer with shortcut and "Open with" support |
+| 🪟 Windows (no install) | {{WIN_PORTABLE}} | Single file, just run it |
+| 🪟 Microsoft Store package | {{WIN_STORE}} | For Store submission only (unsigned) |
+| 🍎 **macOS – Apple Silicon** (M1–M4) | {{MAC_ARM}} | macOS 11 or later |
+| 🍎 macOS – Intel | {{MAC_X64}} | macOS 11 or later |
+| 🐧 **Debian / Ubuntu / Linux Mint / Chrome OS** | {{DEB}} | `sudo apt install ./file.deb` |
+| 🐧 **Fedora / openSUSE / Red Hat** | {{RPM}} | `sudo dnf install ./file.rpm` |
+| 🐧 **Arch Linux / Manjaro** | {{PACMAN}} | `sudo pacman -U ./file.pacman` |
+| 🐧 **Any Linux** (Gentoo, Slackware, …) | {{APPIMAGE}} | `chmod +x` and run |
+| 🐧 Linux archive | {{TARGZ}} | Extract and run `vlc-redesign` |
 
-> **Eerste keer openen**
-> - **Windows:** klik bij de blauwe SmartScreen-melding op *Meer info* → *Toch uitvoeren* (de app is niet digitaal ondertekend).
-> - **macOS:** klik met rechts op de app → *Open* → *Open*. Of: `xattr -dr com.apple.quarantine "/Applications/VLC Media Player.app"`.
+Prefer a one-click download? Use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**: it detects your system automatically.
+
+> **First launch**
+> - **Windows:** on the blue SmartScreen dialog, click *More info* → *Run anyway* (the app is not code-signed).
+> - **macOS:** right-click the app → *Open* → *Open*. Or: `xattr -dr com.apple.quarantine "/Applications/VLC Media Player.app"`.
+>
+> The app's interface is in Dutch.
 
 ## 🎨 Design
 
-Het design is van **[Juxtopposed](https://www.youtube.com/@juxtopposed)** uit de video
+The design is by **[Juxtopposed](https://www.youtube.com/@juxtopposed)** from the video
 **[I Redesigned VLC After 25 Years](https://www.youtube.com/watch?v=ERFeOgqk324)**
-([Figma-bestand](https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-)).
+([Figma file](https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-)).
 
 ---
-Versie {{VERSION}} · Onofficieel fanproject, niet verbonden aan VideoLAN. "VLC" en het pylonlogo zijn handelsmerken van VideoLAN.
+Version {{VERSION}} · Unofficial fan project, not affiliated with VideoLAN. "VLC" and the cone logo are trademarks of VideoLAN.

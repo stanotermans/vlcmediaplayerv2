@@ -1,8 +1,8 @@
 {
   "name": "vlc-redesign",
   "productName": "VLC Media Player",
-  "version": "1.2.0",
-  "description": "Onofficiële VLC-mediaspeler in het redesign van Juxtopposed",
+  "version": "1.2.1",
+  "description": "Unofficial VLC media player built from the redesign by Juxtopposed",
   "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
   "main": "main.js",
   "author": "Stan Otermans <stanotermans@gmail.com>",
@@ -254,8 +254,8 @@
       ],
       "executableName": "vlc-redesign",
       "category": "AudioVideo",
-      "synopsis": "VLC Media Player in een nieuw design",
-      "description": "Mediaspeler met bibliotheek, afspeellijsten, ondertitels, equalizer en ingebouwde ffmpeg.",
+      "synopsis": "VLC Media Player with a new design",
+      "description": "Media player with a library, playlists, subtitles, equalizer and built-in FFmpeg. Design by Juxtopposed.",
       "maintainer": "Stan Otermans <stanotermans@gmail.com>",
       "icon": "build/icon.png",
       "desktop": {
