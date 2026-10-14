@@ -130,9 +130,9 @@ npm run dist:linux      # Linux: AppImage, deb, rpm, pacman, tar.gz (on Linux)
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.2.1"
-git tag v1.2.1
-git push origin v1.2.1
+# first set the version in app/package.json, e.g. "version": "1.2.2"
+git tag v1.2.2
+git push origin v1.2.2
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

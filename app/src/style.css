@@ -152,7 +152,7 @@ svg{display:block}
 #rec i{width:9px;height:9px;border-radius:50%;background:#e5393a;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.2}}
 body.hide-ui #titlebar,body.hide-ui #rail,body.hide-ui #side,body.hide-ui #controls{display:none}
-body.hide-ui #app{grid-template-rows:0 1fr 0}
+body.hide-ui #app{grid-template-rows:1fr}
 body.hide-ui #body{grid-template-columns:1fr}
 
 /* mini player */
@@ -402,7 +402,7 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
 
 /* ============ fullscreen / small ============ */
 .fullscreen #titlebar,.fullscreen #rail,.fullscreen #side{display:none}
-.fullscreen #app{grid-template-rows:0 1fr 52px}
+.fullscreen #app{grid-template-rows:1fr 52px}
 .fullscreen #body{grid-template-columns:1fr}
 .fullscreen.hidecursor #controls{opacity:0}
 .fullscreen.hidecursor{cursor:none}
