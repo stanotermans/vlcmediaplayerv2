@@ -1,0 +1,120 @@
+name: Build & Release
+
+# Bouwt de app voor Windows, macOS (Apple Silicon + Intel) en Linux.
+#  - Handmatig: tabblad "Actions" → "Build & Release" → "Run workflow" (bestanden komen bij "Artifacts").
+#  - Release:   push een tag die gelijk is aan de versie in app/package.json, bijv.
+#                 git tag v1.2.0 && git push origin v1.2.0
+#               Dan wordt automatisch een GitHub Release gemaakt met een downloadtabel per besturingssysteem.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+          - os: macos-14
+            name: macos
+          - os: ubuntu-latest
+            name: linux
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # geen code-signing certificaat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Controleer dat de tag gelijk is aan de app-versie
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          if [ "v$V" != "${GITHUB_REF_NAME}" ]; then echo "Tag ${GITHUB_REF_NAME} komt niet overeen met versie v$V in app/package.json"; exit 1; fi
+
+      - name: Linux-bouwtools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
+
+      - run: npm ci
+
+      - name: Windows (installer, portable, Microsoft Store)
+        if: runner.os == 'Windows'
+        run: npx electron-builder --win nsis portable appx --publish never
+
+      - name: macOS Apple Silicon
+        if: runner.os == 'macOS'
+        run: npx electron-builder --mac --arm64 --publish never
+      - name: macOS Intel (met Intel-ffmpeg)
+        if: runner.os == 'macOS'
+        run: |
+          rm -f node_modules/ffmpeg-static/ffmpeg
+          npm_config_arch=x64 node node_modules/ffmpeg-static/install.js
+          npx electron-builder --mac --x64 --publish never
+
+      - name: Linux (AppImage, deb, rpm, pacman, tar.gz)
+        if: runner.os == 'Linux'
+        run: npx electron-builder --linux --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vlc-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            app/dist/*.exe
+            app/dist/*.appx
+            app/dist/*.dmg
+            app/dist/*-mac-*.zip
+            app/dist/*.AppImage
+            app/dist/*.deb
+            app/dist/*.rpm
+            app/dist/*.pacman
+            app/dist/*.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Release-notes met downloadtabel
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          B="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          f() { ls artifacts | grep -E "$1" | head -1; }
+          link() { n=$(f "$1"); if [ -n "$n" ]; then echo "[\`$n\`]($B/$n)"; else echo "—"; fi; }
+          sed -e "s|{{VERSION}}|$V|g" \
+              -e "s|{{WIN_SETUP}}|$(link 'Setup-.*\.exe$')|" \
+              -e "s|{{WIN_PORTABLE}}|$(link 'Portable-.*\.exe$')|" \
+              -e "s|{{WIN_STORE}}|$(link '\.appx$')|" \
+              -e "s|{{MAC_ARM}}|$(link 'mac-arm64\.dmg$')|" \
+              -e "s|{{MAC_X64}}|$(link 'mac-x64\.dmg$')|" \
+              -e "s|{{DEB}}|$(link '\.deb$')|" \
+              -e "s|{{RPM}}|$(link '\.rpm$')|" \
+              -e "s|{{PACMAN}}|$(link '\.pacman$')|" \
+              -e "s|{{APPIMAGE}}|$(link '\.AppImage$')|" \
+              -e "s|{{TARGZ}}|$(link '\.tar\.gz$')|" \
+              .github/release-template.md > notes.md
+          cat notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: VLC Media Player (redesign) ${{ github.ref_name }}
+          body_path: notes.md
+          files: artifacts/*

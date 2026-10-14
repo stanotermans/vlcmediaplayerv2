@@ -1,0 +1,329 @@
+{
+  "name": "vlc-redesign",
+  "productName": "VLC Media Player",
+  "version": "1.2.0",
+  "description": "Onofficiële VLC-mediaspeler in het redesign van Juxtopposed",
+  "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
+  "main": "main.js",
+  "author": "Stan Otermans <stanotermans@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:store": "electron-builder --win appx",
+    "dist:linux": "electron-builder --linux",
+    "dist:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "nl.otermans.vlcredesign",
+    "productName": "VLC Media Player",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "build/icon.png",
+      "node_modules/ffmpeg-static/**/*",
+      "node_modules/ffprobe-static/package.json",
+      "node_modules/ffprobe-static/index.js"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**/*",
+      "node_modules/ffprobe-static/**/*"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "mp4",
+        "name": "MP4-video",
+        "role": "Viewer",
+        "mimeType": "video/mp4"
+      },
+      {
+        "ext": "mkv",
+        "name": "MKV-video",
+        "role": "Viewer",
+        "mimeType": "video/x-matroska"
+      },
+      {
+        "ext": "avi",
+        "name": "AVI-video",
+        "role": "Viewer",
+        "mimeType": "video/x-msvideo"
+      },
+      {
+        "ext": "mov",
+        "name": "MOV-video",
+        "role": "Viewer",
+        "mimeType": "video/quicktime"
+      },
+      {
+        "ext": "webm",
+        "name": "WEBM-video",
+        "role": "Viewer",
+        "mimeType": "video/webm"
+      },
+      {
+        "ext": "wmv",
+        "name": "WMV-video",
+        "role": "Viewer",
+        "mimeType": "video/x-ms-wmv"
+      },
+      {
+        "ext": "flv",
+        "name": "FLV-video",
+        "role": "Viewer",
+        "mimeType": "video/x-flv"
+      },
+      {
+        "ext": "m4v",
+        "name": "M4V-video",
+        "role": "Viewer",
+        "mimeType": "video/x-m4v"
+      },
+      {
+        "ext": "mpg",
+        "name": "MPG-video",
+        "role": "Viewer",
+        "mimeType": "video/mpeg"
+      },
+      {
+        "ext": "mpeg",
+        "name": "MPEG-video",
+        "role": "Viewer",
+        "mimeType": "video/mpeg"
+      },
+      {
+        "ext": "ts",
+        "name": "TS-video",
+        "role": "Viewer",
+        "mimeType": "video/mp2t"
+      },
+      {
+        "ext": "m2ts",
+        "name": "M2TS-video",
+        "role": "Viewer",
+        "mimeType": "video/mp2t"
+      },
+      {
+        "ext": "3gp",
+        "name": "3GP-video",
+        "role": "Viewer",
+        "mimeType": "video/3gpp"
+      },
+      {
+        "ext": "ogv",
+        "name": "OGV-video",
+        "role": "Viewer",
+        "mimeType": "video/ogg"
+      },
+      {
+        "ext": "mp3",
+        "name": "MP3-audio",
+        "role": "Viewer",
+        "mimeType": "audio/mpeg"
+      },
+      {
+        "ext": "flac",
+        "name": "FLAC-audio",
+        "role": "Viewer",
+        "mimeType": "audio/flac"
+      },
+      {
+        "ext": "wav",
+        "name": "WAV-audio",
+        "role": "Viewer",
+        "mimeType": "audio/x-wav"
+      },
+      {
+        "ext": "m4a",
+        "name": "M4A-audio",
+        "role": "Viewer",
+        "mimeType": "audio/mp4"
+      },
+      {
+        "ext": "aac",
+        "name": "AAC-audio",
+        "role": "Viewer",
+        "mimeType": "audio/aac"
+      },
+      {
+        "ext": "ogg",
+        "name": "OGG-audio",
+        "role": "Viewer",
+        "mimeType": "audio/ogg"
+      },
+      {
+        "ext": "opus",
+        "name": "OPUS-audio",
+        "role": "Viewer",
+        "mimeType": "audio/opus"
+      },
+      {
+        "ext": "wma",
+        "name": "WMA-audio",
+        "role": "Viewer",
+        "mimeType": "audio/x-ms-wma"
+      },
+      {
+        "ext": "ac3",
+        "name": "AC3-audio",
+        "role": "Viewer",
+        "mimeType": "audio/ac3"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "files": [
+        "!node_modules/ffprobe-static/bin/linux/**",
+        "!node_modules/ffprobe-static/bin/darwin/**",
+        "!node_modules/ffprobe-static/bin/win32/ia32/**"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "VLC Media Player",
+      "artifactName": "VLC-Media-Player-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "VLC-Media-Player-Portable-${version}.exe"
+    },
+    "appx": {
+      "identityName": "StanOtermans.MediaPlayerRedesign",
+      "publisher": "CN=Stan Otermans",
+      "publisherDisplayName": "Stan Otermans",
+      "applicationId": "MediaPlayerRedesign",
+      "displayName": "VLC Media Player (redesign)",
+      "backgroundColor": "#141414",
+      "languages": [
+        "nl-NL",
+        "en-US"
+      ],
+      "artifactName": "VLC-Media-Player-Store-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "pacman",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "executableName": "vlc-redesign",
+      "category": "AudioVideo",
+      "synopsis": "VLC Media Player in een nieuw design",
+      "description": "Mediaspeler met bibliotheek, afspeellijsten, ondertitels, equalizer en ingebouwde ffmpeg.",
+      "maintainer": "Stan Otermans <stanotermans@gmail.com>",
+      "icon": "build/icon.png",
+      "desktop": {
+        "StartupWMClass": "vlc-redesign",
+        "Keywords": "video;audio;player;vlc;media;"
+      },
+      "files": [
+        "!node_modules/ffprobe-static/bin/win32/**",
+        "!node_modules/ffprobe-static/bin/darwin/**",
+        "!node_modules/ffprobe-static/bin/linux/ia32/**"
+      ],
+      "artifactName": "vlc-redesign-${version}-${arch}.${ext}"
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    },
+    "rpm": {
+      "fpm": [
+        "--rpm-rpmbuild-define=_build_id_links none"
+      ]
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.video",
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "files": [
+        "!node_modules/ffprobe-static/bin/win32/**",
+        "!node_modules/ffprobe-static/bin/linux/**"
+      ],
+      "artifactName": "VLC-Media-Player-${version}-mac-${arch}.${ext}"
+    }
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
+  },
+  "devDependencies": {
+    "electron": "^38.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stanotermans/vlcmediaplayerv2.git"
+  }
+}

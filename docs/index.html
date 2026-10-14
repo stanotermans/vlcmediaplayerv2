@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VLC Media Player – redesign · Download</title>
+<meta name="description" content="Onofficiële VLC-mediaspeler in het redesign van Juxtopposed. Download voor Windows, macOS en Linux.">
+<link rel="icon" href="icon.png">
+<style>
+:root{--accent:#f28c1b;--accent-dark:#3b2208;--bg:#0f0f0f;--panel:#1a1a1a;--panel2:#242424;--line:#2a2a2a;--text:#ececec;--muted:#9a9a9a;--dim:#666}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font:16px/1.6 "Segoe UI",system-ui,-apple-system,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header{padding:22px 0;display:flex;align-items:center;gap:12px}
+header .logo{width:28px;height:28px}
+header b{font-weight:600}
+header nav{margin-left:auto;display:flex;gap:22px;font-size:14px}
+header nav a{color:var(--muted)}header nav a:hover{color:var(--text);text-decoration:none}
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center;padding:50px 0 70px}
+.hero h1{font-size:clamp(34px,5vw,54px);line-height:1.08;font-weight:600;letter-spacing:-.02em}
+.hero h1 span{color:var(--accent)}
+.hero p.lead{color:var(--muted);font-size:18px;margin:18px 0 30px;max-width:520px}
+.dl{display:inline-flex;align-items:center;gap:14px;background:var(--accent);color:#1a1a1a;font-weight:700;padding:15px 26px;border-radius:10px;font-size:17px;box-shadow:0 10px 30px #f28c1b33;transition:transform .15s}
+.dl:hover{text-decoration:none;transform:translateY(-1px)}
+.dl small{display:block;font-weight:500;font-size:12px;opacity:.75}
+.dl svg{width:22px;height:22px}
+.sub{margin-top:14px;font-size:14px;color:var(--muted)}
+.sub a{color:var(--text);border-bottom:1px solid var(--dim)}
+.shot{border-radius:12px;border:1px solid var(--line);box-shadow:0 30px 80px #000c;width:100%;display:block;background:#1a1a1a;aspect-ratio:16/10;object-fit:cover}
+section{padding:60px 0;border-top:1px solid var(--line)}
+h2{font-size:28px;font-weight:600;margin-bottom:8px}
+.muted{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px}
+.card h3{display:flex;align-items:center;gap:10px;font-size:18px;margin-bottom:14px}
+.card h3 svg{width:22px;height:22px;color:var(--accent)}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;background:var(--panel2);margin-top:8px;color:var(--text)}
+.opt:hover{text-decoration:none;outline:1px solid var(--accent)}
+.opt span{font-size:14px}.opt small{color:var(--muted);font-size:12px;white-space:nowrap}
+.opt.na{opacity:.5;pointer-events:none}
+.card .note{font-size:13px;color:var(--muted);margin-top:12px}
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+.feat div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+.feat b{display:block;margin-bottom:6px}
+.feat p{color:var(--muted);font-size:14px}
+.credit{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}
+.yt{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#000}
+.yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.unsupported{margin-top:22px;font-size:14px;color:var(--muted)}
+code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:13px}
+footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);font-size:13px}
+.status{font-size:13px;color:var(--muted);margin-top:16px}
+@media (max-width:860px){.hero,.credit{grid-template-columns:1fr}.grid,.feat{grid-template-columns:1fr}header nav{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="logo" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="#f28c1b"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#fff"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="#f28c1b"/><path d="M3 18h18l1 3H2z" fill="#f28c1b"/></svg>
+    <b>VLC Media Player <span class="muted" style="font-weight:400">· redesign</span></b>
+    <nav><a href="#downloads">Downloads</a><a href="#functies">Functies</a><a href="#design">Design</a><a href="https://github.com/stanotermans/vlcmediaplayerv2">GitHub</a></nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>VLC, maar dan <span>opnieuw ontworpen</span>.</h1>
+      <p class="lead">Een moderne mediaspeler in het design van Juxtopposed. Speelt bijna alles af dankzij de ingebouwde ffmpeg, met bibliotheek, afspeellijsten, ondertitels, equalizer en accentkleuren.</p>
+      <a class="dl" id="mainDl" href="https://github.com/stanotermans/vlcmediaplayerv2/releases/latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M4 20h16"/></svg>
+        <span><span id="mainLabel">Download</span><small id="mainSmall">nieuwste versie</small></span>
+      </a>
+      <p class="sub">Ander systeem? <a href="#downloads">Alle downloads</a> · <a href="https://github.com/stanotermans/vlcmediaplayerv2/releases">Alle versies</a></p>
+      <p class="status" id="status"></p>
+    </div>
+    <img class="shot" src="screenshots/library.png" alt="Bibliotheek van de app">
+  </div>
+</div>
+
+<section id="downloads"><div class="wrap">
+  <h2>Downloads</h2>
+  <p class="muted">Kies je besturingssysteem. Alle bestanden komen uit de <a href="https://github.com/stanotermans/vlcmediaplayerv2/releases/latest">nieuwste release</a> op GitHub.</p>
+  <div class="grid">
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.5-1v7H3zm0 13l7.5 1v-7H3zm8.5 1.2L21 21v-8.5h-9.5zm0-15.4v7.2H21V3z"/></svg>Windows</h3>
+      <a class="opt" data-asset="Setup-.*\.exe$"><span>Installer (aanbevolen)</span><small>Windows 10/11</small></a>
+      <a class="opt" data-asset="Portable-.*\.exe$"><span>Portable</span><small>zonder installeren</small></a>
+      <a class="opt" data-asset="\.appx$"><span>Microsoft Store-pakket</span><small>.appx</small></a>
+      <p class="note">Bij de SmartScreen-melding: <i>Meer info</i> → <i>Toch uitvoeren</i>.</p>
+    </div>
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.8-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9c-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8 2.2-1.3 3.1-2.5c1-1.4 1.4-2.8 1.4-2.9-.1 0-2.6-1-2.6-4.1zM13.9 5c.7-.9 1.2-2 1-3.2-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.4-.6 3.1-1.5z"/></svg>macOS</h3>
+      <a class="opt" data-asset="mac-arm64\.dmg$"><span>Apple Silicon</span><small>M1 – M4</small></a>
+      <a class="opt" data-asset="mac-x64\.dmg$"><span>Intel</span><small>oudere Macs</small></a>
+      <p class="note">Eerste keer: klik met rechts op de app → <i>Open</i>. De app is niet ondertekend door Apple.</p>
+    </div>
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-2 0-3.3 1.8-3.3 4.4 0 1.6.4 2.3-.3 3.6-.8 1.4-2.9 3.6-2.9 6.6 0 .9.3 1.6.8 2.2-.5.3-1.3.4-1.6.9-.4.7.4 1.6 1.6 1.8 1.4.2 2.4-.3 3.3-.3h4.8c.9 0 1.9.5 3.3.3 1.2-.2 2-1.1 1.6-1.8-.3-.5-1.1-.6-1.6-.9.5-.6.8-1.3.8-2.2 0-3-2.1-5.2-2.9-6.6-.7-1.3-.3-2-.3-3.6C15.3 3.8 14 2 12 2z"/></svg>Linux</h3>
+      <a class="opt" data-asset="\.deb$"><span>Debian · Ubuntu · Mint</span><small>.deb</small></a>
+      <a class="opt" data-asset="\.rpm$"><span>Fedora · openSUSE · RHEL</span><small>.rpm</small></a>
+      <a class="opt" data-asset="\.pacman$"><span>Arch · Manjaro</span><small>.pacman</small></a>
+      <a class="opt" data-asset="\.AppImage$"><span>Elke distributie</span><small>AppImage</small></a>
+      <a class="opt" data-asset="\.tar\.gz$"><span>Archief</span><small>.tar.gz</small></a>
+      <p class="note">Chrome OS: zet de Linux-omgeving aan en open het <code>.deb</code>-bestand.</p>
+    </div>
+  </div>
+  <p class="unsupported">Niet beschikbaar: iOS, Apple TV, Android en Windows Phone (deze app draait op Electron, dat alleen op desktopsystemen werkt). FreeBSD/OpenBSD-gebruikers kunnen de app <a href="https://github.com/stanotermans/vlcmediaplayerv2#bsd">vanaf de broncode</a> starten.</p>
+</div></section>
+
+<section id="functies"><div class="wrap">
+  <h2>Functies</h2>
+  <div class="feat">
+    <div><b>Speelt bijna alles af</b><p>MP4, MKV, AVI, MOV, WMV, FLAC, AC3/DTS en meer. Wat de speler zelf niet kan, zet de ingebouwde ffmpeg live om.</p></div>
+    <div><b>Bibliotheek met mappen</b><p>Blader door je mediamappen met een kruimelpad, zie wat je al gekeken hebt en ga verder waar je gebleven was.</p></div>
+    <div><b>Ondertitels</b><p>Ingebouwde en losse .srt/.ass/.vtt-ondertitels, met vertraging, snelheid, lettertype en kleuren.</p></div>
+    <div><b>Audio-effecten</b><p>10-bands equalizer met voorinstellingen, compressor, galm, stereoverbreding en volumeversterking.</p></div>
+    <div><b>Video-effecten</b><p>Helderheid, contrast, gamma, verscherpen, filmkorrel, sepia, bijsnijden, draaien en spiegelen.</p></div>
+    <div><b>Jouw kleur</b><p>Licht, donker of systeem, met 9 accentkleuren. Plus afspeellijsten, netwerkstreams, opnemen en momentopnames.</p></div>
+  </div>
+</div></section>
+
+<section id="design"><div class="wrap credit">
+  <div>
+    <h2>Design door Juxtopposed</h2>
+    <p class="muted" style="margin:10px 0 18px">Het volledige ontwerp van deze app (de bibliotheek, de speler, de onboarding en de instellingen) komt van <a href="https://www.youtube.com/@juxtopposed">Juxtopposed</a>, uit de video <a href="https://www.youtube.com/watch?v=ERFeOgqk324">"I Redesigned VLC After 25 Years"</a>. Het ontwerp is openbaar gedeeld als <a href="https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-">Figma-communitybestand</a>. Deze app is een werkende versie van dat ontwerp.</p>
+    <p class="muted">Bekijk de video om te zien hoe het ontwerp tot stand kwam. 🎨</p>
+  </div>
+  <div class="yt"><iframe src="https://www.youtube-nocookie.com/embed/ERFeOgqk324" title="I Redesigned VLC After 25 Years – Juxtopposed" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>
+</div></section>
+
+<footer><div class="wrap">
+  Onofficieel fanproject. Niet verbonden aan of goedgekeurd door VideoLAN. "VLC" en het pylonlogo zijn handelsmerken van VideoLAN.
+  Design © Juxtopposed. Code: MIT-licentie. Gebruikt <a href="https://ffmpeg.org">FFmpeg</a> en <a href="https://www.electronjs.org">Electron</a>.
+</div></footer>
+
+<script>
+(async () => {
+  const REPO = 'stanotermans/vlcmediaplayerv2';
+  const ua = navigator.userAgent, plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+  const os = /android/i.test(ua) ? 'android' : /iphone|ipad|ipod/i.test(ua) ? 'ios' : /win/i.test(plat) ? 'windows' : /mac/i.test(plat) ? 'mac' : /linux|x11|cros/i.test(plat + ua) ? 'linux' : 'other';
+  let release = null;
+  try { const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`); if (r.ok) release = await r.json(); } catch {}
+  const assets = release ? release.assets : [];
+  const find = re => assets.find(a => new RegExp(re).test(a.name));
+  document.querySelectorAll('.opt[data-asset]').forEach(o => {
+    const a = find(o.dataset.asset);
+    if (a) { o.href = a.browser_download_url; o.querySelector('small').textContent += ' · ' + Math.round(a.size / 1048576) + ' MB'; }
+    else if (release) o.classList.add('na');
+    else o.href = `https://github.com/${REPO}/releases/latest`;
+  });
+  const main = { windows: ['Setup-.*\\.exe$', 'Download voor Windows'], mac: ['mac-arm64\\.dmg$', 'Download voor macOS'], linux: ['\\.AppImage$', 'Download voor Linux'] }[os];
+  const status = document.getElementById('status');
+  if (release) status.textContent = `Nieuwste versie: ${release.tag_name} · ${new Date(release.published_at).toLocaleDateString('nl-NL')}`;
+  else status.textContent = 'Nog geen release gevonden – bekijk de releases-pagina op GitHub.';
+  if (main) {
+    document.getElementById('mainLabel').textContent = main[1];
+    const a = find(main[0]);
+    if (a) { document.getElementById('mainDl').href = a.browser_download_url; document.getElementById('mainSmall').textContent = a.name; }
+    if (os === 'mac') document.getElementById('mainSmall').textContent = 'Apple Silicon · Intel-versie staat hieronder';
+  } else if (os === 'android' || os === 'ios') {
+    document.getElementById('mainLabel').textContent = 'Alleen voor desktop';
+    document.getElementById('mainSmall').textContent = 'Windows, macOS en Linux';
+    document.getElementById('mainDl').href = '#downloads';
+  }
+})();
+</script>
+</body>
+</html>
