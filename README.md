@@ -65,7 +65,7 @@ chmod +x vlc-redesign-*.AppImage && ./vlc-redesign-*.AppImage   # any distributi
 
 The app is not code-signed (that requires a paid certificate), so your system shows a warning the first time:
 
-- **Windows:** on the blue SmartScreen dialog, click *More info* → *Run anyway*.
+- **Windows:** if the blue SmartScreen dialog appears, click *More info* → *Run anyway*. Windows releases are being set up for code signing via SignPath (see the [code signing policy](CODE_SIGNING.md)); even signed, a new release can trigger SmartScreen until it has built up reputation.
 - **macOS:** right-click the app → *Open* → *Open*. Or in Terminal:
   ```bash
   xattr -dr com.apple.quarantine "/Applications/VLC Redesign.app"
@@ -198,6 +198,7 @@ The app runs on [Electron](https://www.electronjs.org), which only supports Wind
 - [Contributing guide](CONTRIBUTING.md): bug reports, ideas, translations and code
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security policy](SECURITY.md): report vulnerabilities privately
+- [Code signing policy](CODE_SIGNING.md): free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)
 - [Accessibility](ACCESSIBILITY.md): what's supported, known limitations and how to report barriers
 
 ## 📄 License

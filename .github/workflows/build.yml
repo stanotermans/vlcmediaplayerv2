@@ -60,7 +60,9 @@ jobs:
       run:
         working-directory: app
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # no code-signing certificate
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # Windows is signed through SignPath below; macOS is not signed
+      # Windows signing (see CODE_SIGNING.md) only runs once the SignPath secret is set in the repository
+      SIGN_WINDOWS: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -97,9 +99,54 @@ jobs:
           esac
           chmod +x node_modules/ffmpeg-static/ffmpeg* && ls -l node_modules/ffmpeg-static/
 
+      # Windows in two signing rounds: first the app itself (so the installed .exe is signed),
+      # then the installer and portable .exe that wrap it.
+      - name: Windows app folder
+        if: runner.os == 'Windows'
+        run: npx electron-builder --win --dir --publish never
+      - id: unsigned-app
+        if: runner.os == 'Windows' && env.SIGN_WINDOWS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-win-app
+          path: app/dist/win-unpacked/
+      - name: Sign app (SignPath)
+        if: runner.os == 'Windows' && env.SIGN_WINDOWS == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: vlcmediaplayerv2
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.unsigned-app.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: app/dist/win-signed
+      - name: Use signed app
+        if: runner.os == 'Windows' && env.SIGN_WINDOWS == 'true'
+        shell: bash
+        run: rm -rf dist/win-unpacked && mv dist/win-signed dist/win-unpacked
       - name: Windows (installer, portable, Microsoft Store)
         if: runner.os == 'Windows'
-        run: npx electron-builder --win nsis portable appx --publish never
+        run: npx electron-builder --win nsis portable appx --prepackaged dist/win-unpacked --publish never
+      - id: unsigned-installers
+        if: runner.os == 'Windows' && env.SIGN_WINDOWS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-win-installers
+          path: app/dist/*.exe
+      - name: Sign installers (SignPath)
+        if: runner.os == 'Windows' && env.SIGN_WINDOWS == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: vlcmediaplayerv2
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.unsigned-installers.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: app/dist
 
       - name: macOS Apple Silicon
         if: runner.os == 'macOS'

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "app": the unpacked Windows app folder (GitHub artifact unsigned-win-app) -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="VLC Redesign.exe">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
