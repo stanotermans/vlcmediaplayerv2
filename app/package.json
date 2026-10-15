@@ -1,7 +1,7 @@
 {
   "name": "vlc-redesign",
   "productName": "VLC Redesign",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "VLC Redesign – unofficial fan-made media player (not affiliated with VideoLAN)",
   "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
   "main": "main.js",
@@ -11,7 +11,7 @@
     "start": "electron .",
     "dist:win": "electron-builder --win",
     "dist:store": "electron-builder --win appx",
-    "dist:linux": "electron-builder --linux",
+    "dist:linux": "electron-builder --linux deb rpm pacman tar.gz && electron-builder --linux AppImage -c.compression=normal",
     "dist:mac": "electron-builder --mac"
   },
   "build": {

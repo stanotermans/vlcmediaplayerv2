@@ -159,7 +159,10 @@ jobs:
 
       - name: Linux (AppImage, deb, rpm, pacman, tar.gz)
         if: runner.os == 'Linux'
-        run: npx electron-builder --linux --publish never
+        run: |
+          npx electron-builder --linux deb rpm pacman tar.gz --publish never
+          # AppImage with gzip instead of xz: AppImageHub and older AppImage runtimes cannot mount xz
+          npx electron-builder --linux AppImage -c.compression=normal --publish never
 
       - uses: actions/upload-artifact@v4
         with:
