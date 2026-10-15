@@ -451,7 +451,7 @@ const seek = $('#seek');
 const frac = (e, elm) => { const r = elm.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
 seek.addEventListener('pointerdown', e => { if (!curDur()) return; dragging = true; seek.setPointerCapture(e.pointerId); setSeekUI(frac(e, seek)); });
 seek.addEventListener('pointermove', e => { const f = frac(e, seek); const tip = $('#seekTip'); tip.style.left = f * 100 + '%'; tip.textContent = fmt(f * curDur()); if (dragging) setSeekUI(f); preview(e, f); });
-seek.addEventListener('pointerleave', () => { if (!dragging) hidePreview(); });
+seek.addEventListener('pointerleave', () => { if (!dragging) schedulePreviewHide(); });
 
 /* ---------- timeline hover preview (design: frame card with the time above the seek bar) ---------- */
 const pvBox = $('#seekPreview'), pvCanvas = $('#seekPreview canvas'), pvCtx = pvCanvas.getContext('2d'), pvTime = $('#seekPreview span');
@@ -460,7 +460,14 @@ pvVideo.muted = true; pvVideo.preload = 'auto'; pvVideo.crossOrigin = 'anonymous
 const catImg = new Image(); catImg.src = 'data:image/svg+xml,' + encodeURIComponent(catSVG());
 const pvCache = new Map();                                   // ffmpeg frames: "src@seconds" -> Image
 let pvSrc = '', pvWant = null, pvBusy = false, pvTimer = null, pvKey = '';
-function hidePreview() { pvBox.classList.remove('show'); seek.classList.remove('pv'); pvWant = null; clearTimeout(pvTimer); }
+// Calm hover behaviour: show after a short rest, hide with a short grace period, and only fetch a new
+// frame when the pointer has (almost) stopped on a different time step.
+let pvShowT = null, pvHideT = null, pvFrameT = null, pvStep = -1, pvLast = null;
+function hidePreview() {
+  clearTimeout(pvShowT); clearTimeout(pvHideT); clearTimeout(pvTimer); clearTimeout(pvFrameT);
+  pvShowT = pvHideT = null; pvBox.classList.remove('show'); seek.classList.remove('pv'); pvWant = null; pvStep = -1;
+}
+function schedulePreviewHide() { clearTimeout(pvShowT); pvShowT = null; clearTimeout(pvHideT); pvHideT = setTimeout(hidePreview, 250); }
 function pvStage() {                                         // empty stage with the pixel cat, like the idle player
   const c = pvCanvas, cs = getComputedStyle(document.documentElement);
   pvCtx.fillStyle = cs.getPropertyValue('--stage').trim() || '#2a2928'; pvCtx.fillRect(0, 0, c.width, c.height);
@@ -484,13 +491,31 @@ function pvSeekNext() {
 function preview(e, f) {
   const it = curItem(), d = curDur();
   if (!S.get('seekPreview') || !it || !d) return hidePreview();
-  const at = f * d;
+  clearTimeout(pvHideT); pvHideT = null;
+  pvLast = { x: e.clientX, f };
+  if (!pvBox.classList.contains('show')) {                    // wait until the pointer rests briefly before showing
+    clearTimeout(pvShowT);                                   // restart on every move: fast sweeps never pop the card up
+    pvShowT = setTimeout(() => { pvShowT = null; if (pvLast) showPreview(); }, dragging ? 0 : 160);
+    return;
+  }
+  showPreview();
+}
+function showPreview() {
+  const it = curItem(), d = curDur(); if (!it || !d) return;
+  const { x: cx, f } = pvLast, at = f * d;
   seek.classList.add('pv'); pvBox.classList.add('show');
   const r = seek.getBoundingClientRect(), half = pvBox.offsetWidth / 2;
-  const x = Math.min(innerWidth - half - 8, Math.max(half + 8, e.clientX));   // keep the card inside the window
+  const x = Math.min(innerWidth - half - 8, Math.max(half + 8, cx));   // keep the card inside the window
   pvBox.style.left = (x - r.left) + 'px';
   pvTime.textContent = fmt(at);
   if (isAudio(it) || it.remote) return pvStage();
+  // quantize: ignore tiny movements (≈ 1/150 of the duration, at least 1 s)
+  const stepLen = Math.max(1, d / 150), step = Math.round(at / stepLen);
+  if (step === pvStep) return;
+  clearTimeout(pvFrameT);
+  pvFrameT = setTimeout(() => { pvStep = step; requestFrame(it, Math.min(d, step * stepLen)); }, 90);
+}
+function requestFrame(it, at) {
   if (!P.tx) {                                               // direct file: seek the hidden <video>
     const url = fileUrl(it.src);
     if (pvSrc !== url) { pvSrc = url; pvVideo.src = url; pvStage(); }
@@ -511,9 +536,9 @@ function preview(e, f) {
       if (pvKey === key && pvBox.classList.contains('show')) pvDraw(img, img.naturalWidth, img.naturalHeight);
     };
     img.src = url;
-  }, 120);
+  }, 60);
 }
-seek.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; seekTo(frac(e, seek) * curDur()); const r = seek.getBoundingClientRect(); if (e.clientY < r.top || e.clientY > r.bottom) hidePreview(); });
+seek.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; seekTo(frac(e, seek) * curDur()); const r = seek.getBoundingClientRect(); if (e.clientY < r.top - 12 || e.clientY > r.bottom + 8) schedulePreviewHide(); });
 
 /* volume */
 let volume = S.get('volume');
@@ -552,8 +577,30 @@ $('#closeBtn').onclick = () => { savePos(); stopRecord(); api.win('close'); };
 api.onMaximized(m => { $('#maxIcon').innerHTML = m ? '<rect x="8" y="5" width="11" height="11" rx="1"/><path d="M5 8v10a1 1 0 0 0 1 1h10"/>' : '<rect x="6" y="6" width="12" height="12" rx="1"/>'; });
 $('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('button')) api.win('max'); });
 function toggleFs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
-document.addEventListener('fullscreenchange', () => { document.body.classList.toggle('fullscreen', !!document.fullscreenElement); if (document.fullscreenElement) showPlayer(); });
-let hideT; document.addEventListener('mousemove', () => { document.body.classList.remove('hidecursor'); clearTimeout(hideT); hideT = setTimeout(() => { if (!video.paused) document.body.classList.add('hidecursor'); }, S.get('hideCursorDelay') * 1000); });
+document.addEventListener('fullscreenchange', () => {
+  const fs = !!document.fullscreenElement;
+  document.body.classList.toggle('fullscreen', fs);
+  document.body.classList.remove('fs-top', 'fs-bottom');
+  if (fs) showPlayer();
+});
+// In fullscreen the top bar and the controls stay hidden; they slide in while the mouse is near the top or bottom edge.
+const FS_TOP = 60, FS_BOTTOM = 90;
+function fsZones(y) {
+  if (!document.body.classList.contains('fullscreen')) return;
+  const menuOpen = !!document.querySelector('.menu-layer');
+  document.body.classList.toggle('fs-top', y != null && y <= FS_TOP && !menuOpen);
+  document.body.classList.toggle('fs-bottom', dragging || vdrag || (y != null && y >= innerHeight - FS_BOTTOM));
+  if (!document.body.classList.contains('fs-bottom')) hidePreview();
+}
+let hideT; document.addEventListener('mousemove', e => {
+  fsZones(e.clientY);
+  document.body.classList.remove('hidecursor'); clearTimeout(hideT);
+  hideT = setTimeout(() => {
+    const b = document.body.classList;
+    if (!video.paused && !b.contains('fs-top') && !b.contains('fs-bottom')) b.add('hidecursor');
+  }, S.get('hideCursorDelay') * 1000);
+});
+document.documentElement.addEventListener('mouseleave', () => fsZones(null));
 function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); if (on) showPlayer(); osd(on ? 'Interface hidden – press Ctrl+\\ to show it again' : 'Interface visible'); }
 
 /* ---------- per-frame: mini preview + subtitles ---------- */

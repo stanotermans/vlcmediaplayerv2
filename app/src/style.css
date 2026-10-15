@@ -174,6 +174,7 @@ body.hide-ui #body{grid-template-columns:1fr}
 #playBtn svg{fill:currentColor;stroke:none}
 .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;min-width:58px;text-align:center}
 #seek{flex:1;height:22px;display:flex;align-items:center;cursor:pointer;position:relative}
+#seek::before{content:'';position:absolute;left:0;right:0;top:-12px;bottom:-8px}
 #seekTrack{width:100%;height:18px;background:var(--track);border-radius:4px;position:relative}
 #seekBuf{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--track) 80%,#fff 6%);border-radius:4px}
 #seekFill{position:absolute;left:0;top:0;bottom:0;background:var(--accent-dark);border-radius:4px 0 0 4px}
@@ -182,7 +183,8 @@ body.hide-ui #body{grid-template-columns:1fr}
 #seek:hover #seekTip{display:block}
 #seek.pv #seekTip{display:none!important}
 #seekPreview{position:absolute;bottom:34px;left:0;width:236px;padding:10px 10px 4px;background:#191919;border-radius:18px;box-shadow:0 14px 40px #000a;display:none;pointer-events:none;z-index:9;transform:translateX(-50%)}
-#seekPreview.show{display:block}
+#seekPreview.show{display:block;animation:pvIn .12s ease-out}
+@keyframes pvIn{from{opacity:0;transform:translate(-50%,6px)}}
 #seekPreview canvas{display:block;width:216px;height:122px;border-radius:9px;background:#2a2928}
 #seekPreview span{display:block;text-align:center;color:#a0a0a0;font-size:16px;font-variant-numeric:tabular-nums;padding:6px 0 4px}
 :root[data-theme="light"] #seekPreview{background:#f4f4f4;box-shadow:0 14px 40px #0003}
@@ -408,10 +410,13 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
 .ob-foot .ob-nav{position:static}
 
 /* ============ fullscreen / small ============ */
-.fullscreen #titlebar,.fullscreen #rail,.fullscreen #side{display:none}
-.fullscreen #app{grid-template-rows:1fr 52px}
+.fullscreen #rail,.fullscreen #side{display:none}
+.fullscreen #app{grid-template-rows:1fr}
 .fullscreen #body{grid-template-columns:1fr}
-.fullscreen.hidecursor #controls{opacity:0}
+.fullscreen #titlebar,.fullscreen #controls{position:fixed;left:0;right:0;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.fullscreen #titlebar{top:0;transform:translateY(-100%);-webkit-app-region:no-drag}
+.fullscreen #controls{bottom:0;height:52px;transform:translateY(100%)}
+.fullscreen.fs-top #titlebar,.fullscreen.fs-bottom #controls{opacity:1;pointer-events:auto;transform:none}
 .fullscreen.hidecursor{cursor:none}
 @media (max-width:820px){
   #side{position:absolute;left:52px;top:0;bottom:0;z-index:6}
