@@ -11,7 +11,40 @@ on:
     tags: ['v*']
 
 jobs:
+  # Slim ffmpeg (see app/build/ffmpeg/build.sh). Cached until the build script changes.
+  ffmpeg:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: win-x64,   os: ubuntu-latest }
+          - { target: linux-x64, os: ubuntu-latest }
+          - { target: mac-arm64, os: macos-14 }
+          - { target: mac-x64,   os: macos-14 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: app/build/ffmpeg/out/${{ matrix.target }}
+          key: ffmpeg-${{ matrix.target }}-${{ hashFiles('app/build/ffmpeg/*.sh') }}
+      - name: Build in Docker
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
+        run: bash app/build/ffmpeg/docker.sh ${{ matrix.target }}
+      - name: Build on macOS
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'macOS'
+        run: |
+          brew install nasm pkgconf
+          bash app/build/ffmpeg/build.sh ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ matrix.target }}
+          path: app/build/ffmpeg/out/${{ matrix.target }}/
+          if-no-files-found: error
+
   build:
+    needs: ffmpeg
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +82,21 @@ jobs:
 
       - run: npm ci
 
+      # Swap the large ffmpeg-static binary for the slim build
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ffmpeg-*
+          path: ffbin
+      - name: Use slim ffmpeg
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Windows) cp ../ffbin/ffmpeg-win-x64/ffmpeg.exe node_modules/ffmpeg-static/ffmpeg.exe ;;
+            Linux)   cp ../ffbin/ffmpeg-linux-x64/ffmpeg node_modules/ffmpeg-static/ffmpeg ;;
+            macOS)   cp ../ffbin/ffmpeg-mac-arm64/ffmpeg node_modules/ffmpeg-static/ffmpeg ;;
+          esac
+          chmod +x node_modules/ffmpeg-static/ffmpeg* && ls -l node_modules/ffmpeg-static/
+
       - name: Windows (installer, portable, Microsoft Store)
         if: runner.os == 'Windows'
         run: npx electron-builder --win nsis portable appx --publish never
@@ -59,8 +107,7 @@ jobs:
       - name: macOS Intel (with Intel FFmpeg)
         if: runner.os == 'macOS'
         run: |
-          rm -f node_modules/ffmpeg-static/ffmpeg
-          npm_config_arch=x64 node node_modules/ffmpeg-static/install.js
+          cp ../ffbin/ffmpeg-mac-x64/ffmpeg node_modules/ffmpeg-static/ffmpeg && chmod +x node_modules/ffmpeg-static/ffmpeg
           npx electron-builder --mac --x64 --publish never
 
       - name: Linux (AppImage, deb, rpm, pacman, tar.gz)
@@ -92,6 +139,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
+          pattern: vlc-*
           path: artifacts
           merge-multiple: true
       - name: Release notes with download table
