@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/stanotermans/vlcmediaplayerv2/security
+    about: Please report security problems privately, not in a public issue.
+  - name: 🎬 Problems with the real VLC media player
+    url: https://www.videolan.org/support/
+    about: This is an unofficial fan project. For the real VLC by VideoLAN, go to their support page.

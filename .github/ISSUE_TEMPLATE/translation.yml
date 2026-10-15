@@ -1,0 +1,33 @@
+name: 🌍 Translation
+description: Report a wrong translation or request a new language
+labels: [translation]
+body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - English
+        - Nederlands
+        - Deutsch
+        - Français
+        - Español
+        - Italiano
+        - Português
+        - New language (please name it below)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What should change?
+      description: Where in the app did you see it, what does it say now, and what should it say?
+      placeholder: |
+        Where: Settings → Audio
+        Now: "…"
+        Should be: "…"
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: Want to fix it yourself? See the [translation guide](https://github.com/stanotermans/vlcmediaplayerv2/blob/main/CONTRIBUTING.md#translations).

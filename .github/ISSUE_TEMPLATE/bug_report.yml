@@ -1,0 +1,72 @@
+name: 🐞 Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please check the [existing issues](https://github.com/stanotermans/vlcmediaplayerv2/issues) first.
+        **Security problems?** Don't open an issue. Use the [private reporting](https://github.com/stanotermans/vlcmediaplayerv2/security) instead.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: You can find it in the release you downloaded, e.g. v1.3.0
+      placeholder: v1.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Ubuntu / Debian / Linux Mint
+        - Fedora / openSUSE / Red Hat
+        - Arch Linux / Manjaro
+        - Other Linux
+        - Chrome OS
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Playback (a file doesn't play, stutters, no sound, …)
+        - Library / folders / playlists
+        - Subtitles
+        - Audio or video effects
+        - Settings
+        - Onboarding
+        - Translations
+        - Installation / download
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        1. Open an MKV file with AC3 audio
+        2. Press the right arrow key to seek
+        3. The picture freezes
+    validations:
+      required: true
+  - type: input
+    id: file
+    attributes:
+      label: File type (for playback problems)
+      description: Container and codecs if you know them. Media information is under the ··· menu (Ctrl+I).
+      placeholder: MKV, H.264 video, AC3 audio
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or log
+      description: Drag screenshots here. For playback problems, turn on Settings → General → Save a log and attach the log file.
