@@ -1,6 +1,6 @@
 # Accessibility
 
-We want **VLC Media Player – Redesign** to be usable by as many people as possible. This page describes what the app supports today, its known limitations, and how to report problems.
+We want **VLC Redesign** to be usable by as many people as possible. This page describes what the app supports today, its known limitations, and how to report problems.
 
 ## What the app supports
 

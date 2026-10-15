@@ -3,7 +3,7 @@ name: Build & Release
 # Builds the app for Windows, macOS (Apple Silicon + Intel) and Linux.
 #  - Manually: "Actions" tab → "Build & Release" → "Run workflow" (files appear under "Artifacts").
 #  - Release:  push a tag that matches the version in app/package.json, e.g.
-#                git tag v1.4.1 && git push origin v1.4.1
+#                git tag v1.5.0 && git push origin v1.5.0
 #              A GitHub Release with a download table per operating system is then created automatically.
 on:
   workflow_dispatch:
@@ -115,6 +115,6 @@ jobs:
           cat notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          name: VLC Media Player (Redesign) ${{ github.ref_name }}
+          name: VLC Redesign ${{ github.ref_name }}
           body_path: notes.md
           files: artifacts/*

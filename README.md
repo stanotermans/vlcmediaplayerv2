@@ -2,9 +2,9 @@
 
 <img src="docs/icon.png" width="96" alt="">
 
-# VLC Media Player – Redesign
+# VLC Redesign
 
-**A modern desktop media player built from the VLC redesign by [Juxtopposed](https://www.youtube.com/@juxtopposed).**
+**An unofficial, modern desktop media player built from the VLC redesign by [Juxtopposed](https://www.youtube.com/@juxtopposed).**
 For Windows, macOS and Linux · plays almost anything thanks to built-in FFmpeg.
 
 [**⬇️ Download**](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest) ·
@@ -34,9 +34,9 @@ Open the **[latest release](https://github.com/stanotermans/vlcmediaplayerv2/rel
 
 | Operating system | File |
 |---|---|
-| 🪟 **Windows 10 / 11** | `VLC-Media-Player-Setup-<version>-x64.exe` (installer) or `…-Portable-<version>.exe` |
-| 🪟 Microsoft Store package | `VLC-Media-Player-Store-<version>-x64.appx` |
-| 🍎 **macOS** (Apple Silicon / Intel) | `VLC-Media-Player-<version>-mac-arm64.dmg` / `…-mac-x64.dmg` |
+| 🪟 **Windows 10 / 11** | `VLC-Redesign-Setup-<version>-x64.exe` (installer) or `VLC-Redesign-Portable-<version>.exe` |
+| 🪟 Microsoft Store package | `VLC-Redesign-Store-<version>-x64.appx` |
+| 🍎 **macOS** (Apple Silicon / Intel) | `VLC-Redesign-<version>-mac-arm64.dmg` / `…-mac-x64.dmg` |
 | 🐧 **Debian, Ubuntu, Linux Mint, Chrome OS** | `vlc-redesign-<version>-amd64.deb` |
 | 🐧 **Fedora, openSUSE, Red Hat** | `vlc-redesign-<version>-x86_64.rpm` |
 | 🐧 **Arch Linux, Manjaro** | `vlc-redesign-<version>-x64.pacman` |
@@ -68,13 +68,15 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Windows:** on the blue SmartScreen dialog, click *More info* → *Run anyway*.
 - **macOS:** right-click the app → *Open* → *Open*. Or in Terminal:
   ```bash
-  xattr -dr com.apple.quarantine "/Applications/VLC Media Player.app"
+  xattr -dr com.apple.quarantine "/Applications/VLC Redesign.app"
   ```
 </details>
 
 ## ✨ Features
 
 - **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
+- **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
+- **Instant seek preview.** Hover the timeline to see a thumbnail; a storyboard of frames is generated in the background so the preview follows your mouse without delay.
 - **7 languages:** English, Nederlands, Deutsch, Français, Español, Italiano and Português, switchable instantly without restarting.
 - **Onboarding** on first launch: choose your language, pick a media folder, choose a theme and accent color (with live preview), and learn the key shortcuts.
 - **Library** with videos, music, network streams, playlists and recently played. Browse folders with breadcrumbs (Videos ▸ Shows ▸ The Wand ▸ S01), "continue watching", and watched items dimmed.
@@ -131,9 +133,9 @@ npm run dist:linux      # Linux: AppImage, deb, rpm, pacman, tar.gz (on Linux)
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.4.1"
-git tag v1.4.1
-git push origin v1.4.1
+# first set the version in app/package.json, e.g. "version": "1.5.0"
+git tag v1.5.0
+git push origin v1.5.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
@@ -152,7 +154,7 @@ cd app && npm install --ignore-scripts --omit=dev
 electron36 .
 ```
 
-To use your own FFmpeg, set `VLCX_FFMPEG=/path/to/ffmpeg` and `VLCX_FFPROBE=/path/to/ffprobe`.
+To use your own FFmpeg, set `VLCX_FFMPEG=/path/to/ffmpeg`.
 
 ### Project structure
 
@@ -190,5 +192,5 @@ The app runs on [Electron](https://www.electronjs.org), which only supports Wind
 
 - **Code:** [MIT](LICENSE) © Stan Otermans
 - **Design:** © [Juxtopposed](https://www.youtube.com/@juxtopposed), used with attribution based on the publicly shared Figma community file.
-- Includes [FFmpeg](https://ffmpeg.org) (LGPL/GPL) via [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) and [ffprobe-static](https://github.com/joshwnj/ffprobe-static).
+- Includes [FFmpeg](https://ffmpeg.org) (LGPL/GPL) via [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static).
 - "VLC" and the cone logo are trademarks of [VideoLAN](https://www.videolan.org). This project is not affiliated with VideoLAN.

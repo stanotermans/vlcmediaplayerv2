@@ -1,8 +1,8 @@
 {
   "name": "vlc-redesign",
-  "productName": "VLC Media Player",
-  "version": "1.4.1",
-  "description": "Unofficial VLC media player built from the redesign by Juxtopposed",
+  "productName": "VLC Redesign",
+  "version": "1.5.0",
+  "description": "VLC Redesign – unofficial fan-made media player (not affiliated with VideoLAN)",
   "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
   "main": "main.js",
   "author": "Stan Otermans <stanotermans@gmail.com>",
@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "nl.otermans.vlcredesign",
-    "productName": "VLC Media Player",
+    "productName": "VLC Redesign",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -26,13 +26,10 @@
       "preload.js",
       "src/**/*",
       "build/icon.png",
-      "node_modules/ffmpeg-static/**/*",
-      "node_modules/ffprobe-static/package.json",
-      "node_modules/ffprobe-static/index.js"
+      "node_modules/ffmpeg-static/**/*"
     ],
     "asarUnpack": [
-      "node_modules/ffmpeg-static/**/*",
-      "node_modules/ffprobe-static/**/*"
+      "node_modules/ffmpeg-static/**/*"
     ],
     "fileAssociations": [
       {
@@ -190,34 +187,31 @@
         }
       ],
       "icon": "build/icon.png",
-      "files": [
-        "!node_modules/ffprobe-static/bin/linux/**",
-        "!node_modules/ffprobe-static/bin/darwin/**",
-        "!node_modules/ffprobe-static/bin/win32/ia32/**"
-      ]
+      "legalTrademarks": "VLC is a trademark of VideoLAN. VLC Redesign is an unofficial fan project and is not affiliated with VideoLAN."
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "VLC Media Player",
-      "artifactName": "VLC-Media-Player-Setup-${version}-${arch}.${ext}"
+      "shortcutName": "VLC Redesign",
+      "artifactName": "VLC-Redesign-Setup-${version}-${arch}.${ext}",
+      "uninstallDisplayName": "VLC Redesign (unofficial)"
     },
     "portable": {
-      "artifactName": "VLC-Media-Player-Portable-${version}.exe"
+      "artifactName": "VLC-Redesign-Portable-${version}.exe"
     },
     "appx": {
       "identityName": "StanOtermans.MediaPlayerRedesign",
       "publisher": "CN=Stan Otermans",
       "publisherDisplayName": "Stan Otermans",
       "applicationId": "MediaPlayerRedesign",
-      "displayName": "VLC Media Player (redesign)",
+      "displayName": "VLC Redesign (unofficial)",
       "backgroundColor": "#141414",
       "languages": [
         "nl-NL",
         "en-US"
       ],
-      "artifactName": "VLC-Media-Player-Store-${version}-${arch}.${ext}"
+      "artifactName": "VLC-Redesign-Store-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -254,7 +248,7 @@
       ],
       "executableName": "vlc-redesign",
       "category": "AudioVideo",
-      "synopsis": "VLC Media Player with a new design",
+      "synopsis": "VLC Redesign – unofficial fan-made media player",
       "description": "Media player with a library, playlists, subtitles, equalizer and built-in FFmpeg. Design by Juxtopposed.",
       "maintainer": "Stan Otermans <stanotermans@gmail.com>",
       "icon": "build/icon.png",
@@ -262,11 +256,6 @@
         "StartupWMClass": "vlc-redesign",
         "Keywords": "video;audio;player;vlc;media;"
       },
-      "files": [
-        "!node_modules/ffprobe-static/bin/win32/**",
-        "!node_modules/ffprobe-static/bin/darwin/**",
-        "!node_modules/ffprobe-static/bin/linux/ia32/**"
-      ],
       "artifactName": "vlc-redesign-${version}-${arch}.${ext}"
     },
     "deb": {
@@ -307,16 +296,25 @@
       "category": "public.app-category.video",
       "icon": "build/icon.png",
       "hardenedRuntime": true,
-      "files": [
-        "!node_modules/ffprobe-static/bin/win32/**",
-        "!node_modules/ffprobe-static/bin/linux/**"
-      ],
-      "artifactName": "VLC-Media-Player-${version}-mac-${arch}.${ext}"
-    }
+      "artifactName": "VLC-Redesign-${version}-mac-${arch}.${ext}"
+    },
+    "copyright": "© 2026 Stan Otermans. Unofficial fan project – not affiliated with VideoLAN. Design © Juxtopposed.",
+    "compression": "maximum",
+    "electronLanguages": [
+      "en-US",
+      "en-GB",
+      "nl",
+      "de",
+      "fr",
+      "es",
+      "es-419",
+      "it",
+      "pt-BR",
+      "pt-PT"
+    ]
   },
   "dependencies": {
-    "ffmpeg-static": "^5.2.0",
-    "ffprobe-static": "^3.1.0"
+    "ffmpeg-static": "^5.2.0"
   },
   "devDependencies": {
     "electron": "^38.2.0",

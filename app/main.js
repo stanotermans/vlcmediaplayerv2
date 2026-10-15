@@ -1,5 +1,5 @@
-// VLC Media Player (redesign) – Electron main process
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+// VLC Redesign (unofficial VLC-style media player) – Electron main process
+const { app, BrowserWindow, ipcMain, dialog, shell, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -7,10 +7,11 @@ const crypto = require('crypto');
 const { spawn, execFile } = require('child_process');
 
 const unpacked = p => p && p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
-// Bundled ffmpeg/ffprobe where available; otherwise (e.g. *BSD, or a distro build) the system's ffmpeg on PATH.
+// Bundled ffmpeg where available; otherwise (e.g. *BSD, or a distro build) the system's ffmpeg on PATH.
+// Media info is read with `ffmpeg -i` as well, so no separate ffprobe binary is shipped (smaller download).
 const bundled = (load) => { try { const p = unpacked(load()); return p && fs.existsSync(p) ? p : null; } catch { return null; } };
 const FFMPEG = process.env.VLCX_FFMPEG || bundled(() => require('ffmpeg-static')) || 'ffmpeg';
-const FFPROBE = process.env.VLCX_FFPROBE || bundled(() => require('ffprobe-static').path) || 'ffprobe';
+const REPO = 'stanotermans/vlcmediaplayerv2';
 
 const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|avi|wmv|flv|mpg|mpeg|ts|m2ts|mts|3gp|ogv|vob|divx|mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
 const SUB_EXT = /\.(srt|vtt|ass|ssa|sub)$/i;
@@ -35,6 +36,11 @@ let PORT = 0;
 const argPaths = argv => argv.slice(app.isPackaged ? 1 : 2).filter(a => !a.startsWith('-') && fs.existsSync(a)).map(a => path.resolve(a));
 // Separate profile for development/testing (keeps your real library and settings untouched).
 if (process.env.VLCX_USER_DATA) app.setPath('userData', process.env.VLCX_USER_DATA);
+else {
+  // keep using the settings/library folder of versions released as "VLC Media Player"
+  const legacy = path.join(app.getPath('appData'), 'VLC Media Player');
+  if (fs.existsSync(legacy)) app.setPath('userData', legacy);
+}
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.on('second-instance', (_e, argv) => {
   const p = argPaths(argv);
@@ -128,29 +134,49 @@ function expand(paths, depth = 0) {
   return out;
 }
 
+// ffmpeg writes its diagnostics to stderr (and exits non-zero without an output file); we only need that text.
+function runErr(bin, args, timeout = 20000) {
+  return new Promise(res => execFile(bin, args, { maxBuffer: 16 * 1024 * 1024, encoding: 'utf8', timeout, windowsHide: true }, (_err, _out, errOut) => res(String(errOut || ''))));
+}
+const CHANNELS = { mono: 1, stereo: 2, '2.1': 3, '3.0': 3, quad: 4, '4.0': 4, '4.1': 5, '5.0': 5, '5.1': 6, '6.0': 6, '6.1': 7, '7.0': 7, '7.1': 8 };
+// Media info parsed from `ffmpeg -i` (same shape the renderer used to get from ffprobe)
 async function probe(src) {
-  const out = await run(FFPROBE, ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', src], { timeout: 20000 });
-  if (!out) return null;
-  let j; try { j = JSON.parse(out); } catch { return null; }
-  const S = j.streams || [];
-  const v = S.find(s => s.codec_type === 'video' && !(s.disposition && s.disposition.attached_pic));
-  const tag = s => (s.tags && (s.tags.title || s.tags.language)) || '';
+  const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-i', src]);
+  const head = /Input #0, (.+?), from /.exec(txt);
+  if (!head) return null;
+  const dm = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt);
+  const streams = []; let cur = null;
+  for (const line of txt.split(/\r?\n/)) {
+    const m = /^\s*Stream #0:\d+(?:\[[^\]]*\])?(?:\(([^)]*)\))?: (Video|Audio|Subtitle|Data|Attachment): ([^\s,]+)(.*)$/.exec(line);
+    if (m) { cur = { type: m[2].toLowerCase(), lang: m[1] && m[1] !== 'und' ? m[1] : undefined, codec: m[3].toLowerCase(), rest: m[4], title: '' }; streams.push(cur); continue; }
+    if (/^\s*(Chapter|Input|Output) #/.test(line)) { cur = null; continue; }
+    const t = cur && /^\s+title\s*:\s*(.+)$/.exec(line);
+    if (t && !cur.title) cur.title = t[1].trim();
+  }
+  const isCover = s => /attached pic/.test(s.rest);
+  const v = streams.find(s => s.type === 'video' && !isCover(s));
+  const size = v && /(\d{2,5})x(\d{2,5})/.exec(v.rest);
+  const pix = v && /,\s*([a-z][a-z0-9_]*)(?=[(,\s]|$)/.exec(v.rest);
+  const channels = rest => { const c = /Hz, ([^,]+)/.exec(rest); if (!c) return undefined; const k = c[1].replace(/\(.*\)/, '').trim(); return CHANNELS[k] || parseInt(k) || undefined; };
+  const label = s => s.title || s.lang || '';
+  const aud = streams.filter(s => s.type === 'audio'), sub = streams.filter(s => s.type === 'subtitle');
   return {
-    duration: +(j.format && j.format.duration) || 0,
-    format: (j.format && j.format.format_name) || '',
-    vcodec: v ? v.codec_name : null, pix: v ? v.pix_fmt : null, width: v ? v.width : 0, height: v ? v.height : 0,
-    audio: S.filter(s => s.codec_type === 'audio').map((s, i) => ({ i, codec: s.codec_name, label: tag(s) || `${mt('Track')} ${i + 1}`, lang: s.tags && s.tags.language, ch: s.channels })),
-    subs: S.filter(s => s.codec_type === 'subtitle').map((s, i) => ({ i, codec: s.codec_name, label: tag(s) || `${mt('Subtitle')} ${i + 1}`, lang: s.tags && s.tags.language })),
-    cover: S.some(s => s.disposition && s.disposition.attached_pic),
+    duration: dm ? (+dm[1]) * 3600 + (+dm[2]) * 60 + parseFloat(dm[3]) : 0,
+    format: head[1],
+    vcodec: v ? v.codec : null, pix: pix ? pix[1] : null, width: size ? +size[1] : 0, height: size ? +size[2] : 0,
+    audio: aud.map((s, i) => ({ i, codec: s.codec, label: label(s) || `${mt('Track')} ${i + 1}`, lang: s.lang, ch: channels(s.rest) })),
+    subs: sub.map((s, i) => ({ i, codec: s.codec, label: label(s) || `${mt('Subtitle')} ${i + 1}`, lang: s.lang })),
+    cover: streams.some(s => s.type === 'video' && isCover(s)),
   };
 }
 
-// Last video keyframe at or before `ss` – stream copy can only start on a keyframe
+// Last video keyframe at or before `ss` – stream copy can only start on a keyframe.
+// Decodes only keyframes (-skip_frame nokey) in the 20 s before `ss` and reads their timestamps from showinfo.
 async function keyframe(src, ss) {
-  const out = await run(FFPROBE, ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'packet=pts_time,flags',
-    '-read_intervals', `${Math.max(0, ss - 20)}%${ss + 0.05}`, '-of', 'csv=p=0', src], { timeout: 15000 });
-  if (!out) return null;
-  const times = out.split(/\r?\n/).filter(l => /,K/.test(l)).map(parseFloat).filter(t => isFinite(t) && t <= ss + 0.05);
+  const start = Math.max(0, ss - 20);
+  const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-skip_frame', 'nokey', '-ss', String(start), '-t', String(ss - start + 0.1), '-copyts', '-i', src,
+    '-map', '0:v:0', '-vf', 'showinfo', '-an', '-sn', '-f', 'null', '-'], 15000);
+  const times = [...txt.matchAll(/pts_time:\s*([\d.]+)/g)].map(m => parseFloat(m[1])).filter(t => isFinite(t) && t <= ss + 0.05);
   return times.length ? Math.max(...times) : null;
 }
 
@@ -212,7 +238,7 @@ ipcMain.handle('thumb',(_e, src, at) => thumbnail(src, at));
 ipcMain.handle('subs', (_e, src, idx) => subtitles(src, idx));
 ipcMain.handle('sibling-subs', (_e, file) => siblingSubs(file));
 ipcMain.handle('snapshot', (_e, dataUrl, name, dir) => {
-  dir = dir || path.join(app.getPath('pictures'), 'VLC');
+  dir = dir || path.join(app.getPath('pictures'), 'VLC Redesign');
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, name);
   fs.writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
@@ -222,7 +248,7 @@ ipcMain.handle('reveal', (_e, p) => shell.showItemInFolder(p));
 ipcMain.handle('open-path', (_e, p) => { fs.mkdirSync(p, { recursive: true }); return shell.openPath(p); });
 ipcMain.handle('paths', () => ({
   videos: app.getPath('videos'), music: app.getPath('music'), pictures: app.getPath('pictures'),
-  recordings: path.join(app.getPath('videos'), 'VLC'), snapshots: path.join(app.getPath('pictures'), 'VLC'),
+  recordings: path.join(app.getPath('videos'), 'VLC Redesign'), snapshots: path.join(app.getPath('pictures'), 'VLC Redesign'),
   log: path.join(app.getPath('userData'), 'vlc-log.txt'),
 }));
 ipcMain.handle('choose-folder', async (_e, title) => {
@@ -247,6 +273,72 @@ ipcMain.handle('rec-start', (_e, dir, name) => { fs.mkdirSync(dir, { recursive: 
 ipcMain.handle('rec-chunk', (_e, file, buf) => { const fd = recs.get(file); if (fd != null) fs.writeSync(fd, Buffer.from(buf)); });
 ipcMain.handle('rec-stop', (_e, file) => { const fd = recs.get(file); if (fd != null) { fs.closeSync(fd); recs.delete(file); } return file; });
 ipcMain.on('quit', () => app.quit());
+
+/* ---------------- about + updates (GitHub releases) ---------------- */
+const SAFE_HOSTS = /^(github\.com|www\.youtube\.com|youtube\.com|www\.figma\.com|stanotermans\.github\.io|ffmpeg\.org|www\.electronjs\.org|www\.videolan\.org|opensource\.org)$/;
+ipcMain.handle('open-external', (_e, url) => { try { const u = new URL(url); if (u.protocol === 'https:' && SAFE_HOSTS.test(u.hostname)) shell.openExternal(u.href); } catch {} });
+const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
+ipcMain.handle('app-info', () => ({
+  version: app.getVersion(), platform: process.platform, arch: process.arch, portable: isPortable(), appImage: !!process.env.APPIMAGE,
+  electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node,
+}));
+const cmpVer = (a, b) => { const x = String(a).replace(/^v/, '').split('.').map(n => parseInt(n) || 0), y = String(b).replace(/^v/, '').split('.').map(n => parseInt(n) || 0);
+  for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) ? 1 : -1; } return 0; };
+function pickAsset(assets) {
+  const find = re => (assets || []).find(a => re.test(a.name));
+  if (process.platform === 'win32') return isPortable() ? { asset: find(/Portable-.*\.exe$/), mode: 'download' } : { asset: find(/Setup-.*x64\.exe$/), mode: 'install' };
+  if (process.platform === 'darwin') return { asset: find(new RegExp(`mac-${process.arch}\\.dmg$`)), mode: 'download' };
+  if (process.env.APPIMAGE) return { asset: find(/\.AppImage$/), mode: 'install' };
+  return { asset: null, mode: 'page' };                    // .deb/.rpm/.pacman installs: update with the package manager
+}
+ipcMain.handle('update-check', async () => {
+  const r = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { 'User-Agent': 'vlc-redesign', Accept: 'application/vnd.github+json' } });
+  if (!r.ok) throw new Error('GitHub ' + r.status);
+  const j = await r.json();
+  const latest = String(j.tag_name || '').replace(/^v/, '');
+  const { asset, mode } = pickAsset(j.assets);
+  return { current: app.getVersion(), latest, newer: cmpVer(latest, app.getVersion()) > 0, url: j.html_url, published: j.published_at,
+    mode: asset ? mode : 'page', asset: asset ? { name: asset.name, url: asset.browser_download_url, size: asset.size } : null };
+});
+ipcMain.handle('update-install', async (e, info) => {
+  if (!info || !info.asset) { if (info && info.url) shell.openExternal(info.url); return { done: 'page' }; }
+  const u = new URL(info.asset.url);
+  if (u.protocol !== 'https:' || u.hostname !== 'github.com' || !u.pathname.startsWith(`/${REPO}/releases/download/`)) throw new Error('Unexpected download URL');
+  const dir = info.mode === 'install' && process.platform === 'win32' ? app.getPath('temp')
+    : info.mode === 'install' && process.env.APPIMAGE ? path.dirname(process.env.APPIMAGE) : app.getPath('downloads');
+  const file = path.join(dir, path.basename(info.asset.name));
+  const r = await net.fetch(u.href, { headers: { 'User-Agent': 'vlc-redesign' } });
+  if (!r.ok || !r.body) throw new Error('Download failed (' + r.status + ')');
+  const total = +r.headers.get('content-length') || info.asset.size || 0;
+  const out = fs.createWriteStream(file + '.part');
+  let got = 0, lastSent = 0;
+  const reader = r.body.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    got += value.length;
+    if (!out.write(Buffer.from(value))) await new Promise(res => out.once('drain', res));
+    if (Date.now() - lastSent > 150) { lastSent = Date.now(); e.sender.send('update-progress', { got, total }); }
+  }
+  await new Promise(res => out.end(res));
+  fs.renameSync(file + '.part', file);
+  e.sender.send('update-progress', { got: total || got, total: total || got });
+  if (info.mode === 'install' && process.platform === 'win32') {
+    // silent NSIS update; --force-run starts the new version when it's done
+    spawn(file, ['/S', '--force-run'], { detached: true, stdio: 'ignore' }).unref();
+    setTimeout(() => app.quit(), 400);
+    return { done: 'installing' };
+  }
+  if (info.mode === 'install' && process.env.APPIMAGE) {
+    fs.chmodSync(file, 0o755);
+    if (path.resolve(file) !== path.resolve(process.env.APPIMAGE)) { try { fs.unlinkSync(process.env.APPIMAGE); } catch {} }
+    spawn(file, [], { detached: true, stdio: 'ignore' }).unref();
+    setTimeout(() => app.quit(), 400);
+    return { done: 'installing' };
+  }
+  if (process.platform === 'darwin') shell.openPath(file); else shell.showItemInFolder(file);
+  return { done: 'downloaded', file };
+});
 ipcMain.on('set-lang', (_e, l) => { LANG = String(l || 'en'); });
 ipcMain.on('win', (_e, act) => {
   if (!win) return;

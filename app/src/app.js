@@ -258,8 +258,8 @@ function render() {
     else T('No media yet', 'Add a media folder, drag files here or open a file.');
   }
   renderSide();
-  $('#wintitle').textContent = cur ? cur.name : 'VLC Media Player';
-  document.title = cur ? cur.name + ' - VLC Media Player' : 'VLC Media Player';
+  $('#wintitle').textContent = cur ? cur.name : 'VLC Redesign';
+  document.title = cur ? cur.name + ' - VLC Redesign' : 'VLC Redesign';
   updateMini();
 }
 function renderSide() {
@@ -354,6 +354,7 @@ async function playItem(idx, autoplay = true) {
   setIdle(it);
   if (S.get('rememberRecent')) { state.recent = [it.src, ...state.recent.filter(s => s !== it.src)]; saveRecent(); }
   setupSubs(it);
+  buildStoryboard(it);
   render(); quick && quick.refresh();
 }
 video.addEventListener('loadedmetadata', () => {
@@ -500,6 +501,34 @@ function preview(e, f) {
   }
   showPreview();
 }
+/* storyboard: small frames across the whole file, made in the background so the hover preview is instant */
+const SB = { src: null, step: 0, n: 0, frames: [], job: 0 };
+function buildStoryboard(it) {
+  const job = ++SB.job;
+  Object.assign(SB, { src: it.src, step: 0, n: 0, frames: [] });
+  const d = it.duration;
+  if (!d || isAudio(it) || it.remote || !S.get('seekPreview')) return;
+  const n = Math.max(24, Math.min(160, Math.round(d / 3)));
+  Object.assign(SB, { step: d / n, n });
+  const order = [];                                          // coarse-to-fine, so the whole timeline is covered quickly
+  for (let gap = 64; gap >= 1; gap >>= 1) for (let i = 0; i < n; i += gap) if (!order.includes(i)) order.push(i);
+  let next = 0;
+  const worker = async () => {
+    while (SB.job === job && next < order.length) {
+      const i = order[next++];
+      const url = await api.frame(it.src, Math.min(d - 0.3, (i + 0.5) * SB.step), 240);
+      if (SB.job !== job) return;
+      if (url) { const img = new Image(); img.src = url; try { await img.decode(); } catch {} SB.frames[i] = img; }
+    }
+  };
+  setTimeout(() => { if (SB.job === job) for (let k = 0; k < 3; k++) worker(); }, 1200);
+}
+function sbNearest(at) {
+  if (!SB.n) return null;
+  const i0 = Math.min(SB.n - 1, Math.max(0, Math.floor(at / SB.step)));
+  for (let r = 0; r < SB.n; r++) { if (SB.frames[i0 - r]) return SB.frames[i0 - r]; if (SB.frames[i0 + r]) return SB.frames[i0 + r]; }
+  return null;
+}
 function showPreview() {
   const it = curItem(), d = curDur(); if (!it || !d) return;
   const { x: cx, f } = pvLast, at = f * d;
@@ -509,16 +538,17 @@ function showPreview() {
   pvBox.style.left = (x - r.left) + 'px';
   pvTime.textContent = fmt(at);
   if (isAudio(it) || it.remote) return pvStage();
-  // quantize: ignore tiny movements (≈ 1/150 of the duration, at least 1 s)
-  const stepLen = Math.max(1, d / 150), step = Math.round(at / stepLen);
+  // instant: nearest storyboard frame; then the exact frame once the pointer slows down
+  const stepLen = Math.max(0.5, d / 300), step = Math.round(at / stepLen);
   if (step === pvStep) return;
+  if (SB.src === it.src) { const img = sbNearest(at); if (img) pvDraw(img, img.naturalWidth, img.naturalHeight); }
   clearTimeout(pvFrameT);
-  pvFrameT = setTimeout(() => { pvStep = step; requestFrame(it, Math.min(d, step * stepLen)); }, 90);
+  pvFrameT = setTimeout(() => { pvStep = step; requestFrame(it, Math.min(d, step * stepLen)); }, P.tx ? 140 : 40);
 }
 function requestFrame(it, at) {
   if (!P.tx) {                                               // direct file: seek the hidden <video>
     const url = fileUrl(it.src);
-    if (pvSrc !== url) { pvSrc = url; pvVideo.src = url; pvStage(); }
+    if (pvSrc !== url) { pvSrc = url; pvVideo.src = url; }
     pvWant = at; if (!pvBusy) pvSeekNext();
     return;
   }
@@ -536,7 +566,7 @@ function requestFrame(it, at) {
       if (pvKey === key && pvBox.classList.contains('show')) pvDraw(img, img.naturalWidth, img.naturalHeight);
     };
     img.src = url;
-  }, 60);
+  }, 0);
 }
 seek.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; seekTo(frac(e, seek) * curDur()); const r = seek.getBoundingClientRect(); if (e.clientY < r.top - 12 || e.clientY > r.bottom + 8) schedulePreviewHide(); });
 
@@ -1012,6 +1042,44 @@ S.on(path => {
   if (path === 'language') { render(); setPlayIcon(); setBadge(); quick && quick.refresh(); api.setLang && api.setLang(I18N.lang()); }
 });
 
+/* ---------- updates (GitHub releases) ---------- */
+const Upd = { state: 'idle', info: null, error: '', progress: 0, fns: [] };
+const updEmit = () => { Upd.fns.forEach(fn => { try { fn(Upd); } catch {} }); renderUpdateBanner(); };
+async function checkUpdates(manual = false) {
+  if (Upd.state === 'checking' || Upd.state === 'downloading') return;
+  Upd.state = 'checking'; Upd.error = ''; updEmit();
+  try {
+    const info = await api.updateCheck();
+    Upd.info = info; Upd.state = info.newer ? 'available' : 'latest';
+    S.set('lastUpdateCheck', Date.now());
+    if (info.newer && !manual && S.get('skipVersion') !== info.latest) Upd.banner = true;
+  } catch (e) { Upd.state = 'error'; Upd.error = String(e && e.message || e); }
+  updEmit();
+}
+async function installUpdate() {
+  if (!Upd.info) return;
+  Upd.state = 'downloading'; Upd.progress = 0; updEmit();
+  try { const r = await api.updateInstall(Upd.info); Upd.state = r.done; }
+  catch (e) { Upd.state = 'error'; Upd.error = String(e && e.message || e); }
+  updEmit();
+}
+api.onUpdateProgress(p => { Upd.progress = p.total ? p.got / p.total : 0; updEmit(); });
+const updActionLabel = () => ({ install: 'Install update', download: 'Download update' })[Upd.info && Upd.info.mode] || 'Open download page';
+function renderUpdateBanner() {
+  let b = $('#updateBanner');
+  if (!Upd.banner || !Upd.info) { if (b) b.remove(); return; }
+  if (!b) { b = el('div'); b.id = 'updateBanner'; document.body.append(b); }
+  const busy = Upd.state === 'downloading';
+  b.replaceChildren(...[
+    el('span.ub-icon', { html: icon('download') }),
+    el('div.ub-text', {}, el('b', {}, t('Update available: {v}', { v: 'v' + Upd.info.latest })),
+      el('span', {}, busy ? t('Downloading update… {p}%', { p: Math.round(Upd.progress * 100) }) : Upd.state === 'installing' ? t('The update is being installed. The app will restart.')
+        : Upd.state === 'downloaded' ? t('The update has been downloaded.') : Upd.state === 'error' ? t('Could not check for updates.') : t('You are using v{v}.', { v: Upd.info.current }))),
+    busy ? el('div.ub-bar', {}, el('i', { style: { width: Math.round(Upd.progress * 100) + '%' } })) : null,
+    !busy && Upd.state === 'available' ? UI.button(updActionLabel(), () => installUpdate(), 'primary') : null,
+    !busy ? UI.button('Later', () => { Upd.banner = false; renderUpdateBanner(); }, 'ghost') : null].filter(Boolean));
+}
+
 /* ---------- App API for panels / onboarding ---------- */
 const App = {
   video, paths: PATHS, osd, addSources, createPlaylist, addFolder, removeFolder,
@@ -1021,6 +1089,7 @@ const App = {
   audioTracks, audioTrack: () => P.audio, setAudioTrack,
   subTracks: () => [[-1, 'Off'], ...SUB.tracks.map((t, i) => [i, t.label])], subActive: () => SUB.active, selectSub, loadSubFile, sub: subSync,
   reloadSource, showOnboarding, applyLog,
+  update: { get: () => Upd, check: checkUpdates, install: installUpdate, label: updActionLabel, on: fn => Upd.fns.push(fn), off: fn => { const i = Upd.fns.indexOf(fn); if (i >= 0) Upd.fns.splice(i, 1); } },
 };
 function showOnboarding() {
   video.pause();
@@ -1029,6 +1098,7 @@ function showOnboarding() {
     if (pendingOpen) { const p = pendingOpen; pendingOpen = null; addSources(p, { play: true }); }
   } });
 }
+App.appInfo = await api.appInfo();
 quick = Panels.quickPanel(App);
 $('#setBtn').onclick = () => quick.toggle();
 $('#eqBtn').onclick = () => quick.toggle('audio');
@@ -1047,5 +1117,7 @@ if (lib.length) {
 }
 if (S.get('mediaFolders').length) scanFolders();
 if (!S.get('onboarded')) showOnboarding();
+if (S.get('autoUpdate') && Date.now() - (S.get('lastUpdateCheck') || 0) > 6 * 3600e3) setTimeout(() => checkUpdates(false), 4000);
+I18N.onChange(renderUpdateBanner);
 api.ready();
 })();

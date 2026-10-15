@@ -169,7 +169,7 @@ const CATS = [
   ['Media'], ['playback', 'Playback', 'play'], ['video', 'Video', 'video'], ['audio', 'Audio', 'audio'], ['subtitles', 'Subtitles', 'subtitle'], ['library', 'Library', 'library'],
   ['System'], ['network', 'Network', 'network'], ['performance', 'Performance', 'general'], ['recording', 'Recording', 'record'], ['extensions', 'Extensions', 'puzzle'],
 ];
-const TITLES = { general: 'Global settings', interface: 'Interface', privacy: 'Privacy', controls: 'Controls', playback: 'Playback', video: 'Video', audio: 'Audio defaults', subtitles: 'Subtitles', library: 'Library', network: 'Network', performance: 'Performance', recording: 'Recording', extensions: 'Extensions' };
+const TITLES = { about: 'About', general: 'Global settings', interface: 'Interface', privacy: 'Privacy', controls: 'Controls', playback: 'Playback', video: 'Video', audio: 'Audio defaults', subtitles: 'Subtitles', library: 'Library', network: 'Network', performance: 'Performance', recording: 'Recording', extensions: 'Extensions' };
 
 function pages(App) {
   const P = App.paths;
@@ -187,6 +187,7 @@ function pages(App) {
         row('Accent color', swatches(S.ACCENTS, 'accent'))),
       sec('Startup',
         row('Show confirmation and error dialogs', toggle('confirmDialogs'), { info: 'Ask for confirmation before deleting or clearing.' }),
+        row('Check for updates automatically', toggle('autoUpdate')),
         row('Show welcome screen again', button('Start onboarding', () => { UI.$('.dlg-layer')?.querySelector('.dlg')?._close(null); App.showOnboarding(); }, 'ghost'))),
       sec('Diagnostics',
         row('Developer mode', toggle('devMode', v => api.devtools(v)), { info: 'Opens the developer tools.' }),
@@ -289,6 +290,47 @@ function pages(App) {
         row('Include audio', toggle('recAudio')),
         el('p.note', {}, t('Press R (or Shift+R) during playback to record. Recordings are saved as .webm.'))),
     ],
+    about: () => {
+      const info = App.appInfo || {};
+      const status = el('p.upd-status');
+      const actions = el('div.btnrow');
+      const draw = U => {
+        const pct = Math.round((U.progress || 0) * 100);
+        status.textContent = ({
+          idle: '', checking: t('Checking for updates…'),
+          latest: t('You have the latest version ({v}).', { v: 'v' + (U.info ? U.info.current : info.version) }),
+          available: t('Version {v} is available.', { v: 'v' + (U.info && U.info.latest) }),
+          downloading: t('Downloading update… {p}%', { p: pct }),
+          installing: t('The update is being installed. The app will restart.'),
+          downloaded: t('The update has been downloaded.'),
+          page: t('Version {v} is available.', { v: 'v' + (U.info && U.info.latest) }),
+          error: t('Could not check for updates.') + (U.error ? ' (' + U.error + ')' : ''),
+        })[U.state] || '';
+        status.className = 'upd-status ' + U.state;
+        actions.replaceChildren(...[
+          button('Check for updates', () => App.update.check(true), 'ghost'),
+          U.state === 'available' ? button(App.update.label(), () => App.update.install(), 'primary') : null].filter(Boolean));
+      };
+      App.update.on(draw); draw(App.update.get());
+      const link = (label, url, ic) => el('button.linkbtn', { type: 'button', html: icon(ic || 'link') + `<span>${UI.esc(t(label))}</span>`, onclick: () => api.openExternal(url) });
+      const keepAlive = el('div.about');
+      new MutationObserver((_, o) => { if (!keepAlive.isConnected) { App.update.off(draw); o.disconnect(); } }).observe(document.body, { childList: true, subtree: true });
+      return [keepAlive,
+        el('div.about-head', {}, el('img.about-icon', { src: '../build/icon.png', alt: '' }),
+          el('div', {}, el('h2', {}, 'VLC Redesign'), el('p.about-ver', {}, t('Version {v}', { v: info.version || '' }) + ` · ${info.platform || ''} ${info.arch || ''}${info.portable ? ' · portable' : ''}`))),
+        el('p.about-note', {}, t('Unofficial fan project. Not made by or affiliated with VideoLAN, the makers of VLC media player.')),
+        sec('Updates', row('Check for updates automatically', toggle('autoUpdate')), status, actions),
+        sec('Credits',
+          row('Design', el('span.about-val', {}, 'Juxtopposed – “I Redesigned VLC After 25 Years”')),
+          el('div.btnrow', {}, link('Watch the video', 'https://www.youtube.com/watch?v=ERFeOgqk324', 'play'), link('Figma file', 'https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-')),
+          row('Code', el('span.about-val', {}, '© 2026 Stan Otermans · ' + t('MIT license'))),
+          row('Built with', el('span.about-val', {}, `Electron ${info.electron || ''} · Chromium ${info.chrome || ''} · FFmpeg (LGPL/GPL)`))),
+        sec('Links', el('div.btnrow', {},
+          link('GitHub', 'https://github.com/stanotermans/vlcmediaplayerv2', 'github'),
+          link('Website', 'https://stanotermans.github.io/vlcmediaplayerv2/'),
+          link('Report a problem', 'https://github.com/stanotermans/vlcmediaplayerv2/issues'))),
+        el('p.note', {}, t('"VLC" and the VLC cone logo are trademarks of VideoLAN.'))];
+    },
     extensions: () => [sec('Extensions', el('div.empty-ext', {}, el('span', { html: icon('puzzle', 'icon big') }), el('p', {}, t('No extensions installed.')), el('p.note', {}, t('Extensions will be supported in a later version.'))))],
   };
 }
@@ -321,6 +363,8 @@ function openSettings(App, cat = 'general') {
     nav.append(el('button', { type: 'button', dataset: { cat: c[0] }, html: icon(c[2]) + `<span>${t(c[1])}</span>`, onclick: () => { search.value = ''; current = c[0]; draw(); } }));
   }
   search.addEventListener('input', draw);
+  // (i) About pinned at the bottom of the sidebar
+  nav.append(el('button.gabout', { type: 'button', dataset: { cat: 'about' }, html: icon('info') + `<span>${t('About')}</span>`, onclick: () => { search.value = ''; current = 'about'; draw(); } }));
   const box = el('div.gwrap', {}, el('div.gside', {}, el('div.gsearchwrap', { html: icon('search') }, search), nav), el('div.gmain', {}, el('div.gtop', {}, title), content));
   draw();
   return dialog({ title: '', body: box, buttons: [], width: 980, cls: 'global' });

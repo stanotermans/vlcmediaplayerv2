@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving **VLC Media Player – Redesign**! Bug reports, ideas, translations and code are all welcome.
+Thanks for your interest in improving **VLC Redesign**! Bug reports, ideas, translations and code are all welcome.
 
 > This is an unofficial fan project built from the [VLC redesign by Juxtopposed](https://www.youtube.com/watch?v=ERFeOgqk324). It is not affiliated with VideoLAN.
 

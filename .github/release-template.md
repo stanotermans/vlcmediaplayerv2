@@ -17,7 +17,7 @@ Prefer a one-click download? Use the **[download page](https://stanotermans.gith
 
 > **First launch**
 > - **Windows:** on the blue SmartScreen dialog, click *More info* → *Run anyway* (the app is not code-signed).
-> - **macOS:** right-click the app → *Open* → *Open*. Or: `xattr -dr com.apple.quarantine "/Applications/VLC Media Player.app"`.
+> - **macOS:** right-click the app → *Open* → *Open*. Or: `xattr -dr com.apple.quarantine "/Applications/VLC Redesign.app"`.
 >
 > 🌍 Available in English, Dutch, German, French, Spanish, Italian and Portuguese: pick your language on first launch.
 
