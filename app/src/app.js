@@ -19,7 +19,7 @@ function catSVG(cls = '') {
   const C = { W: '#ececec', K: '#111', P: '#f6b8c4', G: '#a8a8a8' };
   let r = '';
   CAT.forEach((row, y) => [...row].forEach((c, x) => { if (C[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${C[c]}"/>`; }));
-  return `<svg class="${cls}" viewBox="0 0 18 17" shape-rendering="crispEdges">${r}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 18 17" shape-rendering="crispEdges">${r}</svg>`;
 }
 $('#miniCanvasWrap').insertAdjacentHTML('beforeend', catSVG('cat'));
 
@@ -450,8 +450,70 @@ function setSeekUI(f) { f = Math.min(1, Math.max(0, f || 0)); $('#seekFill').sty
 const seek = $('#seek');
 const frac = (e, elm) => { const r = elm.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
 seek.addEventListener('pointerdown', e => { if (!curDur()) return; dragging = true; seek.setPointerCapture(e.pointerId); setSeekUI(frac(e, seek)); });
-seek.addEventListener('pointermove', e => { const f = frac(e, seek); const tip = $('#seekTip'); tip.style.left = f * 100 + '%'; tip.textContent = fmt(f * curDur()); if (dragging) setSeekUI(f); });
-seek.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; seekTo(frac(e, seek) * curDur()); });
+seek.addEventListener('pointermove', e => { const f = frac(e, seek); const tip = $('#seekTip'); tip.style.left = f * 100 + '%'; tip.textContent = fmt(f * curDur()); if (dragging) setSeekUI(f); preview(e, f); });
+seek.addEventListener('pointerleave', () => { if (!dragging) hidePreview(); });
+
+/* ---------- timeline hover preview (design: frame card with the time above the seek bar) ---------- */
+const pvBox = $('#seekPreview'), pvCanvas = $('#seekPreview canvas'), pvCtx = pvCanvas.getContext('2d'), pvTime = $('#seekPreview span');
+const pvVideo = document.createElement('video');            // hidden second decoder for direct-playable files
+pvVideo.muted = true; pvVideo.preload = 'auto'; pvVideo.crossOrigin = 'anonymous';
+const catImg = new Image(); catImg.src = 'data:image/svg+xml,' + encodeURIComponent(catSVG());
+const pvCache = new Map();                                   // ffmpeg frames: "src@seconds" -> Image
+let pvSrc = '', pvWant = null, pvBusy = false, pvTimer = null, pvKey = '';
+function hidePreview() { pvBox.classList.remove('show'); seek.classList.remove('pv'); pvWant = null; clearTimeout(pvTimer); }
+function pvStage() {                                         // empty stage with the pixel cat, like the idle player
+  const c = pvCanvas, cs = getComputedStyle(document.documentElement);
+  pvCtx.fillStyle = cs.getPropertyValue('--stage').trim() || '#2a2928'; pvCtx.fillRect(0, 0, c.width, c.height);
+  pvCtx.fillStyle = cs.getPropertyValue('--floor').trim() || '#252423'; pvCtx.fillRect(0, c.height * 0.68, c.width, c.height * 0.32);
+  const h = c.height * 0.42, w = h * 18 / 17;
+  pvCtx.imageSmoothingEnabled = false; pvCtx.drawImage(catImg, (c.width - w) / 2, c.height * 0.68 - h, w, h); pvCtx.imageSmoothingEnabled = true;
+}
+function pvDraw(src, sw, sh) {
+  const c = pvCanvas, r = Math.min(c.width / sw, c.height / sh), w = sw * r, h = sh * r;
+  pvCtx.fillStyle = '#000'; pvCtx.fillRect(0, 0, c.width, c.height);
+  try { pvCtx.drawImage(src, (c.width - w) / 2, (c.height - h) / 2, w, h); } catch { pvStage(); }
+}
+function pvSeekNext() {
+  if (pvWant == null) { pvBusy = false; return; }
+  if (pvVideo.readyState < 1) { pvBusy = true; pvVideo.onloadedmetadata = () => { pvVideo.onloadedmetadata = null; pvSeekNext(); }; return; }
+  pvBusy = true;
+  const target = pvWant; pvWant = null;
+  pvVideo.onseeked = () => { if (pvVideo.videoWidth) pvDraw(pvVideo, pvVideo.videoWidth, pvVideo.videoHeight); pvSeekNext(); };
+  pvVideo.currentTime = Math.min(target, Math.max(0, (pvVideo.duration || target) - 0.1));
+}
+function preview(e, f) {
+  const it = curItem(), d = curDur();
+  if (!S.get('seekPreview') || !it || !d) return hidePreview();
+  const at = f * d;
+  seek.classList.add('pv'); pvBox.classList.add('show');
+  const r = seek.getBoundingClientRect(), half = pvBox.offsetWidth / 2;
+  const x = Math.min(innerWidth - half - 8, Math.max(half + 8, e.clientX));   // keep the card inside the window
+  pvBox.style.left = (x - r.left) + 'px';
+  pvTime.textContent = fmt(at);
+  if (isAudio(it) || it.remote) return pvStage();
+  if (!P.tx) {                                               // direct file: seek the hidden <video>
+    const url = fileUrl(it.src);
+    if (pvSrc !== url) { pvSrc = url; pvVideo.src = url; pvStage(); }
+    pvWant = at; if (!pvBusy) pvSeekNext();
+    return;
+  }
+  const sec = Math.round(at / 2) * 2, key = it.src + '@' + sec;   // transcoded file: ask ffmpeg, 2 s buckets
+  pvKey = key;
+  const hit = pvCache.get(key);
+  if (hit) return pvDraw(hit, hit.naturalWidth, hit.naturalHeight);
+  clearTimeout(pvTimer);
+  pvTimer = setTimeout(async () => {
+    const url = await api.frame(it.src, sec, 320);
+    if (!url) return;
+    const img = new Image();
+    img.onload = () => {
+      pvCache.set(key, img); if (pvCache.size > 80) pvCache.delete(pvCache.keys().next().value);
+      if (pvKey === key && pvBox.classList.contains('show')) pvDraw(img, img.naturalWidth, img.naturalHeight);
+    };
+    img.src = url;
+  }, 120);
+}
+seek.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; seekTo(frac(e, seek) * curDur()); const r = seek.getBoundingClientRect(); if (e.clientY < r.top || e.clientY > r.bottom) hidePreview(); });
 
 /* volume */
 let volume = S.get('volume');

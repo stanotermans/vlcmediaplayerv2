@@ -1,5 +1,6 @@
 // Português
 I18N.add('pt', {
+ "Show preview when hovering the timeline": "Mostrar prévia ao passar sobre a linha do tempo",
  "(optional)": "(opcional)",
  "{n} item(s) added": "{n} item(ns) adicionado(s)",
  "{n} items": "{n} itens",

@@ -6,7 +6,7 @@ const DEFAULTS = {
   onboarded: false, language: '', theme: 'dark', accent: '#f28c1b',
   confirmDialogs: true, devMode: false, logOn: false, logFile: '', logLevel: 'error',
   // interface
-  navExpanded: false, miniPlayer: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,
+  navExpanded: false, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,
   // privacy
   rememberRecent: true, resume: true,
   // playback

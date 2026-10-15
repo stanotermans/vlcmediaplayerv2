@@ -1,5 +1,6 @@
 // Français
 I18N.add('fr', {
+ "Show preview when hovering the timeline": "Afficher un aperçu au survol de la barre de progression",
  "(optional)": "(facultatif)",
  "{n} item(s) added": "{n} élément(s) ajouté(s)",
  "{n} items": "{n} éléments",

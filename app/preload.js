@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   probe: src => inv('probe', src),
   keyframe: (src, ss) => inv('keyframe', src, ss),
   thumb: (src, at) => inv('thumb', src, at),
+  frame: (src, at, w) => inv('frame', src, at, w),
   clearThumbs: () => inv('clear-thumbs'),
   readImage: p => inv('read-image', p),
   subs: (src, idx) => inv('subs', src, idx),

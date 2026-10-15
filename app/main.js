@@ -33,6 +33,8 @@ let PORT = 0;
 
 /* ---------------- single instance + "open with" ---------------- */
 const argPaths = argv => argv.slice(app.isPackaged ? 1 : 2).filter(a => !a.startsWith('-') && fs.existsSync(a)).map(a => path.resolve(a));
+// Separate profile for development/testing (keeps your real library and settings untouched).
+if (process.env.VLCX_USER_DATA) app.setPath('userData', process.env.VLCX_USER_DATA);
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.on('second-instance', (_e, argv) => {
   const p = argPaths(argv);
@@ -200,6 +202,12 @@ ipcMain.handle('expand', (_e, paths) => expand(paths));
 ipcMain.handle('exists', (_e, paths) => paths.filter(p => /^https?:/i.test(p) || fs.existsSync(p)));
 ipcMain.handle('probe', (_e, src) => probe(src));
 ipcMain.handle('keyframe', (_e, src, ss) => keyframe(src, ss));
+// One video frame at time `at` for the timeline hover preview (formats the hidden <video> can't decode).
+ipcMain.handle('frame', async (_e, src, at, w) => {
+  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-ss', String(Math.max(0, at)), '-i', src, '-frames:v', '1',
+    '-vf', `scale=${Math.round(w) || 320}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '6', 'pipe:1'], { encoding: 'buffer', timeout: 8000 });
+  return buf && buf.length ? 'data:image/jpeg;base64,' + buf.toString('base64') : null;
+});
 ipcMain.handle('thumb',(_e, src, at) => thumbnail(src, at));
 ipcMain.handle('subs', (_e, src, idx) => subtitles(src, idx));
 ipcMain.handle('sibling-subs', (_e, file) => siblingSubs(file));

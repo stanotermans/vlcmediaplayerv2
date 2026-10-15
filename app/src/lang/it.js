@@ -1,5 +1,6 @@
 // Italiano
 I18N.add('it', {
+ "Show preview when hovering the timeline": "Mostra anteprima passando sulla barra temporale",
  "(optional)": "(facoltativo)",
  "{n} item(s) added": "{n} elemento/i aggiunto/i",
  "{n} items": "{n} elementi",

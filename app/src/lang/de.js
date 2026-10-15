@@ -1,5 +1,6 @@
 // Deutsch
 I18N.add('de', {
+ "Show preview when hovering the timeline": "Vorschau beim Überfahren der Zeitleiste anzeigen",
  "(optional)": "(optional)",
  "{n} item(s) added": "{n} Element(e) hinzugefügt",
  "{n} items": "{n} Elemente",

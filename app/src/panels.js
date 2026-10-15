@@ -199,6 +199,7 @@ function pages(App) {
       sec('Layout',
         row('Sidebar with labels', toggle('navExpanded')),
         row('Show mini player while browsing', toggle('miniPlayer')),
+        row('Show preview when hovering the timeline', toggle('seekPreview')),
         row('Show thumbnails', toggle('showThumbs')),
         row('Dim watched items', toggle('dimWatched')),
         row('Show ffmpeg label in player', toggle('showBadge'))),

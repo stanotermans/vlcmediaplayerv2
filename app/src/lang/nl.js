@@ -1,5 +1,6 @@
 // Nederlands
 I18N.add('nl', {
+ "Show preview when hovering the timeline": "Voorbeeld tonen bij aanwijzen van de tijdlijn",
  "(optional)": "(optioneel)",
  "{n} item(s) added": "{n} item(s) toegevoegd",
  "{n} items": "{n} items",

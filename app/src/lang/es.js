@@ -1,5 +1,6 @@
 // Español
 I18N.add('es', {
+ "Show preview when hovering the timeline": "Mostrar vista previa al pasar sobre la línea de tiempo",
  "(optional)": "(opcional)",
  "{n} item(s) added": "{n} elemento(s) añadido(s)",
  "{n} items": "{n} elementos",

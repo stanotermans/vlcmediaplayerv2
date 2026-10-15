@@ -37,6 +37,8 @@ npm install
 npm start
 ```
 
+Tip: to test without touching your installed app's library and settings, start it with a separate profile, e.g. `VLCX_USER_DATA=/tmp/vlc-test npm start` (on Windows PowerShell: `$env:VLCX_USER_DATA="$env:TEMPlc-test"; npm start`).
+
 The [README](README.md#project-structure) explains which file does what.
 
 ### Guidelines
