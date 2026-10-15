@@ -179,6 +179,13 @@ docs/              Download page for GitHub Pages
 
 The app runs on [Electron](https://www.electronjs.org), which only supports Windows, macOS and Linux. **iOS, Apple TV and Android** would need a separate native app. **Windows Phone** has been discontinued, and **NetBSD, Solaris, QNX and OS/2** have no Electron or Chromium.
 
+## 🤝 Community
+
+- [Contributing guide](CONTRIBUTING.md): bug reports, ideas, translations and code
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security policy](SECURITY.md): report vulnerabilities privately
+- [Accessibility](ACCESSIBILITY.md): what's supported, known limitations and how to report barriers
+
 ## 📄 License
 
 - **Code:** [MIT](LICENSE) © Stan Otermans
