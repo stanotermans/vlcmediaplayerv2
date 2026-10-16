@@ -477,3 +477,8 @@ I18N.add('de', {
  "Interface size": "Oberflächengröße",
  "Interface size {v}%": "Oberflächengröße {v} %"
 });
+
+// v1.6.2: privacy note
+I18N.add('de', {
+ "When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.": "Wenn aus, bleibt nach einem Neustart nichts von dem erhalten, was du abgespielt hast: keine Verlaufsliste, keine Gesehen-Markierungen und keine Dateien, die du nur geöffnet hast."
+});

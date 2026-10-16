@@ -477,3 +477,8 @@ I18N.add('es', {
  "Interface size": "Tamaño de la interfaz",
  "Interface size {v}%": "Tamaño de la interfaz {v} %"
 });
+
+// v1.6.2: privacy note
+I18N.add('es', {
+ "When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.": "Si está desactivado, no se guarda nada de lo que reprodujiste tras reiniciar: ni la lista de recientes, ni las marcas de visto, ni los archivos que solo abriste."
+});

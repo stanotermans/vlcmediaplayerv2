@@ -477,3 +477,8 @@ I18N.add('it', {
  "Interface size": "Dimensione dell’interfaccia",
  "Interface size {v}%": "Dimensione dell’interfaccia {v}%"
 });
+
+// v1.6.2: privacy note
+I18N.add('it', {
+ "When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.": "Se disattivato, dopo un riavvio non viene conservato nulla di ciò che hai riprodotto: niente elenco recenti, niente segni di visto e nessun file solo aperto."
+});

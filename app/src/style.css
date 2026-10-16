@@ -431,6 +431,17 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
   #settings{left:12px;width:auto}
   .gwrap{grid-template-columns:180px 1fr}
 }
+/* very narrow windows, e.g. fitted to a vertical video */
+@media (max-width:560px){
+  #crumbs,#wintitle,#titlebar .tsep{display:none}
+  #winctl button{width:36px}
+  #controls{gap:2px;padding:0 6px}
+  #controls .time{display:none}                     /* the timeline tooltip still shows the time */
+  #toolbar #navFwd,#toolbar #count,#toolbar #sortBtn2{display:none}
+  #search{width:90px}
+  #side:not(.narrow-open){width:0;overflow:hidden;border:0}   /* library panel only as an overlay, via the sidebar button */
+  .gwrap{grid-template-columns:150px 1fr}
+}
 
 /* about page + update banner */
 .gnav{display:flex;flex-direction:column}

@@ -30,7 +30,9 @@ const store = {
 };
 const positions = store.get('pos', {});
 let watched = new Set(store.get('watched', []));
-const saveWatched = () => store.set('watched', [...watched]);
+// With "Remember recently played" off nothing about what you watched is kept after a restart:
+// no recent list, no watched marks and no files you only opened (e.g. via "Open with").
+const saveWatched = () => store.set('watched', S.get('rememberRecent') ? [...watched] : []);
 
 /* ---------- state ---------- */
 const state = {
@@ -44,7 +46,7 @@ const history = { back: [], fwd: [] };
 let rec = null, quick = null;
 let uid = 0;
 const bySrc = src => state.items.find(i => i.src === src);
-const saveLibrary = () => store.set('library', state.items.filter(i => i.manual).map(i => ({ src: i.src, added: i.added })));
+const saveLibrary = () => store.set('library', S.get('rememberRecent') ? state.items.filter(i => i.manual).map(i => ({ src: i.src, added: i.added })) : []);
 const savePlaylists = () => store.set('playlists3', state.playlists);
 const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.recent.slice(0, 50) : []);
 
@@ -792,7 +794,9 @@ $('#rail').addEventListener('click', e => {
 $('#addBtn').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu(openMediaItems(), r.right + 4, r.top); };
 $('#sideToggle').onclick = () => {
   if (document.body.classList.contains('focus-video')) { sideOverride = true; $('#side').classList.remove('hidden'); return updateFocus(); }
-  if (S.get('navExpanded')) return S.set('navExpanded', false); $('#side').classList.toggle('hidden');
+  if (S.get('navExpanded')) return S.set('navExpanded', false);
+  if (matchMedia('(max-width:560px)').matches) { $('#side').classList.remove('hidden'); return $('#side').classList.toggle('narrow-open'); }
+  $('#side').classList.toggle('hidden');
 };
 $('#backBtn').onclick = $('#navBack').onclick = goBack;
 $('#navFwd').onclick = goFwd;
@@ -1063,7 +1067,7 @@ S.on(path => {
   if (path === 'uiScale') api.setZoom(S.get('uiScale') / 100);
   if (/^(navExpanded|showThumbs|dimWatched|miniPlayer)$/.test(path)) render();
   if (path === 'showBadge') setBadge();
-  if (path === 'rememberRecent' && !S.get('rememberRecent')) { state.recent = []; saveRecent(); render(); }
+  if (path === 'rememberRecent') { if (!S.get('rememberRecent')) { state.recent = []; render(); } saveRecent(); saveLibrary(); saveWatched(); }
   if (path === 'speed' && Math.abs(video.playbackRate - S.get('speed')) > 1e-6) video.playbackRate = S.get('speed');
   if (path === 'language') { render(); setPlayIcon(); setBadge(); quick && quick.refresh(); api.setLang && api.setLang(I18N.lang()); }
 });
@@ -1126,6 +1130,17 @@ function showOnboarding() {
 }
 App.appInfo = await api.appInfo();
 quick = Panels.quickPanel(App);
+// A click outside the quick settings panel closes it. A click on the video then only closes the panel
+// (it does not also pause), like closing a menu.
+let swallowVideoClick = false;
+document.addEventListener('pointerdown', e => {
+  swallowVideoClick = false;
+  const panel = $('#settings');
+  if (!panel.classList.contains('show') || panel.contains(e.target) || e.target.closest('#setBtn, #eqBtn, #subBtn, .menu-layer, .dlg-layer')) return;
+  quick.hide();
+  swallowVideoClick = e.target === video;
+}, true);
+video.addEventListener('click', e => { if (swallowVideoClick) { swallowVideoClick = false; e.stopImmediatePropagation(); } }, true);
 $('#setBtn').onclick = () => quick.toggle();
 $('#eqBtn').onclick = () => quick.toggle('audio');
 $('#subBtn').onclick = () => quick.toggle('subs');

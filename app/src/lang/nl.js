@@ -477,3 +477,8 @@ I18N.add('nl', {
  "Interface size": "Interfacegrootte",
  "Interface size {v}%": "Interfacegrootte {v}%"
 });
+
+// v1.6.2: privacy note
+I18N.add('nl', {
+ "When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.": "Als dit uit staat, wordt na een herstart niets bewaard van wat je hebt afgespeeld: geen recente lijst, geen bekeken-markeringen en geen bestanden die je alleen hebt geopend."
+});

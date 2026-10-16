@@ -386,7 +386,7 @@ ipcMain.on('ready', () => { if (pendingPaths.length) { win.webContents.send('ope
 /* ---------------- window ---------------- */
 function createWindow() {
   win = new BrowserWindow({
-    width: 1280, height: 800, minWidth: 640, minHeight: 420,
+    width: 1280, height: 800, minWidth: 360, minHeight: 320,       // small enough for vertical videos
     frame: false, backgroundColor: '#141414', show: false,
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, backgroundThrottling: false },

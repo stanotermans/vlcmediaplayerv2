@@ -254,7 +254,7 @@ function pages(App) {
     ],
     privacy: () => [
       sec('History',
-        row('Remember recently played', toggle('rememberRecent')),
+        row('Remember recently played', toggle('rememberRecent'), { info: 'When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.' }),
         row('Remember playback position', toggle('resume')),
         row('Clear recent items', button('Clear', async () => { if (await UI.confirm('Clear recent?', 'The list of recently played media will be emptied.', 'Clear')) App.clearRecent(); }, 'ghost')),
         row('Clear playback positions', button('Clear', async () => { if (await UI.confirm('Clear positions?', 'All saved playback positions and watched marks will be cleared.', 'Clear')) App.clearPositions(); }, 'ghost')),
