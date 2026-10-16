@@ -39,7 +39,7 @@ const state = {
   items: [], current: -1, view: 'videos',
   playlists: store.get('playlists3', null) || store.get('playlists2', [{ name: 'Cool Songs', srcs: [] }, { name: 'Anime to Watch', srcs: [] }]),
   activePlaylist: null, recent: store.get('recent2', []),
-  sort: 'name', list: false, query: '', dir: { videos: null, music: null },
+  sort: 'name', sortDesc: false, list: store.get('listView', false), query: '', dir: { videos: null, music: null },
   sideMode: 'view',
 };
 const history = { back: [], fwd: [] };
@@ -53,6 +53,7 @@ const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.re
 const isAudio = it => it.type === 'audio';
 const AUDIO_RE = /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
 const SUB_RE = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
+const PLAYLIST_RE = /\.(m3u8?|xspf|pls)$/i;
 const SEP = /[\\/]/;
 const baseName = s => { try { return decodeURIComponent(s.split(SEP).pop().split('?')[0]) || s; } catch { return s; } };
 const norm = p => p.replace(/[\\/]+$/, '');
@@ -64,7 +65,8 @@ function osd(text) { const o = $('#osd'); o.textContent = t(text); o.classList.a
 const isWatched = it => watched.has(it.src);
 
 /* ---------- adding media ---------- */
-async function addSources(srcs, { play = true, silent = false, added, manual = true } = {}) {
+async function addSources(srcs, { play = true, silent = false, added, manual = true, extra = null } = {}) {
+  const imp = await importPlaylists(srcs); srcs = imp.srcs;
   const subs = srcs.filter(s => SUB_RE.test(s));
   const media = srcs.filter(s => !SUB_RE.test(s));
   const newOnes = []; let first = null;
@@ -77,15 +79,37 @@ async function addSources(srcs, { play = true, silent = false, added, manual = t
       it.ready = enrich(it);
       state.items.push(it); newOnes.push(it);
     } else if (manual && !it.manual) it.manual = !S.get('mediaFolders').some(f => under(src, f));
+    if (extra) it.extra = extra;
     first = first || it;
   }
   if (newOnes.length) saveLibrary();
   renderSoon();
   if (subs.length && state.current >= 0) for (const s of subs) addSubFile(s, true);
+  if (play && first && imp.queue) state.queueList = imp.queue.map(bySrc).filter(Boolean);
   if (play && first) playItem(state.items.indexOf(first));
   else if (!silent && newOnes.length) osd(t('{n} item(s) added', { n: newOnes.length }));
   return newOnes;
 }
+// Playlist files (.m3u/.m3u8/.xspf/.pls) become a saved playlist; their entries are added like opened files.
+async function importPlaylists(srcs) {
+  const out = []; let queue = null;
+  for (const s of srcs) {
+    if (!PLAYLIST_RE.test(s) || /^[a-z]+:\/\//i.test(s)) { out.push(s); continue; }
+    const pl = await api.readPlaylist(s);
+    if (!pl) { osd(t('Could not read playlist: {name}', { name: baseName(s) })); continue; }
+    if (pl.hls) { out.push(s); continue; }                       // a local HLS stream, not a list
+    if (!pl.srcs.length) { osd(t('No playable files in {name}', { name: baseName(s) })); continue; }
+    if (!state.playlists.some(p => p.name === pl.name && p.srcs.join('\n') === pl.srcs.join('\n'))) {
+      state.playlists.push({ name: pl.name, srcs: pl.srcs, cover: null }); savePlaylists();
+      osd(t('Playlist "{name}" imported', { name: pl.name }));
+    }
+    out.push(...pl.srcs); queue = queue || pl.srcs;
+  }
+  return { srcs: out, queue };
+}
+// Built-in playlist with everything in the library.
+const ALL_PL = { all: true, cover: null, get name() { return t('All media'); }, get srcs() { return sortItems(state.items).map(i => i.src); }, set srcs(v) {} };
+const plByKey = k => k === 'all' ? ALL_PL : state.playlists[+k];
 let running = 0; const waiting = [];
 function limit(fn) { return new Promise(res => { const go = async () => { running++; try { res(await fn()); } finally { running--; waiting.length && waiting.shift()(); } }; running < 2 ? go() : waiting.push(go); }); }
 function enrich(it) {
@@ -127,12 +151,16 @@ async function removeFolder(f) { S.set('mediaFolders', S.get('mediaFolders').fil
 
 /* ---------- views & navigation ---------- */
 const VIEW_TITLES = { home: 'Home', videos: 'Videos', music: 'Music', network: 'Network', playlists: 'Playlists', recent: 'Recent' };
-const viewTitle = v => t(VIEW_TITLES[v]);
+const viewTitle = v => t(v === 'music' && S.get('audioLabel') ? 'Audio' : VIEW_TITLES[v]);
+// Rail button for the music section follows the "Audio" naming option.
+function applyAudioLabel() { const b = $('#rail [data-view=music]'); if (!b) return; const l = viewTitle('music'); b.title = l; const s = b.querySelector('.lbl'); if (s) { s.textContent = l; s.removeAttribute('data-i18n'); } b.removeAttribute('data-i18n-title'); }
 const itemsLabel = n => t(n === 1 ? '1 item' : '{n} items', { n });
 const REPEAT_NAMES = { off: 'Off', one: 'Current', all: 'All' };
 const typeOf = view => view === 'music' ? 'audio' : 'video';
 function sortItems(list) {
-  return list.slice().sort(state.sort === 'name' ? (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }) : (a, b) => b.added - a.added);
+  const cmp = { name: (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }), added: (a, b) => b.added - a.added,
+    duration: (a, b) => (a.duration || 0) - (b.duration || 0), album: (a, b) => ((a.info && a.info.album) || '\uffff').localeCompare((b.info && b.info.album) || '\uffff') || a.name.localeCompare(b.name, undefined, { numeric: true }) }[state.sort] || ((a, b) => 0);
+  return list.slice().sort(state.sortDesc ? (a, b) => cmp(b, a) : cmp);
 }
 // entries for the folder browser: { folders:[{path,name,items}], files:[items] }
 function browse(view) {
@@ -190,8 +218,12 @@ function cardHTML(it) {
       ${pct > 1 ? `<div class="prog" style="width:${pct}%"></div>` : ''}
       ${it.duration ? `<span class="dur">${shortFmt(it.duration)}</span>` : ''}
       <div class="play"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M7 4l13 8-13 8z"/></svg></div>
-    </div><div class="name">${esc(it.name)}</div></div>`;
+    </div><div class="name">${esc(it.name)}</div>
+    <div class="c-album">${esc([it.info && it.info.artist, it.info && it.info.album].filter(Boolean).join(' – '))}</div><div class="c-dur">${it.duration ? shortFmt(it.duration) : ''}</div></div>`;
 }
+// Column header of the list view; click a column to sort, click again to reverse.
+const listHead = () => { const col = (k, l) => `<button type="button" data-sort="${k}" class="${state.sort === k ? 'on' + (state.sortDesc ? ' desc' : '') : ''}">${esc(t(l))}</button>`;
+  return `<div class="lhead"><span></span>${col('name', 'Title')}${col('album', 'Artist / album')}${col('duration', 'Duration')}</div>`; };
 function folderHTML(f) {
   const t = S.get('showThumbs') && f.items.find(i => i.thumb);
   return `<div class="card folder" data-dir="${esc(f.path)}" title="${esc(f.path)}"><div class="thumb">${t ? `<img src="${t.thumb}" alt="">` : ''}<span class="fic">${icon('folder')}</span><span class="fcount">${itemsLabel(f.items.length)}</span></div><div class="name">${esc(f.name)}</div></div>`;
@@ -237,11 +269,14 @@ function render() {
     if (recentAdded.length) html += sectionHead('Recently added') + recentAdded.map(cardHTML).join('');
     count = state.items.length;
   } else if (v === 'playlists' && !state.activePlaylist && !state.query) {
-    html = state.playlists.map((p, i) => `<div class="card" data-pl="${i}"><div class="thumb" style="background:${p.cover ? `url('${p.cover}') center/cover` : 'var(--panel2)'};display:grid;place-items:center">${p.cover ? '' : `<span class="fic" style="color:var(--muted)">${icon('playlist', 'icon big')}</span>`}<span class="fcount" style="position:absolute;left:8px;bottom:6px;font-size:11px;color:#fff;background:#000a;padding:1px 6px;border-radius:3px">${itemsLabel(p.srcs.length)}</span></div><div class="name">${esc(p.name)}</div></div>`).join('')
-      + `<div class="card" data-act="newpl"><div class="thumb" style="background:transparent;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted)">${icon('plus', 'icon big')}</div><div class="name" style="color:var(--muted)">${esc(t('Create playlist'))}</div></div>`;
+    html = `<div class="card" data-pl="all"><div class="thumb" style="background:var(--panel2);display:grid;place-items:center"><span class="fic" style="color:var(--accent)">${icon('library', 'icon big')}</span><span class="fcount" style="position:absolute;left:8px;bottom:6px;font-size:11px;color:#fff;background:#000a;padding:1px 6px;border-radius:3px">${itemsLabel(state.items.length)}</span></div><div class="name">${esc(t('All media'))}</div></div>`
+      + state.playlists.map((p, i) => `<div class="card" data-pl="${i}"><div class="thumb" style="background:${p.cover ? `url('${p.cover}') center/cover` : 'var(--panel2)'};display:grid;place-items:center">${p.cover ? '' : `<span class="fic" style="color:var(--muted)">${icon('playlist', 'icon big')}</span>`}<span class="fcount" style="position:absolute;left:8px;bottom:6px;font-size:11px;color:#fff;background:#000a;padding:1px 6px;border-radius:3px">${itemsLabel(p.srcs.length)}</span></div><div class="name">${esc(p.name)}</div></div>`).join('')
+      + `<div class="card" data-act="newpl"><div class="thumb" style="background:transparent;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted)">${icon('plus', 'icon big')}</div><div class="name" style="color:var(--muted)">${esc(t('Create playlist'))}</div></div>`
+      + `<div class="card" data-act="importpl"><div class="thumb" style="background:transparent;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted)">${icon('download', 'icon big')}</div><div class="name" style="color:var(--muted)">${esc(t('Import playlist…'))}</div></div>`;
     count = state.playlists.length;
   } else {
     const list = visibleItems();
+    if (state.list && list.length) html += listHead();
     if (b && !state.query) html += b.folders.map(folderHTML).join('');
     html += list.map(cardHTML).join('');
     count = list.length + (b && !state.query ? b.folders.length : 0);
@@ -273,6 +308,8 @@ function renderSide() {
   } else if (v === 'playlists') {
     n = state.playlists.length;
     html = `<div class="srow muted" data-act="newpl">${icon('plus')}<span>${esc(t('Create playlist'))}</span></div>` +
+      `<div class="srow muted" data-act="importpl">${icon('download')}<span>${esc(t('Import playlist…'))}</span></div>` +
+      `<div class="srow ${state.activePlaylist === ALL_PL ? 'on' : ''}" data-pl="all">${icon('library')}<span>${esc(t('All media'))}</span></div>` +
       state.playlists.map((p, i) => `<div class="srow ${state.activePlaylist === p ? 'on' : ''}" data-pl="${i}">${p.cover ? `<span class="cov" style="background-image:url('${p.cover}')"></span>` : icon('playlist')}<span>${esc(p.name)}</span></div>`).join('');
   } else {
     let entries = [];
@@ -306,6 +343,7 @@ function curDur() { const it = curItem(), d = video.duration; if (P.tx) return (
 const OK_V = ['h264', 'vp8', 'vp9', 'av1', 'hevc', 'theora'];
 const OK_A = ['aac', 'mp3', 'opus', 'vorbis', 'flac', 'pcm_s16le', 'pcm_s24le', 'pcm_f32le', 'pcm_u8'];
 const OK_F = /mov|mp4|matroska|webm|ogg|mp3|flac|wav|aac/;
+const needsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.extra;
 function canDirect(info) {
   if (!info) return true;
   if (!OK_F.test(info.format)) return false;
@@ -330,7 +368,7 @@ async function loadSource(at, autoplay) {
       if (kf != null) at = kf;
     }
     P.seekTarget = null; P.offset = at; P.pendingSeek = 0;
-    video.src = streamUrl(it.src, at, P.audio, P.vcopy);
+    video.src = streamUrl(it.src, at, P.audio, P.vcopy) + (it.extra ? '&extra=' + encodeURIComponent(it.extra) : '');
   } else {
     P.seekTarget = null; P.offset = 0; P.pendingSeek = at;
     video.src = it.remote ? it.src : fileUrl(it.src);
@@ -339,7 +377,7 @@ async function loadSource(at, autoplay) {
   setBadge(); setSpinner(true);
   if (autoplay) video.play().catch(() => {});
 }
-function reloadSource() { const it = curItem(); if (!it) return; P.tx = S.get('forceTx') || !canDirect(it.info) || P.audio > 0; loadSource(curTime(), !video.paused); }
+function reloadSource() { const it = curItem(); if (!it) return; P.tx = needsTx(it) || P.audio > 0; loadSource(curTime(), !video.paused); }
 
 function setIdle(it) {
   const idle = $('#idle'), showVideo = it && !isAudio(it) && video.videoWidth;
@@ -357,7 +395,7 @@ async function playItem(idx, autoplay = true) {
   clearSubs(); setIdle(it);
   await it.ready;
   if (curItem() !== it) return;
-  P.tx = S.get('forceTx') || !canDirect(it.info);
+  P.tx = needsTx(it);
   const resumeAt = S.get('resume') && positions[it.src] && positions[it.src] < (it.duration || 1e9) - 5 ? positions[it.src] : 0;
   loadSource(resumeAt, autoplay);
   if (resumeAt) osd(t('Resuming from {time}', { time: shortFmt(resumeAt) }));
@@ -784,7 +822,7 @@ applySubStyle();
 
 /* ---------- audio tracks ---------- */
 const audioTracks = () => { const it = curItem(); const t = it && it.info ? it.info.audio : []; return t.length ? t.map(a => [a.i, `${a.label} (${a.codec}${a.ch ? ', ' + a.ch + 'ch' : ''})`]) : [[0, 'Default']]; };
-function setAudioTrack(i) { if (!curItem()) return; P.audio = i; P.tx = S.get('forceTx') || !canDirect(curItem().info) || P.audio > 0; loadSource(curTime(), !video.paused); const tk = audioTracks().find(x => x[0] === i); osd(t('Audio track: {name}', { name: tk ? tk[1] : i })); }
+function setAudioTrack(i) { if (!curItem()) return; P.audio = i; P.tx = needsTx(curItem()) || P.audio > 0; loadSource(curTime(), !video.paused); const tk = audioTracks().find(x => x[0] === i); osd(t('Audio track: {name}', { name: tk ? tk[1] : i })); }
 function cycleAudio() { const n = audioTracks().length; if (n < 2) return osd('Only one audio track'); setAudioTrack((P.audio + 1) % n); }
 
 /* ---------- recording ---------- */
@@ -873,22 +911,25 @@ $('#sideList').addEventListener('click', e => {
   const r = e.target.closest('.srow'); if (!r) return;
   if (r.dataset.idx) { if (state.sideMode === 'view') state.queueList = visibleItems(); playItem(+r.dataset.idx); }
   else if (r.dataset.dir) navigate({ dir: { ...state.dir, [state.view]: r.dataset.dir } });
-  else if (r.dataset.pl) navigate({ view: 'playlists', activePlaylist: state.playlists[+r.dataset.pl] });
+  else if (r.dataset.pl) navigate({ view: 'playlists', activePlaylist: plByKey(r.dataset.pl) });
   else if (r.dataset.act) doAct(r.dataset.act);
 });
 $('#grid').addEventListener('click', e => {
+  const sb = e.target.closest('[data-sort]');
+  if (sb) { if (state.sort === sb.dataset.sort) state.sortDesc = !state.sortDesc; else { state.sort = sb.dataset.sort; state.sortDesc = false; } return render(); }
   const c = e.target.closest('.card'); if (!c) return;
   if (c.dataset.dir) return navigate({ dir: { ...state.dir, [state.view]: c.dataset.dir } });
-  if (c.dataset.pl) return navigate({ activePlaylist: state.playlists[+c.dataset.pl] });
+  if (c.dataset.pl) return navigate({ activePlaylist: plByKey(c.dataset.pl) });
   if (c.dataset.act) return doAct(c.dataset.act);
   state.queueList = state.view === 'home' ? null : visibleItems();
   playItem(+c.dataset.idx);
 });
 $('#search').addEventListener('input', e => { state.query = e.target.value.trim().toLowerCase(); render(); });
-$('#viewToggle').onclick = () => { state.list = !state.list; render(); };
-$('#sortBtn').onclick = $('#sortBtn2').onclick = () => { state.sort = state.sort === 'name' ? 'added' : 'name'; osd(state.sort === 'name' ? 'Sort by name' : 'Sort by date added'); render(); };
+const toggleList = () => { state.list = !state.list; store.set('listView', state.list); render(); };
+$('#viewToggle').onclick = toggleList;
+$('#sortBtn').onclick = $('#sortBtn2').onclick = () => { state.sort = state.sort === 'name' ? 'added' : 'name'; state.sortDesc = false; osd(state.sort === 'name' ? 'Sort by name' : 'Sort by date added'); render(); };
 $('#moreBtn').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu([
-  { label: 'Grid / list', icon: 'queue', action: () => { state.list = !state.list; render(); } },
+  { label: 'Grid / list', icon: 'queue', action: toggleList },
   { label: state.sort === 'name' ? 'Sort by date' : 'Sort by name', icon: 'speed', action: () => $('#sortBtn').click() },
   { sep: true }, ...openMediaItems(), { sep: true },
   { label: 'Manage media folders…', icon: 'library', action: () => Panels.openSettings(App, 'library') },
@@ -923,18 +964,20 @@ document.addEventListener('contextmenu', e => {
       !it.remote ? { label: 'Show in folder', icon: 'folder', action: () => api.reveal(it.src) } : null,
       { label: 'Media information', icon: 'info', action: () => mediaInfo(it) },
       { sep: true },
-      state.view === 'playlists' && state.activePlaylist
+      state.view === 'playlists' && state.activePlaylist && !state.activePlaylist.all
         ? { label: 'Remove from playlist', icon: 'trash', danger: true, action: () => { const p = state.activePlaylist; p.srcs = p.srcs.filter(s => s !== it.src); savePlaylists(); render(); } }
         : { label: 'Remove from library', icon: 'trash', danger: true, action: () => removeItem(it) },
     ], e.clientX, e.clientY);
   } else if (pl) {
-    const p = state.playlists[+pl.dataset.pl];
+    const p = plByKey(pl.dataset.pl); if (!p) return;
     UI.menu([
       { label: 'Play', icon: 'play', accent: true, action: () => { const f = bySrc(p.srcs[0]); if (f) { state.queueList = p.srcs.map(bySrc).filter(Boolean); playItem(state.items.indexOf(f)); } else osd('Playlist is empty'); } },
+      ...(p.all ? [] : [
       { label: 'Rename…', icon: 'general', action: async () => { const n = await UI.prompt('Rename', { value: p.name }); if (n && n.trim()) { p.name = n.trim(); savePlaylists(); render(); } } },
       { label: 'Choose cover…', icon: 'camera', action: async () => { const f = await api.chooseFile(t('Cover image'), ['png', 'jpg', 'jpeg', 'webp']); if (f) { p.cover = await api.readImage(f); savePlaylists(); render(); } } },
       { sep: true },
       { label: 'Delete', icon: 'trash', danger: true, action: async () => { if (await UI.confirm('Delete playlist?', p.name, 'Delete')) { state.playlists.splice(state.playlists.indexOf(p), 1); if (state.activePlaylist === p) state.activePlaylist = null; savePlaylists(); render(); } } },
+      ]),
     ], e.clientX, e.clientY);
   } else if (dir) {
     const path = dir.dataset.dir;
@@ -1043,6 +1086,7 @@ async function doAct(a) {
   else if (a === 'addfolder') { const f = await api.chooseFolder(t('Add media folder')); if (f) addFolder(f); }
   else if (a === 'url') Panels.openNetwork(App);
   else if (a === 'newpl') Panels.newPlaylist(App);
+  else if (a === 'importpl') { const f = await api.openPlaylist(); if (f.length) { const before = state.playlists.length; await addSources(f, { play: false }); const p = state.playlists[before]; if (p) navigate({ view: 'playlists', activePlaylist: p }); } }
   else if (a === 'addpl') { const it = curItem(); if (!it) return osd('Nothing is playing'); addToPlaylist(it); }
   else if (a === 'pip') { if (document.pictureInPictureElement) document.exitPictureInPicture(); else video.requestPictureInPicture().catch(() => osd('Picture-in-picture not available')); }
   else if (a === 'mediainfo') { const it = curItem(); if (it) mediaInfo(it); else osd('Nothing is playing'); }
@@ -1134,13 +1178,14 @@ S.on(path => {
   if (/^sub(Size|Color|Outline|Bg|Font)$/.test(path)) applySubStyle();
   if (path === 'autoHideSide') updateFocus();
   if (path === 'lyricsView') renderLyrics();
+  if (path === 'audioLabel') { applyAudioLabel(); render(); }
   if (path === 'uiScale') api.setZoom(S.get('uiScale') / 100);
   if (path.startsWith('ctl')) applyControls();
   if (/^(navExpanded|showThumbs|dimWatched|miniPlayer)$/.test(path)) render();
   if (path === 'showBadge') setBadge();
   if (path === 'rememberRecent') { if (!S.get('rememberRecent')) { state.recent = []; render(); } saveRecent(); saveLibrary(); saveWatched(); }
   if (path === 'speed' && Math.abs(video.playbackRate - S.get('speed')) > 1e-6) video.playbackRate = S.get('speed');
-  if (path === 'language') { render(); setPlayIcon(); setBadge(); quick && quick.refresh(); api.setLang && api.setLang(I18N.lang()); }
+  if (path === 'language') { applyAudioLabel(); render(); setPlayIcon(); setBadge(); quick && quick.refresh(); api.setLang && api.setLang(I18N.lang()); }
 });
 
 /* ---------- updates (GitHub releases) ---------- */
@@ -1219,7 +1264,7 @@ $('#subBtn').onclick = () => quick.toggle('subs');
 window.App = App;
 
 /* ---------- start ---------- */
-I18N.apply(); api.setLang && api.setLang(I18N.lang());
+I18N.apply(); api.setLang && api.setLang(I18N.lang()); applyAudioLabel();
 render(); setPlayIcon(); setIdle(null); applyLog();
 if (S.get('devMode')) api.devtools(true);
 const lib = store.get('library', []);
@@ -1228,6 +1273,8 @@ if (lib.length) {
   const added = Object.fromEntries(lib.map(l => [l.src, l.added]));
   await addSources(ok, { play: false, silent: true, added });
 }
+{ const pls = [...new Set(state.playlists.flatMap(p => p.srcs))].filter(s => !bySrc(s));
+  if (pls.length) { const ok = await api.exists(pls); if (ok.length) await addSources(ok, { play: false, silent: true, manual: false }); } }
 if (S.get('mediaFolders').length) scanFolders();
 if (!S.get('onboarded')) showOnboarding();
 if (S.get('autoUpdate') && Date.now() - (S.get('lastUpdateCheck') || 0) > 6 * 3600e3) setTimeout(() => checkUpdates(false), 4000);

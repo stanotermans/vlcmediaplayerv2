@@ -506,3 +506,20 @@ I18N.add('de', {
  "No lyrics found": "Kein Liedtext gefunden",
  "No lyrics": "Kein Liedtext"
 });
+
+// v1.8: playlists, list view, network options
+I18N.add('de', {
+ "All media": "Alle Medien",
+ "Import playlist…": "Wiedergabeliste importieren…",
+ "Title": "Titel",
+ "Artist / album": "Interpret / Album",
+ "Could not read playlist: {name}": "Wiedergabeliste konnte nicht gelesen werden: {name}",
+ "No playable files in {name}": "Keine abspielbaren Dateien in {name}",
+ "Playlist \"{name}\" imported": "Wiedergabeliste „{name}“ importiert",
+ "Call the music section \"Audio\"": "Musikbereich „Audio“ nennen",
+ "File or URL, e.g. an audio track or dub": "Datei oder URL, z. B. eine Tonspur oder Synchronfassung",
+ "Play another media synchronously": "Anderes Medium synchron abspielen",
+ "Plays the audio of this file or URL together with the stream, for example a separate audio track.": "Spielt den Ton dieser Datei oder URL zusammen mit dem Stream ab, zum Beispiel eine separate Tonspur.",
+ "Show more options": "Weitere Optionen anzeigen",
+ "Show fewer options": "Weniger Optionen anzeigen"
+});

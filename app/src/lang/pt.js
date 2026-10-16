@@ -506,3 +506,20 @@ I18N.add('pt', {
  "No lyrics found": "Nenhuma letra encontrada",
  "No lyrics": "Sem letra"
 });
+
+// v1.8: playlists, list view, network options
+I18N.add('pt', {
+ "All media": "Todos os multimédia",
+ "Import playlist…": "Importar lista de reprodução…",
+ "Title": "Título",
+ "Artist / album": "Artista / álbum",
+ "Could not read playlist: {name}": "Não foi possível ler a lista: {name}",
+ "No playable files in {name}": "Nenhum ficheiro reproduzível em {name}",
+ "Playlist \"{name}\" imported": "Lista \"{name}\" importada",
+ "Call the music section \"Audio\"": "Chamar \"Áudio\" à secção de música",
+ "File or URL, e.g. an audio track or dub": "Ficheiro ou URL, p. ex. uma faixa de áudio ou dobragem",
+ "Play another media synchronously": "Reproduzir outro multimédia em simultâneo",
+ "Plays the audio of this file or URL together with the stream, for example a separate audio track.": "Reproduz o áudio deste ficheiro ou URL em conjunto com a transmissão, por exemplo uma faixa de áudio separada.",
+ "Show more options": "Mostrar mais opções",
+ "Show fewer options": "Mostrar menos opções"
+});

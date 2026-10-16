@@ -7,8 +7,11 @@ const LANGS = [
 ];
 const dict = {};
 const supported = code => LANGS.some(([c]) => c === code);
+// First-run language: the system's preferred languages; navigator.languages only as a fallback, because on macOS
+// it reflects the app's bundled localizations rather than the user's choice.
 function detect() {
-  for (const l of navigator.languages || [navigator.language || 'en']) {
+  let sys = []; try { sys = (window.api && api.systemLanguages && api.systemLanguages()) || []; } catch {}
+  for (const l of [...sys, ...(navigator.languages || [navigator.language || 'en'])]) {
     const c = String(l).slice(0, 2).toLowerCase();
     if (supported(c)) return c;
   }

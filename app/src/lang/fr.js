@@ -506,3 +506,20 @@ I18N.add('fr', {
  "No lyrics found": "Aucunes paroles trouvées",
  "No lyrics": "Pas de paroles"
 });
+
+// v1.8: playlists, list view, network options
+I18N.add('fr', {
+ "All media": "Tous les médias",
+ "Import playlist…": "Importer une playlist…",
+ "Title": "Titre",
+ "Artist / album": "Artiste / album",
+ "Could not read playlist: {name}": "Impossible de lire la playlist : {name}",
+ "No playable files in {name}": "Aucun fichier lisible dans {name}",
+ "Playlist \"{name}\" imported": "Playlist « {name} » importée",
+ "Call the music section \"Audio\"": "Appeler la section musique « Audio »",
+ "File or URL, e.g. an audio track or dub": "Fichier ou URL, par ex. une piste audio ou un doublage",
+ "Play another media synchronously": "Lire un autre média de façon synchronisée",
+ "Plays the audio of this file or URL together with the stream, for example a separate audio track.": "Lit l’audio de ce fichier ou de cette URL en même temps que le flux, par exemple une piste audio séparée.",
+ "Show more options": "Afficher plus d’options",
+ "Show fewer options": "Afficher moins d’options"
+});

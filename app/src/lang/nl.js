@@ -506,3 +506,20 @@ I18N.add('nl', {
  "No lyrics found": "Geen songtekst gevonden",
  "No lyrics": "Geen songtekst"
 });
+
+// v1.8: playlists, list view, network options
+I18N.add('nl', {
+ "All media": "Alle media",
+ "Import playlist…": "Afspeellijst importeren…",
+ "Title": "Titel",
+ "Artist / album": "Artiest / album",
+ "Could not read playlist: {name}": "Kan afspeellijst niet lezen: {name}",
+ "No playable files in {name}": "Geen afspeelbare bestanden in {name}",
+ "Playlist \"{name}\" imported": "Afspeellijst \"{name}\" geïmporteerd",
+ "Call the music section \"Audio\"": "Het muziekgedeelte \"Audio\" noemen",
+ "File or URL, e.g. an audio track or dub": "Bestand of URL, bijv. een audiospoor of nasynchronisatie",
+ "Play another media synchronously": "Andere media synchroon afspelen",
+ "Plays the audio of this file or URL together with the stream, for example a separate audio track.": "Speelt de audio van dit bestand of deze URL samen met de stream af, bijvoorbeeld een apart audiospoor.",
+ "Show more options": "Meer opties tonen",
+ "Show fewer options": "Minder opties tonen"
+});

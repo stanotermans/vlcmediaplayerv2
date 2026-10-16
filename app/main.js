@@ -5,6 +5,7 @@ const fs = require('fs');
 const http = require('http');
 const crypto = require('crypto');
 const { spawn, execFile } = require('child_process');
+const { fileURLToPath } = require('url');
 
 const unpacked = p => p && p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
 // Bundled ffmpeg where available; otherwise (e.g. *BSD, or a distro build) the system's ffmpeg on PATH.
@@ -13,6 +14,7 @@ const bundled = (load) => { try { const p = unpacked(load()); return p && fs.exi
 const FFMPEG = process.env.VLCX_FFMPEG || bundled(() => require('ffmpeg-static')) || 'ffmpeg';
 const REPO = 'stanotermans/vlcmediaplayerv2';
 
+const PLAYLIST_EXT = /\.(m3u8?|xspf|pls)$/i;
 const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|avi|wmv|flv|mpg|mpeg|ts|m2ts|mts|3gp|ogv|vob|divx|mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
 const SUB_EXT = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 const MIME = { mp4:'video/mp4', m4v:'video/mp4', mov:'video/mp4', webm:'video/webm', mkv:'video/webm', ogv:'video/ogg',
@@ -35,6 +37,8 @@ const MT = {
   'Open': { nl: 'Openen', de: 'Öffnen', fr: 'Ouvrir', es: 'Abrir', it: 'Apri', pt: 'Abrir' },
   'Save': { nl: 'Opslaan', de: 'Speichern', fr: 'Enregistrer', es: 'Guardar', it: 'Salva', pt: 'Guardar' },
   'Media': { nl: 'Media', de: 'Medien', fr: 'Médias', es: 'Multimedia', it: 'File multimediali', pt: 'Multimédia' },
+  'Import playlist': { nl: 'Afspeellijst importeren', de: 'Wiedergabeliste importieren', fr: 'Importer une playlist', es: 'Importar lista de reproducción', it: 'Importa playlist', pt: 'Importar lista de reprodução' },
+  'Playlists': { nl: 'Afspeellijsten', de: 'Wiedergabelisten', fr: 'Playlists', es: 'Listas de reproducción', it: 'Playlist', pt: 'Listas de reprodução' },
   'Fonts': { nl: 'Lettertypen', de: 'Schriftarten', fr: 'Polices', es: 'Fuentes', it: 'Caratteri', pt: 'Tipos de letra' },
 };
 const mt = k => (MT[k] && MT[k][LANG]) || k;
@@ -112,7 +116,11 @@ function serveStream(src, q, req, resp) {
   const args = ['-hide_banner', '-loglevel', 'error', '-nostdin'];
   if (/^https?:/i.test(src)) args.push('-reconnect', '1', '-reconnect_streamed', '1');
   if (ss) args.push('-ss', String(ss));
-  args.push('-i', src, '-map', '0:V:0?', '-map', `0:a:${a}?`);
+  // a second input whose audio replaces the main audio (VLC's "play another media synchronously")
+  const extra = q.get('extra'), useExtra = !!extra && (/^https?:/i.test(extra) || fs.existsSync(extra));
+  args.push('-i', src);
+  if (useExtra) { if (ss) args.push('-ss', String(ss)); args.push('-i', extra); }
+  args.push('-map', '0:V:0?', '-map', useExtra ? '1:a:0?' : `0:a:${a}?`);
   if (vcopy) args.push('-c:v', 'copy');
   else args.push('-c:v', 'libx264', '-preset', preset, '-tune', 'zerolatency', '-crf', crf, '-g', '48', '-pix_fmt', 'yuv420p',
     '-vf', `scale=w='min(${maxw},iw)':h=-2`);
@@ -148,7 +156,7 @@ function expand(paths, depth = 0) {
     if (st.isDirectory() && depth < 6) {
       let entries = []; try { entries = fs.readdirSync(p); } catch {}
       out.push(...expand(entries.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(e => path.join(p, e)), depth + 1));
-    } else if (st.isFile() && (MEDIA_EXT.test(p) || (depth === 0 && SUB_EXT.test(p)))) out.push(p);
+    } else if (st.isFile() && (MEDIA_EXT.test(p) || (depth === 0 && (SUB_EXT.test(p) || PLAYLIST_EXT.test(p))))) out.push(p);
   }
   return out;
 }
@@ -164,8 +172,11 @@ async function probe(src) {
   const head = /Input #0, (.+?), from /.exec(txt);
   if (!head) return null;
   const dm = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt);
-  const streams = []; let cur = null;
+  const streams = [], tags = {}; let cur = null, inStreams = false;
   for (const line of txt.split(/\r?\n/)) {
+    const tg = !inStreams && /^\s{4}(album|artist|album_artist)\s*:\s*(.+)$/i.exec(line);
+    if (tg && !tags[tg[1].toLowerCase()]) tags[tg[1].toLowerCase()] = tg[2].trim();
+    if (/^\s*Stream #/.test(line)) inStreams = true;
     const m = /^\s*Stream #0:\d+(?:\[[^\]]*\])?(?:\(([^)]*)\))?: (Video|Audio|Subtitle|Data|Attachment): ([^\s,]+)(.*)$/.exec(line);
     if (m) { cur = { type: m[2].toLowerCase(), lang: m[1] && m[1] !== 'und' ? m[1] : undefined, codec: m[3].toLowerCase(), rest: m[4], title: '' }; streams.push(cur); continue; }
     if (/^\s*(Chapter|Input|Output) #/.test(line)) { cur = null; continue; }
@@ -186,6 +197,7 @@ async function probe(src) {
     audio: aud.map((s, i) => ({ i, codec: s.codec, label: label(s) || `${mt('Track')} ${i + 1}`, lang: s.lang, ch: channels(s.rest) })),
     subs: sub.map((s, i) => ({ i, codec: s.codec, label: label(s) || `${mt('Subtitle')} ${i + 1}`, lang: s.lang })),
     cover: streams.some(s => s.type === 'video' && isCover(s)),
+    album: tags.album || '', artist: tags.artist || tags.album_artist || '',
   };
 }
 
@@ -219,6 +231,34 @@ async function frameJpeg(src, at, w, q) {
 }
 // Larger cover art for the music player; kept in memory only, so it works with thumbnails turned off.
 async function coverArt(src) { const buf = await frameJpeg(src, 0, 800, 3); return buf ? 'data:image/jpeg;base64,' + buf.toString('base64') : null; }
+// Playlist files: .m3u/.m3u8 (one entry per line), .pls (FileN=…) and .xspf (<location>…</location>).
+// Relative entries are resolved against the playlist's folder; missing local files are skipped.
+// A .m3u8 that is really an HLS stream (#EXT-X-… tags) is reported as { hls: true } and played as media.
+function readPlaylist(file) {
+  let text; try { if (fs.statSync(file).size > 5 << 20) return null; text = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''); } catch { return null; }
+  const dir = path.dirname(file), ext = path.extname(file).toLowerCase();
+  if (/^\.m3u8?$/.test(ext) && /#EXT-X-(TARGETDURATION|STREAM-INF|MEDIA-SEQUENCE)/.test(text)) return { hls: true };
+  const xml = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+  let entries = [], name = '';
+  if (ext === '.xspf') {
+    name = xml((/<playlist[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<trackList/i.exec(text) || [])[1] || '').trim();
+    entries = [...text.matchAll(/<location>([\s\S]*?)<\/location>/gi)].map(m => xml(m[1]).trim());
+  } else if (ext === '.pls') {
+    entries = [...text.matchAll(/^\s*File\d+\s*=\s*(.+?)\s*$/gim)].map(m => m[1]);
+  } else {
+    const pl = /^#PLAYLIST:\s*(.+)$/m.exec(text); if (pl) name = pl[1].trim();
+    entries = text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  }
+  const srcs = [];
+  for (const e of entries) {
+    let p = e;
+    if (/^file:/i.test(p)) { try { p = fileURLToPath(p); } catch { continue; } }
+    else if (/^[a-z][a-z0-9+.-]+:\/\//i.test(p)) { srcs.push(p); continue; }
+    else p = path.resolve(dir, p.replace(/[\\/]/g, path.sep));   // also normalises absolute paths with mixed slashes
+    if (fs.existsSync(p)) srcs.push(...expand([p]).filter(f => MEDIA_EXT.test(f)));
+  }
+  return { name: name || path.parse(file).name, srcs: [...new Set(srcs)], missing: entries.length - srcs.length };
+}
 // Lyrics (.lrc) as text; only .lrc files, at most 1 MB.
 function readLyrics(file) {
   try { if (!/\.lrc$/i.test(file) || fs.statSync(file).size > 1 << 20) return null; return fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''); } catch { return null; }
@@ -244,7 +284,7 @@ function siblingSubs(file) {
 ipcMain.handle('info', () => ({ port: PORT, token: TOKEN }));
 ipcMain.handle('open-files', async () => {
   const r = await dialog.showOpenDialog(win, { title: mt('Open media'), buttonLabel: mt('Open'), properties: ['openFile', 'multiSelections'], filters: [
-    { name: mt('Media'), extensions: ['mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
+    { name: mt('Media'), extensions: ['m3u', 'm3u8', 'xspf', 'pls', 'mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
     { name: mt('All files'), extensions: ['*'] }] });
   return r.canceled ? [] : expand(r.filePaths);
 });
@@ -268,6 +308,11 @@ ipcMain.handle('frame', async (_e, src, at, w) => {
 });
 ipcMain.handle('thumb',(_e, src, at) => thumbnail(src, at));
 ipcMain.handle('subs', (_e, src, idx) => subtitles(src, idx));
+ipcMain.handle('read-playlist', (_e, file) => readPlaylist(file));
+ipcMain.handle('open-playlist', async () => {
+  const r = await dialog.showOpenDialog(win, { title: mt('Import playlist'), buttonLabel: mt('Open'), properties: ['openFile', 'multiSelections'], filters: [{ name: mt('Playlists'), extensions: ['m3u', 'm3u8', 'xspf', 'pls'] }] });
+  return r.canceled ? [] : r.filePaths;
+});
 ipcMain.handle('cover', (_e, src) => coverArt(src));
 ipcMain.handle('lyrics', (_e, file) => readLyrics(file));
 ipcMain.handle('sibling-subs', (_e, file) => siblingSubs(file));
@@ -374,6 +419,8 @@ ipcMain.handle('update-install', async (e, info) => {
   if (process.platform === 'darwin') shell.openPath(file); else shell.showItemInFolder(file);
   return { done: 'downloaded', file };
 });
+// The system's preferred languages (macOS/Windows/Linux settings), independent of the languages bundled in the app.
+ipcMain.on('system-languages', e => { try { e.returnValue = app.getPreferredSystemLanguages(); } catch { e.returnValue = []; } });
 ipcMain.on('set-lang', (_e, l) => {
   LANG = String(l || 'en');
   const p = winPrefs(); if (p.lang !== LANG) { p.lang = LANG; try { fs.writeFileSync(winPrefsFile(), JSON.stringify(p)); } catch {} }

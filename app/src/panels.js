@@ -242,6 +242,7 @@ function pages(App) {
     interface: () => [
       sec('Layout',
         row('Sidebar with labels', toggle('navExpanded')),
+        row('Call the music section "Audio"', toggle('audioLabel')),
         (() => {                                                     // stored by the main process: applies when the window is created
           const info = App.appInfo || {};
           if (info.platform === 'win32') return row('Rounded window corners', el('span.note', {}, t('Set by Windows')), { info: 'Windows 11 rounds window corners automatically.' });
@@ -438,13 +439,23 @@ async function openNetwork(App) {
   const body = el('div.formcol', {},
     el('label.flabel', {}, t('Network URL')), el('p.hint', {}, t('You can enter multiple links, one per line.')), urls,
     el('label.flabel', {}, t('Playlist name') + ' ', el('span.opt', {}, t('(optional)'))), el('p.hint', {}, t('The playlist will be saved and shown with this name.')), name);
-  const r = await dialog({ title: 'Open network stream', body, width: 560, buttons: [{ label: 'Cancel', value: null }, { label: 'Open', primary: true, value: () => ({ urls: urls.value, name: name.value }) }] });
+  // VLC's "Show more options": play another media synchronously (its audio replaces the stream's audio)
+  const syncOn = el('input', { type: 'checkbox' }), sync = el('input.txt.wide', { placeholder: t('File or URL, e.g. an audio track or dub') });
+  const more = el('div.formcol.moreopts', { style: { display: 'none' } },
+    el('label.chk', {}, syncOn, el('span', {}, t('Play another media synchronously'))),
+    el('p.hint', {}, t('Plays the audio of this file or URL together with the stream, for example a separate audio track.')),
+    el('div.pathrow', {}, sync, button('Browse', async () => { const f = await api.chooseFile(t('Play another media synchronously')); if (f) { sync.value = f; syncOn.checked = true; } }, 'ghost')));
+  sync.addEventListener('input', () => { syncOn.checked = !!sync.value.trim(); });
+  const moreBtn = el('button.linkbtn', { type: 'button' }, t('Show more options'));
+  moreBtn.onclick = () => { const open = more.style.display === 'none'; more.style.display = open ? '' : 'none'; moreBtn.textContent = t(open ? 'Show fewer options' : 'Show more options'); };
+  body.append(moreBtn, more);
+  const r = await dialog({ title: 'Open network stream', body, width: 560, buttons: [{ label: 'Cancel', value: null }, { label: 'Open', primary: true, value: () => ({ urls: urls.value, name: name.value, extra: syncOn.checked ? sync.value.trim() : '' }) }] });
   if (!r) return;
   const list = r.urls.split(/\s+/).map(s => s.trim()).filter(u => /^(https?|rtsp|rtmp|mms):\/\//i.test(u));
   if (!list.length) return App.osd('No valid URL entered');
   S.set('networkHistory', [...list, ...S.get('networkHistory').filter(u => !list.includes(u))].slice(0, 30));
   if (r.name.trim()) App.createPlaylist(r.name.trim(), list);
-  App.addSources(list);
+  App.addSources(list, r.extra ? { extra: r.extra } : {});
 }
 async function newPlaylist(App) {
   let cover = null, files = [];

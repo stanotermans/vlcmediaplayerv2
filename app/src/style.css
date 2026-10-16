@@ -504,3 +504,26 @@ body.rounded-win.maxed #app,body.rounded-win.fullscreen #app{border-radius:0;bor
 .lyr-line.on{opacity:1;transform:scale(1.06)}
 .lyr-line.gap{opacity:.2}
 .lyr-scroll.free .lyr-line{opacity:.85;cursor:default;transform:none}
+
+/* list view: columns with title, artist/album and duration (like VLC's playlist) */
+#grid.list{display:block;padding-top:6px}
+#grid.list .card{display:grid;grid-template-columns:46px minmax(0,1fr) minmax(0,.7fr) 70px;align-items:center;gap:12px;padding:5px 8px;border-radius:6px}
+#grid.list .card:hover{background:var(--panel2)}
+#grid.list .card.on .name{color:var(--accent)}
+#grid.list .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-album,.c-dur{display:none}
+#grid.list .c-album{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#grid.list .c-dur{display:block;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+#grid.list .card.folder{grid-template-columns:46px minmax(0,1fr)}
+#grid.list > div[style*="grid-column"]{margin:12px 8px 4px}
+.lhead{display:grid;grid-template-columns:46px minmax(0,1fr) minmax(0,.7fr) 70px;gap:12px;padding:4px 8px 8px;border-bottom:1px solid var(--edge);margin-bottom:4px;position:sticky;top:-6px;background:var(--panel);z-index:1}
+.lhead button{text-align:left;color:var(--muted);font-size:12px;padding:2px 0}
+.lhead button:last-child{text-align:right}
+.lhead button:hover,.lhead button.on{color:var(--text)}
+.lhead button.on::after{content:' ▲';font-size:9px}
+.lhead button.on.desc::after{content:' ▼'}
+.moreopts{margin-top:8px;padding:10px 12px;border:1px solid var(--edge);border-radius:8px}
+.chk{display:flex;align-items:center;gap:8px;color:var(--text)}
+#grid.list .card .thumb{width:46px;height:30px;aspect-ratio:auto}
+.formcol > .linkbtn{align-self:flex-start;background:none;border:0;padding:4px 0;margin-top:6px;color:var(--accent)}
+.formcol > .linkbtn:hover{background:none;text-decoration:underline}
