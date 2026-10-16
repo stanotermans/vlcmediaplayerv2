@@ -482,3 +482,15 @@ I18N.add('nl', {
 I18N.add('nl', {
  "When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.": "Als dit uit staat, wordt na een herstart niets bewaard van wat je hebt afgespeeld: geen recente lijst, geen bekeken-markeringen en geen bestanden die je alleen hebt geopend."
 });
+
+// v1.6.3: window corners, player controls
+I18N.add('nl', {
+ "Rounded window corners": "Afgeronde vensterhoeken",
+ "Set by Windows": "Ingesteld door Windows",
+ "Windows 11 rounds window corners automatically.": "Windows 11 rondt vensterhoeken automatisch af.",
+ "Takes effect after restarting the app.": "Werkt na het herstarten van de app.",
+ "Restart the app to apply this": "Herstart de app om dit toe te passen",
+ "Player controls": "Bedieningsknoppen",
+ "Time": "Tijd",
+ "Hidden controls still work with the keyboard. Press F1 for all shortcuts.": "Verborgen knoppen werken nog steeds met het toetsenbord. Druk op F1 voor alle sneltoetsen."
+});

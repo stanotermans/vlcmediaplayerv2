@@ -482,3 +482,15 @@ I18N.add('pt', {
 I18N.add('pt', {
  "When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.": "Se estiver desligado, nada do que reproduziu é guardado após reiniciar: nem lista de recentes, nem marcas de visto, nem ficheiros que apenas abriu."
 });
+
+// v1.6.3: window corners, player controls
+I18N.add('pt', {
+ "Rounded window corners": "Cantos da janela arredondados",
+ "Set by Windows": "Definido pelo Windows",
+ "Windows 11 rounds window corners automatically.": "O Windows 11 arredonda automaticamente os cantos das janelas.",
+ "Takes effect after restarting the app.": "Tem efeito depois de reiniciar a aplicação.",
+ "Restart the app to apply this": "Reinicie a aplicação para aplicar isto",
+ "Player controls": "Controlos do leitor",
+ "Time": "Tempo",
+ "Hidden controls still work with the keyboard. Press F1 for all shortcuts.": "Os controlos ocultos continuam a funcionar com o teclado. Prima F1 para ver todos os atalhos."
+});

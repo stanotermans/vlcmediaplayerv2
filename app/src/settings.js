@@ -6,7 +6,8 @@ const DEFAULTS = {
   onboarded: false, language: '', theme: 'dark', accent: '#f28c1b',
   confirmDialogs: true, autoUpdate: true, lastUpdateCheck: 0, skipVersion: '', devMode: false, logOn: false, logFile: '', logLevel: 'error',
   // interface
-  uiScale: 100, navExpanded: false, autoHideSide: true, fitWindow: true, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,
+  uiScale: 100, ctl: { prevnext: true, play: true, time: true, volume: true, audio: true, subs: true, settings: true, library: true },
+  navExpanded: false, autoHideSide: true, fitWindow: true, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,
   // privacy
   rememberRecent: true, resume: true,
   // playback
@@ -35,7 +36,7 @@ const DEFAULTS = {
 const clone = v => JSON.parse(JSON.stringify(v));
 let data;
 try { data = Object.assign(clone(DEFAULTS), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { data = clone(DEFAULTS); }
-for (const k of ['vf', 'comp', 'reverb', 'widen']) data[k] = Object.assign(clone(DEFAULTS[k]), data[k]);
+for (const k of ['vf', 'comp', 'reverb', 'widen', 'ctl']) data[k] = Object.assign(clone(DEFAULTS[k]), data[k]);
 data.vf.crop = Object.assign({ t: 0, b: 0, l: 0, r: 0 }, data.vf.crop);
 
 const listeners = [];

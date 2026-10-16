@@ -242,6 +242,12 @@ function pages(App) {
     interface: () => [
       sec('Layout',
         row('Sidebar with labels', toggle('navExpanded')),
+        (() => {                                                     // stored by the main process: applies when the window is created
+          const info = App.appInfo || {};
+          if (info.platform === 'win32') return row('Rounded window corners', el('span.note', {}, t('Set by Windows')), { info: 'Windows 11 rounds window corners automatically.' });
+          let on = !!info.roundedCorners;
+          return row('Rounded window corners', toggle({ get: () => on, set: async v => { on = v; info.roundedCorners = v; if (await api.setWindowPref('roundedCorners', v)) App.osd('Restart the app to apply this'); }, path: '_rounded' }), { info: 'Takes effect after restarting the app.' });
+        })(),
         row('Hide sidebar while a video plays', toggle('autoHideSide'), { info: 'Gives the video the full width. The sidebar button (Q) brings it back.' }),
         row('Resize window to the video', toggle('fitWindow'), { info: "Matches the window to the video's shape when a new video starts, up to 70% of the screen." }),
         row('Show mini player while browsing', toggle('miniPlayer')),
@@ -249,6 +255,12 @@ function pages(App) {
         row('Show thumbnails', toggle('showThumbs')),
         row('Dim watched items', toggle('dimWatched')),
         row('Show ffmpeg label in player', toggle('showBadge'))),
+      sec('Player controls',
+        row('Previous / next', toggle('ctl.prevnext')), row('Play / pause', toggle('ctl.play')),
+        row('Time', toggle('ctl.time')), row('Volume', toggle('ctl.volume')),
+        row('Audio', toggle('ctl.audio')), row('Subtitles', toggle('ctl.subs')),
+        row('Settings', toggle('ctl.settings')), row('Library / player', toggle('ctl.library')),
+        el('p.note', {}, t('Hidden controls still work with the keyboard. Press F1 for all shortcuts.'))),
       sec('Fullscreen',
         slider({ label: 'Hide cursor and controls after', min: 1, max: 10, step: 0.5, binding: 'hideCursorDelay', fmt: v => f1(v) + ' s' })),
     ],

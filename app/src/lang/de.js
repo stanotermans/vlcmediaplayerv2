@@ -482,3 +482,15 @@ I18N.add('de', {
 I18N.add('de', {
  "When off, nothing you played is kept after a restart: no recent list, no watched marks and no files you only opened.": "Wenn aus, bleibt nach einem Neustart nichts von dem erhalten, was du abgespielt hast: keine Verlaufsliste, keine Gesehen-Markierungen und keine Dateien, die du nur geöffnet hast."
 });
+
+// v1.6.3: window corners, player controls
+I18N.add('de', {
+ "Rounded window corners": "Abgerundete Fensterecken",
+ "Set by Windows": "Von Windows festgelegt",
+ "Windows 11 rounds window corners automatically.": "Windows 11 rundet Fensterecken automatisch ab.",
+ "Takes effect after restarting the app.": "Wird nach einem Neustart der App wirksam.",
+ "Restart the app to apply this": "Starte die App neu, um dies zu übernehmen",
+ "Player controls": "Steuerelemente",
+ "Time": "Zeit",
+ "Hidden controls still work with the keyboard. Press F1 for all shortcuts.": "Ausgeblendete Steuerelemente funktionieren weiterhin per Tastatur. Drücke F1 für alle Tastenkürzel."
+});

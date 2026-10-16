@@ -475,3 +475,13 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
 .ob-lang.on{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
 .ob-lcode{font-size:11px;color:var(--muted);letter-spacing:.06em}
 .ob-lang.on .ob-lcode{color:var(--accent)}
+
+/* rounded window corners drawn by the app itself (Linux; Settings → Interface) */
+body.rounded-win,html:has(body.rounded-win){background:transparent}
+body.rounded-win #app{border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--edge)}
+body.rounded-win.maxed #app,body.rounded-win.fullscreen #app{border-radius:0;border:0}
+
+/* player controls switched off in Settings → Interface → Player controls */
+.no-ctl-prevnext #prevBtn,.no-ctl-prevnext #nextBtn,.no-ctl-play #playBtn,.no-ctl-time #controls .time,
+.no-ctl-volume #muteBtn,.no-ctl-volume #vol,.no-ctl-audio #eqBtn,.no-ctl-subs #subBtn,.no-ctl-settings #setBtn,.no-ctl-library #listBtn{display:none}
+.no-ctl-audio.no-ctl-subs #controls .sep{display:none}

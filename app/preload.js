@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('api', {
   onOpenPaths: cb => ipcRenderer.on('open-paths', (_e, p) => cb(p)),
   onMaximized: cb => ipcRenderer.on('maximized', (_e, m) => cb(m)),
   fitWindow: sizes => inv('fit-window', sizes),
+  setWindowPref: (key, value) => inv('set-window-pref', key, value),
   setZoom: f => webFrame.setZoomFactor(Math.min(2, Math.max(0.5, +f || 1))),
   addFonts: () => inv('add-fonts'),
   readFont: file => inv('read-font', file),

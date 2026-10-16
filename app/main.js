@@ -282,6 +282,7 @@ const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
 ipcMain.handle('app-info', () => ({
   version: app.getVersion(), platform: process.platform, arch: process.arch, portable: isPortable(), appImage: !!process.env.APPIMAGE,
   electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node,
+  roundedCorners: winPrefs().roundedCorners === true, drawsRoundedCorners: ROUNDED && process.platform === 'linux',
 }));
 const cmpVer = (a, b) => { const x = String(a).replace(/^v/, '').split('.').map(n => parseInt(n) || 0), y = String(b).replace(/^v/, '').split('.').map(n => parseInt(n) || 0);
   for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) ? 1 : -1; } return 0; };
@@ -384,10 +385,26 @@ ipcMain.handle('remove-font', (_e, file) => { const p = inFontDir(file); if (p) 
 ipcMain.on('ready', () => { if (pendingPaths.length) { win.webContents.send('open-paths', expand(pendingPaths)); pendingPaths = []; } });
 
 /* ---------------- window ---------------- */
+// Window options that only apply when the window is created (Settings → Interface → Rounded window corners).
+// macOS and Windows 11 round frameless windows themselves; on Linux the app draws a transparent window
+// and rounds it in CSS, so there it needs a restart to change.
+const winPrefsFile = () => path.join(app.getPath('userData'), 'window.json');
+const winPrefs = () => { try { return JSON.parse(fs.readFileSync(winPrefsFile(), 'utf8')); } catch { return {}; } };
+let ROUNDED = false;                                             // rounded corners are active in the running window
+ipcMain.handle('set-window-pref', (_e, key, value) => {
+  if (!['roundedCorners'].includes(key)) return false;
+  const p = winPrefs(); p[key] = !!value;
+  try { fs.writeFileSync(winPrefsFile(), JSON.stringify(p)); } catch {}
+  return process.platform !== 'win32' && ROUNDED !== !!value;      // true → restart needed to apply
+});
 function createWindow() {
+  const rounded = winPrefs().roundedCorners === true;
+  ROUNDED = rounded && process.platform !== 'win32';               // Windows 11 always rounds; nothing to switch
   win = new BrowserWindow({
     width: 1280, height: 800, minWidth: 360, minHeight: 320,       // small enough for vertical videos
-    frame: false, backgroundColor: '#141414', show: false,
+    frame: false, show: false,
+    ...(ROUNDED && process.platform === 'linux' ? { transparent: true, backgroundColor: '#00000000' } : { backgroundColor: '#141414' }),
+    ...(process.platform === 'darwin' ? { roundedCorners: rounded } : {}),
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, backgroundThrottling: false },
   });

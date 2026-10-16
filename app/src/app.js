@@ -624,7 +624,7 @@ $('#fsBtn2').onclick = toggleFs;
 $('#minBtn').onclick = () => api.win('min');
 $('#maxBtn').onclick = () => api.win('max');
 $('#closeBtn').onclick = () => { savePos(); stopRecord(); api.win('close'); };
-api.onMaximized(m => { $('#maxIcon').innerHTML = m ? '<rect x="8" y="5" width="11" height="11" rx="1"/><path d="M5 8v10a1 1 0 0 0 1 1h10"/>' : '<rect x="6" y="6" width="12" height="12" rx="1"/>'; });
+api.onMaximized(m => { document.body.classList.toggle('maxed', m); $('#maxIcon').innerHTML = m ? '<rect x="8" y="5" width="11" height="11" rx="1"/><path d="M5 8v10a1 1 0 0 0 1 1h10"/>' : '<rect x="6" y="6" width="12" height="12" rx="1"/>'; });
 $('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('button')) api.win('max'); });
 function toggleFs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
 document.addEventListener('fullscreenchange', () => {
@@ -794,6 +794,7 @@ $('#rail').addEventListener('click', e => {
 $('#addBtn').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu(openMediaItems(), r.right + 4, r.top); };
 $('#sideToggle').onclick = () => {
   if (document.body.classList.contains('focus-video')) { sideOverride = true; $('#side').classList.remove('hidden'); return updateFocus(); }
+  if (sideOverride && mode === 'player') { sideOverride = false; return updateFocus(); }   // hide it again (#8)
   if (S.get('navExpanded')) return S.set('navExpanded', false);
   if (matchMedia('(max-width:560px)').matches) { $('#side').classList.remove('hidden'); return $('#side').classList.toggle('narrow-open'); }
   $('#side').classList.toggle('hidden');
@@ -836,6 +837,7 @@ $('#openUrl').onclick = () => doAct('url');
 function toggleQueue() {
   const side = $('#side');
   if (document.body.classList.contains('focus-video')) { sideOverride = true; updateFocus(); side.classList.add('hidden'); }
+  else if (sideOverride && mode === 'player' && state.sideMode === 'queue' && !side.classList.contains('hidden')) { sideOverride = false; state.sideMode = 'view'; updateFocus(); return render(); }
   if (S.get('navExpanded')) S.set('navExpanded', false);
   if (state.sideMode === 'queue' && !side.classList.contains('hidden')) { state.sideMode = 'view'; side.classList.add('hidden'); }
   else { state.sideMode = 'queue'; side.classList.remove('hidden'); }
@@ -1060,11 +1062,15 @@ addEventListener('beforeunload', () => { savePos(); stopRecord(); });
 
 /* ---------- settings reactions ---------- */
 api.setZoom(S.get('uiScale') / 100);
+// Player controls the user switched off in Settings → Interface → Player controls (#10); keyboard shortcuts keep working.
+function applyControls() { for (const [k, on] of Object.entries(S.get('ctl'))) document.body.classList.toggle('no-ctl-' + k, !on); }
+applyControls();
 function applyLog() { api.setLog({ on: S.get('logOn'), file: S.get('logFile') || PATHS.log, level: S.get('logLevel') }); }
 S.on(path => {
   if (/^sub(Size|Color|Outline|Bg|Font)$/.test(path)) applySubStyle();
   if (path === 'autoHideSide') updateFocus();
   if (path === 'uiScale') api.setZoom(S.get('uiScale') / 100);
+  if (path.startsWith('ctl')) applyControls();
   if (/^(navExpanded|showThumbs|dimWatched|miniPlayer)$/.test(path)) render();
   if (path === 'showBadge') setBadge();
   if (path === 'rememberRecent') { if (!S.get('rememberRecent')) { state.recent = []; render(); } saveRecent(); saveLibrary(); saveWatched(); }
@@ -1129,6 +1135,7 @@ function showOnboarding() {
   } });
 }
 App.appInfo = await api.appInfo();
+document.body.classList.toggle('rounded-win', !!App.appInfo.drawsRoundedCorners);
 quick = Panels.quickPanel(App);
 // A click outside the quick settings panel closes it. A click on the video then only closes the panel
 // (it does not also pause), like closing a menu.
