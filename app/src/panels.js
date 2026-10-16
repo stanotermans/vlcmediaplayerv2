@@ -317,6 +317,9 @@ function pages(App) {
         row('Text color', color('subColor')), row('Outline color', color('subOutline')),
         slider({ label: 'Background opacity', min: 0, max: 100, binding: 'subBg', fmt: v => v + '%' }),
         el('div.subpreview', {}, el('span', {}, t('Subtitle preview')))),
+      sec('Lyrics',
+        row('Load lyrics (.lrc) automatically', toggle('lrcAuto'), { info: 'Loads a .lrc file with the same name as the song, also when subtitles are not loaded automatically.' }),
+        row('Show lyrics full-screen for music', toggle('lyricsView'), { info: 'Shows the lyrics large, following the song. Off: lyrics appear as subtitles. For videos, .lrc files are always shown as subtitles.' })),
       sec('Your fonts', customFontList(), el('div.btnrow', {}, button('Add font file…', addFontFiles, 'primary'))),
     ],
     library: () => {

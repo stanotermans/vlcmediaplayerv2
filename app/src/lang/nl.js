@@ -494,3 +494,15 @@ I18N.add('nl', {
  "Time": "Tijd",
  "Hidden controls still work with the keyboard. Press F1 for all shortcuts.": "Verborgen knoppen werken nog steeds met het toetsenbord. Druk op F1 voor alle sneltoetsen."
 });
+
+// v1.7: music, lyrics
+I18N.add('nl', {
+ "Lyrics": "Songteksten",
+ "Load lyrics (.lrc) automatically": "Songteksten (.lrc) automatisch laden",
+ "Loads a .lrc file with the same name as the song, also when subtitles are not loaded automatically.": "Laadt een .lrc-bestand met dezelfde naam als het nummer, ook als ondertitels niet automatisch worden geladen.",
+ "Show lyrics full-screen for music": "Songtekst schermvullend tonen bij muziek",
+ "Shows the lyrics large, following the song. Off: lyrics appear as subtitles. For videos, .lrc files are always shown as subtitles.": "Toont de songtekst groot, meelopend met het nummer. Uit: de songtekst verschijnt als ondertitel. Bij video’s worden .lrc-bestanden altijd als ondertitel getoond.",
+ "Show lyrics": "Songtekst tonen",
+ "No lyrics found": "Geen songtekst gevonden",
+ "No lyrics": "Geen songtekst"
+});

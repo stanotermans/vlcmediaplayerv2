@@ -494,3 +494,15 @@ I18N.add('it', {
  "Time": "Tempo",
  "Hidden controls still work with the keyboard. Press F1 for all shortcuts.": "I controlli nascosti funzionano ancora con la tastiera. Premi F1 per tutte le scorciatoie."
 });
+
+// v1.7: music, lyrics
+I18N.add('it', {
+ "Lyrics": "Testi",
+ "Load lyrics (.lrc) automatically": "Carica i testi (.lrc) automaticamente",
+ "Loads a .lrc file with the same name as the song, also when subtitles are not loaded automatically.": "Carica un file .lrc con lo stesso nome del brano, anche quando i sottotitoli non vengono caricati automaticamente.",
+ "Show lyrics full-screen for music": "Mostra il testo a schermo intero per la musica",
+ "Shows the lyrics large, following the song. Off: lyrics appear as subtitles. For videos, .lrc files are always shown as subtitles.": "Mostra il testo in grande, a tempo con il brano. Disattivato: il testo appare come sottotitolo. Per i video, i file .lrc sono sempre mostrati come sottotitoli.",
+ "Show lyrics": "Mostra testo",
+ "No lyrics found": "Nessun testo trovato",
+ "No lyrics": "Nessun testo"
+});

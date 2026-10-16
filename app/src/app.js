@@ -52,7 +52,7 @@ const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.re
 
 const isAudio = it => it.type === 'audio';
 const AUDIO_RE = /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
-const SUB_RE = /\.(srt|vtt|ass|ssa|sub)$/i;
+const SUB_RE = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 const SEP = /[\\/]/;
 const baseName = s => { try { return decodeURIComponent(s.split(SEP).pop().split('?')[0]) || s; } catch { return s; } };
 const norm = p => p.replace(/[\\/]+$/, '');
@@ -185,7 +185,7 @@ function cardHTML(it) {
   const idx = state.items.indexOf(it);
   const w = isWatched(it), pct = w ? 100 : it.duration ? Math.min(100, it.progress / it.duration * 100) : 0;
   const thumb = S.get('showThumbs') && it.thumb;
-  return `<div class="card ${idx === state.current ? 'on' : ''} ${w && S.get('dimWatched') ? 'watched' : ''}" data-idx="${idx}" title="${esc(it.src)}">
+  return `<div class="card ${isAudio(it) ? 'audio' : ''} ${idx === state.current ? 'on' : ''} ${w && S.get('dimWatched') ? 'watched' : ''}" data-idx="${idx}" title="${esc(it.src)}">
     <div class="thumb">${thumb ? `<img src="${it.thumb}" alt="">` : `<div class="ph">${isAudio(it) ? '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="17" r="3"/><path d="M11 17V5l8 2"/></svg>' : '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>'}</div>`}
       ${pct > 1 ? `<div class="prog" style="width:${pct}%"></div>` : ''}
       ${it.duration ? `<span class="dur">${shortFmt(it.duration)}</span>` : ''}
@@ -345,7 +345,8 @@ function setIdle(it) {
   const idle = $('#idle'), showVideo = it && !isAudio(it) && video.videoWidth;
   $('#player').classList.toggle('playing-video', !!showVideo);
   if (showVideo) { idle.innerHTML = ''; return; }
-  idle.innerHTML = it && it.thumb && isAudio(it) ? `<div class="cover" style="background-image:url('${it.thumb}')"></div>` : catSVG();
+  const art = it && isAudio(it) && (it.cover || it.thumb);
+  idle.innerHTML = art ? `<div class="np-cover" style="background-image:url('${art}')"></div>` : catSVG();
 }
 async function playItem(idx, autoplay = true) {
   const it = state.items[idx]; if (!it) return;
@@ -364,6 +365,7 @@ async function playItem(idx, autoplay = true) {
   if (S.get('rememberRecent')) { state.recent = [it.src, ...state.recent.filter(s => s !== it.src)]; saveRecent(); }
   setupSubs(it);
   buildStoryboard(it);
+  if (isAudio(it) && it.info && it.info.cover && !it.cover) api.cover(it.src).then(c => { if (!c) return; it.cover = c; if (curItem() === it) { setIdle(it); renderLyrics(); } });
   render(); quick && quick.refresh();
 }
 video.addEventListener('loadedmetadata', () => {
@@ -657,6 +659,7 @@ function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); 
 const mctx = $('#miniCanvas').getContext('2d');
 let lastSub = null;
 const SUB = { tracks: [], active: -1 };
+const LYR = { lines: null, synced: false, hidden: false, shown: false, idx: -2 };   // lyrics (.lrc), see below
 const subSync = { delay: 0, speed: 1, dur: 0 };
 (function frame() {
   if (mode === 'browser' && state.current >= 0 && video.videoWidth && !isAudio(curItem())) {
@@ -672,6 +675,7 @@ const subSync = { delay: 0, speed: 1, dur: 0 };
     htmlSub = tr.cues.filter(c => t >= c.s / sp && t <= c.e / sp + subSync.dur).map(c => `<span>${c.h}</span>`).join('<br>');
   }
   if (htmlSub !== lastSub) { $('#subs').innerHTML = htmlSub; lastSub = htmlSub; }
+  if (LYR.shown && LYR.synced) syncLyrics();
   if (rec) $('#rec span').textContent = 'REC ' + fmt((performance.now() - rec.t0) / 1000).slice(3);
   requestAnimationFrame(frame);
 })();
@@ -689,18 +693,21 @@ function parseVTT(text) {
   }
   return cues;
 }
-function clearSubs() { SUB.tracks = []; SUB.active = -1; subSync.delay = 0; subSync.speed = 1; subSync.dur = 0; }
+function clearSubs() { SUB.tracks = []; SUB.active = -1; subSync.delay = 0; subSync.speed = 1; subSync.dur = 0; LYR.lines = null; renderLyrics(); }
 async function setupSubs(it) {
   if (it.info) it.info.subs.forEach(s => SUB.tracks.push({ label: s.label + (BITMAP.test(s.codec) ? ' (' + t('image-based, not supported') + ')' : ''), lang: s.lang, src: it.src, idx: s.i, bitmap: BITMAP.test(s.codec) }));
-  if (!it.remote && S.get('subAuto')) {
-    const sib = await api.siblingSubs(it.src); if (curItem() !== it) return;
+  if (!it.remote && (S.get('subAuto') || S.get('lrcAuto'))) {
+    const all = await api.siblingSubs(it.src); if (curItem() !== it) return;
+    const lrc = all.filter(f => /\.lrc$/i.test(f)), sib = S.get('subAuto') ? all.filter(f => !/\.lrc$/i.test(f)) : [];
+    if (lrc.length && S.get('lrcAuto') && await useLyricsFile(lrc[0], it) && !isAudio(it)) return;
+    if (curItem() !== it) return;
     for (const f of sib) SUB.tracks.push({ label: baseName(f), src: f, idx: null });
     if (sib.length) return selectSub(SUB.tracks.length - sib.length);
   }
   const prefs = (S.get('subLang') || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
   if (prefs.length) { const i = SUB.tracks.findIndex(t => !t.bitmap && t.lang && prefs.some(p => t.lang.toLowerCase().startsWith(p))); if (i >= 0) selectSub(i); }
 }
-async function addSubFile(file, select) { SUB.tracks.push({ label: baseName(file), src: file, idx: null }); if (select) await selectSub(SUB.tracks.length - 1); quick && quick.refresh(); }
+async function addSubFile(file, select) { if (/\.lrc$/i.test(file)) { if (!await useLyricsFile(file)) osd('No lyrics found'); return quick && quick.refresh(); } SUB.tracks.push({ label: baseName(file), src: file, idx: null }); if (select) await selectSub(SUB.tracks.length - 1); quick && quick.refresh(); }
 async function selectSub(i) {
   if (i < 0) { SUB.active = -1; osd('Subtitles off'); return; }
   SUB.active = i;
@@ -710,6 +717,62 @@ async function selectSub(i) {
   osd(tr.cues.length ? t('Subtitles: {name}', { name: tr.label }) : 'No subtitles found');
 }
 async function loadSubFile() { if (state.current < 0) return osd('Play something first'); const f = await api.openSubtitle(); if (f) addSubFile(f, true); }
+/* ---------- lyrics (.lrc) ---------- */
+// Music with a .lrc file gets a full-screen lyrics view that follows the song (setting lyricsView);
+// for videos, or with that setting off, the lyrics are shown as ordinary subtitles.
+// "[mm:ss.xx] text" lines; a line may carry several time tags; [offset:±ms] shifts everything; <mm:ss.xx> word tags are dropped.
+function parseLRC(text) {
+  let offset = 0; const timed = [], plain = [];
+  for (const raw of text.replace(/\r/g, '').split('\n')) {
+    const off = /^\s*\[offset:\s*([+-]?\d+)\s*\]/i.exec(raw); if (off) { offset = +off[1] / 1000; continue; }
+    const tags = [...raw.matchAll(/\[(\d+):(\d+(?:[.:]\d+)?)\]/g)];
+    const body = raw.replace(/\[[^\]]*\]/g, '').replace(/<\d+:\d+(?:[.:]\d+)?>/g, '').trim();
+    if (tags.length) tags.forEach(m => timed.push({ t: Math.max(0, +m[1] * 60 + parseFloat(m[2].replace(':', '.')) - offset), text: body }));
+    else if (body) plain.push({ t: null, text: body });
+  }
+  timed.sort((a, b) => a.t - b.t);
+  return timed.length ? { synced: true, lines: timed } : { synced: false, lines: plain };
+}
+const lrcCues = lrc => lrc.lines.map((l, i, a) => ({ s: l.t || 0, e: a[i + 1] ? a[i + 1].t : (l.t || 0) + 5, h: esc(l.text) })).filter(c => c.h);
+async function useLyricsFile(file, it = curItem()) {
+  const txt = await api.lyrics(file); if (!txt || !it || curItem() !== it) return false;
+  const lrc = parseLRC(txt); if (!lrc.lines.some(l => l.text)) return false;
+  if (isAudio(it) && S.get('lyricsView')) { Object.assign(LYR, { lines: lrc.lines, synced: lrc.synced, hidden: false }); renderLyrics(); return true; }
+  SUB.tracks.push({ label: baseName(file), src: file, idx: null, cues: lrcCues(lrc) });
+  await selectSub(SUB.tracks.length - 1); return true;
+}
+function renderLyrics() {
+  const it = curItem(), on = !!(LYR.lines && !LYR.hidden && S.get('lyricsView') && it && isAudio(it));
+  LYR.shown = on; LYR.idx = -2;
+  $('#player').classList.toggle('lyrics-on', on);
+  if (!on) return;
+  const box = $('#lyrics'), art = it.cover || it.thumb;
+  box.querySelector('.lyr-bg').style.backgroundImage = art ? `url('${art}')` : '';
+  box.querySelector('.lyr-scroll').classList.toggle('free', !LYR.synced);
+  const list = box.querySelector('.lyr-list');
+  list.style.transform = '';
+  list.innerHTML = LYR.lines.map((l, i) => `<div class="lyr-line${l.text ? '' : ' gap'}" data-i="${i}">${l.text ? esc(l.text) : '♪'}</div>`).join('');
+  if (LYR.synced) syncLyrics();
+}
+// Highlight the current line and keep it in the middle.
+function syncLyrics() {
+  const now = curTime(), lines = LYR.lines;
+  let i = -1; for (let lo = 0, hi = lines.length - 1; lo <= hi;) { const m = (lo + hi) >> 1; if (lines[m].t <= now + 0.05) { i = m; lo = m + 1; } else hi = m - 1; }
+  if (i === LYR.idx) return;
+  LYR.idx = i;
+  const box = $('#lyrics'), list = box.querySelector('.lyr-list'), els = list.children;
+  list.querySelector('.lyr-line.on')?.classList.remove('on');
+  const cur = els[Math.max(0, i)]; if (!cur) return;
+  if (i >= 0) cur.classList.add('on');
+  const sc = box.querySelector('.lyr-scroll');
+  list.style.transform = `translateY(${Math.round(sc.clientHeight / 2 - (cur.offsetTop + cur.offsetHeight / 2))}px)`;
+}
+$('#lyrics').addEventListener('click', e => {
+  const line = e.target.closest('.lyr-line');
+  if (line && LYR.synced) { seekTo(LYR.lines[+line.dataset.i].t); LYR.idx = -2; } else if (!line) togglePlay();
+});
+addEventListener('resize', () => { LYR.idx = -2; });
+function toggleLyrics() { if (!LYR.lines) return osd('No lyrics'); LYR.hidden = !LYR.hidden; renderLyrics(); }
 function cycleSubs() { if (!SUB.tracks.length) return osd('No subtitles'); const n = SUB.active + 1 >= SUB.tracks.length ? -1 : SUB.active + 1; selectSub(n); }
 function applySubStyle() {
   const r = document.documentElement.style;
@@ -935,6 +998,7 @@ function playerMenu(x, y) {
       ...SUB.tracks.map((t, i) => ({ label: t.label, checked: SUB.active === i, disabled: t.bitmap, action: () => selectSub(i) })),
       { sep: true },
       { label: 'Add file…', icon: 'file', action: loadSubFile, disabled: !it },
+      ...(LYR.lines ? [{ label: 'Show lyrics', checked: !LYR.hidden, action: toggleLyrics }] : []),
       { label: 'Delay −0.1 s', kbd: 'G', action: () => nudgeSub(-0.1) },
       { label: 'Delay +0.1 s', kbd: 'H', action: () => nudgeSub(0.1) },
       { label: 'Subtitle settings…', icon: 'settings', action: () => quick.toggle('subs') },
@@ -1069,6 +1133,7 @@ function applyLog() { api.setLog({ on: S.get('logOn'), file: S.get('logFile') ||
 S.on(path => {
   if (/^sub(Size|Color|Outline|Bg|Font)$/.test(path)) applySubStyle();
   if (path === 'autoHideSide') updateFocus();
+  if (path === 'lyricsView') renderLyrics();
   if (path === 'uiScale') api.setZoom(S.get('uiScale') / 100);
   if (path.startsWith('ctl')) applyControls();
   if (/^(navExpanded|showThumbs|dimWatched|miniPlayer)$/.test(path)) render();

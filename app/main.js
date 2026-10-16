@@ -14,7 +14,7 @@ const FFMPEG = process.env.VLCX_FFMPEG || bundled(() => require('ffmpeg-static')
 const REPO = 'stanotermans/vlcmediaplayerv2';
 
 const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|avi|wmv|flv|mpg|mpeg|ts|m2ts|mts|3gp|ogv|vob|divx|mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
-const SUB_EXT = /\.(srt|vtt|ass|ssa|sub)$/i;
+const SUB_EXT = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 const MIME = { mp4:'video/mp4', m4v:'video/mp4', mov:'video/mp4', webm:'video/webm', mkv:'video/webm', ogv:'video/ogg',
   mp3:'audio/mpeg', m4a:'audio/mp4', aac:'audio/aac', flac:'audio/flac', wav:'audio/wav', ogg:'audio/ogg', oga:'audio/ogg', opus:'audio/ogg' };
 
@@ -186,11 +186,24 @@ async function thumbnail(src, at) {
   let key = src; try { key += fs.statSync(src).mtimeMs; } catch {}
   const file = path.join(thumbDir(), crypto.createHash('md5').update(key).digest('hex') + '.jpg');
   if (fs.existsSync(file)) return 'data:image/jpeg;base64,' + fs.readFileSync(file).toString('base64');
-  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-ss', String(at || 0), '-i', src, '-frames:v', '1',
-    '-vf', 'scale=320:-2', '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '5', 'pipe:1'], { encoding: 'buffer', timeout: 20000 });
-  if (!buf || !buf.length) return null;
+  const buf = await frameJpeg(src, at, 320, 5);
+  if (!buf) return null;
   try { fs.writeFileSync(file, buf); } catch {}
   return 'data:image/jpeg;base64,' + buf.toString('base64');
+}
+// One JPEG frame. at <= 0 means the cover art of a music file: seeking (-ss) there drops the
+// attached picture in e.g. MP3, so read the first video stream from the start instead.
+async function frameJpeg(src, at, w, q) {
+  const input = at > 0 ? ['-ss', String(at), '-i', src] : ['-i', src, '-map', '0:v:0'];
+  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...input, '-frames:v', '1',
+    '-vf', `scale='min(${w},iw)':-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', String(q), 'pipe:1'], { encoding: 'buffer', timeout: 20000 });
+  return buf && buf.length ? buf : null;
+}
+// Larger cover art for the music player; kept in memory only, so it works with thumbnails turned off.
+async function coverArt(src) { const buf = await frameJpeg(src, 0, 800, 3); return buf ? 'data:image/jpeg;base64,' + buf.toString('base64') : null; }
+// Lyrics (.lrc) as text; only .lrc files, at most 1 MB.
+function readLyrics(file) {
+  try { if (!/\.lrc$/i.test(file) || fs.statSync(file).size > 1 << 20) return null; return fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''); } catch { return null; }
 }
 
 // Any text subtitle (srt/ass/vtt or an embedded stream) → WebVTT text
@@ -222,7 +235,7 @@ ipcMain.handle('open-folder', async () => {
   return r.canceled ? [] : expand(r.filePaths);
 });
 ipcMain.handle('open-subtitle', async () => {
-  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: mt('Subtitles'), extensions: ['srt', 'vtt', 'ass', 'ssa'] }] });
+  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: mt('Subtitles'), extensions: ['srt', 'vtt', 'ass', 'ssa', 'lrc'] }] });
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('expand', (_e, paths) => expand(paths));
@@ -237,6 +250,8 @@ ipcMain.handle('frame', async (_e, src, at, w) => {
 });
 ipcMain.handle('thumb',(_e, src, at) => thumbnail(src, at));
 ipcMain.handle('subs', (_e, src, idx) => subtitles(src, idx));
+ipcMain.handle('cover', (_e, src) => coverArt(src));
+ipcMain.handle('lyrics', (_e, file) => readLyrics(file));
 ipcMain.handle('sibling-subs', (_e, file) => siblingSubs(file));
 ipcMain.handle('snapshot', (_e, dataUrl, name, dir) => {
   dir = dir || path.join(app.getPath('pictures'), 'VLC Redesign');

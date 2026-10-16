@@ -23,7 +23,7 @@ const DEFAULTS = {
   widenOn: false, widen: { delay: 20, feedback: 0.2, crossfeed: 0.3, dry: 0.8 },
   gain: 100,
   // subtitles
-  subAuto: true, subLang: '', customFonts: [], subFont: 'Segoe UI', subSize: 100, subColor: '#ffffff', subOutline: '#0c0c0c', subBg: 60,
+  subAuto: true, subLang: '', lrcAuto: true, lyricsView: true, customFonts: [], subFont: 'Segoe UI', subSize: 100, subColor: '#ffffff', subOutline: '#0c0c0c', subBg: 60,
   // library
   mediaFolders: [],
   // network
