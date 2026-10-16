@@ -471,3 +471,9 @@ I18N.add('nl', {
  "Add .ttf, .otf or .woff files to use them for subtitles. They are copied into the app, so you can delete the originals.": "Voeg .ttf-, .otf- of .woff-bestanden toe om ze voor ondertitels te gebruiken. Ze worden naar de app gekopieerd, dus je kunt de originelen verwijderen.",
  "Not a valid font file: {name}": "Geen geldig lettertypebestand: {name}"
 });
+
+// v1.6.1: interface size
+I18N.add('nl', {
+ "Interface size": "Interfacegrootte",
+ "Interface size {v}%": "Interfacegrootte {v}%"
+});

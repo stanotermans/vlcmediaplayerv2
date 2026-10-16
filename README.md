@@ -86,7 +86,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Subtitle fonts:** pick any font installed on your computer, or add your own `.ttf`/`.otf`/`.woff` files in *Settings → Subtitles*.
 - **Audio:** multiple audio tracks, a 10-band equalizer with 18 presets, compressor, spatial audio (reverb), stereo widener and volume boost up to 200%.
 - **Video:** brightness, contrast, saturation, hue, gamma, sharpen, film grain, negative, posterize, grayscale, sepia, pixel cropping, rotate, zoom and mirror.
-- **Themes:** light, dark or system, with 9 accent colors.
+- **Themes:** light, dark or system, with 9 accent colors, and an interface size from 75% to 150% (*Settings → General*, or Ctrl + / Ctrl − / Ctrl 0).
 - **Recording** (R) and **snapshots** (Shift+S).
 - **Settings:** right-click menu with submenus, quick settings in the player, and a full settings window with search (Ctrl+P).
 
@@ -146,9 +146,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.6.0"
-git tag v1.6.0
-git push origin v1.6.0
+# first set the version in app/package.json, e.g. "version": "1.6.1"
+git tag v1.6.1
+git push origin v1.6.1
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

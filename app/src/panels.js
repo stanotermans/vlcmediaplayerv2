@@ -12,7 +12,7 @@ const SHORTCUTS = [
   ['Stop', ['S']], ['Mute', ['M']], ['Hide interface', ['Ctrl', '\\']], ['Slower / faster / normal', ['[', ']', '=']],
   ['Subtitle delay − / +', ['G', 'H']], ['Seek 3 seconds', ['SHIFT', '← →']], ['Jump to 0–90%', ['0 – 9']], ['Open files', ['Ctrl', 'O']],
   ['Open folder', ['Ctrl', 'F']], ['Open network stream', ['Ctrl', 'N']], ['Media information', ['Ctrl', 'I']], ['Settings', ['Ctrl', 'P']],
-  ['Keyboard shortcuts', ['F1']], ['Quit VLC', ['Ctrl', 'Q']],
+  ['Interface size', ['Ctrl', '+ − 0']], ['Keyboard shortcuts', ['F1']], ['Quit VLC', ['Ctrl', 'Q']],
 ];
 const keycaps = keys => el('span.keys', {}, ...keys.map((k, i) => [i && keys.length === 2 && !['SHIFT', 'Ctrl'].includes(keys[0]) ? el('span.kslash', {}, '/') : null, el('kbd.cap', {}, t(k))]));
 
@@ -226,6 +226,7 @@ function pages(App) {
       sec('Appearance',
         row('Interface language', select(I18N.LANGS, { get: () => I18N.lang(), set: v => I18N.set(v), path: 'language' })),
         row('Theme', segmented([['dark', 'Dark'], ['light', 'Light'], ['system', 'System']], 'theme')),
+        slider({ label: 'Interface size', min: 75, max: 150, step: 5, binding: 'uiScale', fmt: v => v + '%', ticks: 2 }),
         row('Accent color', swatches(S.ACCENTS, 'accent'))),
       sec('Startup',
         row('Show confirmation and error dialogs', toggle('confirmDialogs'), { info: 'Ask for confirmation before deleting or clearing.' }),

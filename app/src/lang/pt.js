@@ -471,3 +471,9 @@ I18N.add('pt', {
  "Add .ttf, .otf or .woff files to use them for subtitles. They are copied into the app, so you can delete the originals.": "Adicione ficheiros .ttf, .otf ou .woff para os usar nas legendas. São copiados para a aplicação, por isso pode apagar os originais.",
  "Not a valid font file: {name}": "Ficheiro de tipo de letra inválido: {name}"
 });
+
+// v1.6.1: interface size
+I18N.add('pt', {
+ "Interface size": "Tamanho da interface",
+ "Interface size {v}%": "Tamanho da interface {v}%"
+});

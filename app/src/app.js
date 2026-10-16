@@ -378,7 +378,8 @@ function fitWindow() {
   setTimeout(() => {                                          // after the sidebar collapse transition
     const pl = $('#player'), vw = video.videoWidth, vh = video.videoHeight;
     if (mode !== 'player' || !vw || !pl.clientWidth) return;
-    api.fitWindow({ chromeW: innerWidth - pl.clientWidth, chromeH: innerHeight - pl.clientHeight, vw, vh });
+    const z = S.get('uiScale') / 100;                          // CSS px → window px when the interface is scaled
+    api.fitWindow({ chromeW: (innerWidth - pl.clientWidth) * z, chromeH: (innerHeight - pl.clientHeight) * z, vw, vh });
   }, 260);
 }
 video.addEventListener('error', () => {
@@ -1013,7 +1014,8 @@ document.addEventListener('keydown', e => {
   if (e.target.matches?.('input:not([type=range]),select,textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
   const k = e.key, low = k.toLowerCase(), jump = S.get('jump');
   if (e.ctrlKey) {
-    const map = { o: () => doAct('files'), f: () => doAct('folder'), n: () => doAct('url'), i: () => doAct('mediainfo'), p: () => Panels.openSettings(App), q: () => $('#closeBtn').click(), '\\': toggleHideUI };
+    const zoom = d => { const v = d ? Math.min(150, Math.max(75, S.get('uiScale') + d)) : 100; S.set('uiScale', v); osd(t('Interface size {v}%', { v })); };
+    const map = { '=': () => zoom(10), '+': () => zoom(10), '-': () => zoom(-10), '0': () => zoom(0), o: () => doAct('files'), f: () => doAct('folder'), n: () => doAct('url'), i: () => doAct('mediainfo'), p: () => Panels.openSettings(App), q: () => $('#closeBtn').click(), '\\': toggleHideUI };
     if (map[low]) { e.preventDefault(); map[low](); }
     return;
   }
@@ -1053,10 +1055,12 @@ document.addEventListener('keydown', e => {
 addEventListener('beforeunload', () => { savePos(); stopRecord(); });
 
 /* ---------- settings reactions ---------- */
+api.setZoom(S.get('uiScale') / 100);
 function applyLog() { api.setLog({ on: S.get('logOn'), file: S.get('logFile') || PATHS.log, level: S.get('logLevel') }); }
 S.on(path => {
   if (/^sub(Size|Color|Outline|Bg|Font)$/.test(path)) applySubStyle();
   if (path === 'autoHideSide') updateFocus();
+  if (path === 'uiScale') api.setZoom(S.get('uiScale') / 100);
   if (/^(navExpanded|showThumbs|dimWatched|miniPlayer)$/.test(path)) render();
   if (path === 'showBadge') setBadge();
   if (path === 'rememberRecent' && !S.get('rememberRecent')) { state.recent = []; saveRecent(); render(); }

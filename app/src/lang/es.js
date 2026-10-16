@@ -471,3 +471,9 @@ I18N.add('es', {
  "Add .ttf, .otf or .woff files to use them for subtitles. They are copied into the app, so you can delete the originals.": "Añade archivos .ttf, .otf o .woff para usarlos en los subtítulos. Se copian en la aplicación, así que puedes borrar los originales.",
  "Not a valid font file: {name}": "No es un archivo de fuente válido: {name}"
 });
+
+// v1.6.1: interface size
+I18N.add('es', {
+ "Interface size": "Tamaño de la interfaz",
+ "Interface size {v}%": "Tamaño de la interfaz {v} %"
+});

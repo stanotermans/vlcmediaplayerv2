@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webUtils } = require('electron');
+const { contextBridge, ipcRenderer, webUtils, webFrame } = require('electron');
 const inv = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
 
 contextBridge.exposeInMainWorld('api', {
@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('api', {
   onOpenPaths: cb => ipcRenderer.on('open-paths', (_e, p) => cb(p)),
   onMaximized: cb => ipcRenderer.on('maximized', (_e, m) => cb(m)),
   fitWindow: sizes => inv('fit-window', sizes),
+  setZoom: f => webFrame.setZoomFactor(Math.min(2, Math.max(0.5, +f || 1))),
   addFonts: () => inv('add-fonts'),
   readFont: file => inv('read-font', file),
   removeFont: file => inv('remove-font', file),
