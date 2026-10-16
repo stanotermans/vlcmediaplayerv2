@@ -332,7 +332,7 @@ function pages(App) {
           : [el('p.note', {}, t('No media folders yet. Add a folder to see your videos and music in the library automatically.'))]));
       };
       S.on(k => k === 'mediaFolders' && list.isConnected && draw()); draw();
-      return [sec('Media folders', list, el('div.btnrow', {}, button('Add folder', async () => { const f = await api.chooseFolder('Choose media folder'); if (f) App.addFolder(f); }, 'primary'), button('Rescan', () => App.rescan(), 'ghost')))];
+      return [sec('Media folders', list, el('div.btnrow', {}, button('Add folder', async () => { const f = await api.chooseFolder(t('Choose media folder')); if (f) App.addFolder(f); }, 'primary'), button('Rescan', () => App.rescan(), 'ghost')))];
     },
     network: () => {
       const h = S.get('networkHistory');

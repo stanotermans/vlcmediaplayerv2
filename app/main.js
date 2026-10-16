@@ -26,6 +26,15 @@ const MT = {
   'Subtitles': { nl: 'Ondertitels', de: 'Untertitel', fr: 'Sous-titres', es: 'Subtítulos', it: 'Sottotitoli', pt: 'Legendas' },
   'Track': { nl: 'Spoor', de: 'Spur', fr: 'Piste', es: 'Pista', it: 'Traccia', pt: 'Faixa' },
   'Subtitle': { nl: 'Ondertitel', de: 'Untertitel', fr: 'Sous-titre', es: 'Subtítulo', it: 'Sottotitolo', pt: 'Legenda' },
+  'Open media': { nl: 'Media openen', de: 'Medien öffnen', fr: 'Ouvrir des médias', es: 'Abrir multimedia', it: 'Apri file multimediali', pt: 'Abrir multimédia' },
+  'Add media folder': { nl: 'Mediamap toevoegen', de: 'Medienordner hinzufügen', fr: 'Ajouter un dossier de médias', es: 'Añadir carpeta multimedia', it: 'Aggiungi cartella multimediale', pt: 'Adicionar pasta multimédia' },
+  'Open subtitle file': { nl: 'Ondertitelbestand openen', de: 'Untertiteldatei öffnen', fr: 'Ouvrir un fichier de sous-titres', es: 'Abrir archivo de subtítulos', it: 'Apri file di sottotitoli', pt: 'Abrir ficheiro de legendas' },
+  'Add fonts': { nl: 'Lettertypen toevoegen', de: 'Schriftarten hinzufügen', fr: 'Ajouter des polices', es: 'Añadir fuentes', it: 'Aggiungi caratteri', pt: 'Adicionar tipos de letra' },
+  'Save log': { nl: 'Logboek opslaan', de: 'Protokoll speichern', fr: 'Enregistrer le journal', es: 'Guardar registro', it: 'Salva registro', pt: 'Guardar registo' },
+  'Select folder': { nl: 'Map kiezen', de: 'Ordner auswählen', fr: 'Choisir le dossier', es: 'Seleccionar carpeta', it: 'Seleziona cartella', pt: 'Selecionar pasta' },
+  'Open': { nl: 'Openen', de: 'Öffnen', fr: 'Ouvrir', es: 'Abrir', it: 'Apri', pt: 'Abrir' },
+  'Save': { nl: 'Opslaan', de: 'Speichern', fr: 'Enregistrer', es: 'Guardar', it: 'Salva', pt: 'Guardar' },
+  'Media': { nl: 'Media', de: 'Medien', fr: 'Médias', es: 'Multimedia', it: 'File multimediali', pt: 'Multimédia' },
   'Fonts': { nl: 'Lettertypen', de: 'Schriftarten', fr: 'Polices', es: 'Fuentes', it: 'Caratteri', pt: 'Tipos de letra' },
 };
 const mt = k => (MT[k] && MT[k][LANG]) || k;
@@ -41,6 +50,15 @@ else {
   // keep using the settings/library folder of versions released as "VLC Media Player"
   const legacy = path.join(app.getPath('appData'), 'VLC Media Player');
   if (fs.existsSync(legacy)) app.setPath('userData', legacy);
+}
+// Start in the language chosen in the app (saved by 'set-lang'), so built-in browser texts and, on Linux,
+// the GTK file dialogs follow it instead of the system language. Windows' own file dialogs always use the
+// Windows display language; there only the title and the confirm button can be set (see the dialogs below).
+const BOOT_LANG = (() => { try { return JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'window.json'), 'utf8')).lang || ''; } catch { return ''; } })();
+if (/^(en|nl|de|fr|es|it|pt)$/.test(BOOT_LANG)) {
+  LANG = BOOT_LANG;
+  app.commandLine.appendSwitch('lang', { en: 'en-US', pt: 'pt-PT' }[BOOT_LANG] || BOOT_LANG);
+  if (process.platform === 'linux') process.env.LANGUAGE = BOOT_LANG;
 }
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.on('second-instance', (_e, argv) => {
@@ -225,17 +243,17 @@ function siblingSubs(file) {
 /* ---------------- IPC ---------------- */
 ipcMain.handle('info', () => ({ port: PORT, token: TOKEN }));
 ipcMain.handle('open-files', async () => {
-  const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: [
-    { name: 'Media', extensions: ['mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
+  const r = await dialog.showOpenDialog(win, { title: mt('Open media'), buttonLabel: mt('Open'), properties: ['openFile', 'multiSelections'], filters: [
+    { name: mt('Media'), extensions: ['mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
     { name: mt('All files'), extensions: ['*'] }] });
   return r.canceled ? [] : expand(r.filePaths);
 });
 ipcMain.handle('open-folder', async () => {
-  const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
+  const r = await dialog.showOpenDialog(win, { title: mt('Add media folder'), buttonLabel: mt('Select folder'), properties: ['openDirectory'] });
   return r.canceled ? [] : expand(r.filePaths);
 });
 ipcMain.handle('open-subtitle', async () => {
-  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: mt('Subtitles'), extensions: ['srt', 'vtt', 'ass', 'ssa', 'lrc'] }] });
+  const r = await dialog.showOpenDialog(win, { title: mt('Open subtitle file'), buttonLabel: mt('Open'), properties: ['openFile'], filters: [{ name: mt('Subtitles'), extensions: ['srt', 'vtt', 'ass', 'ssa', 'lrc'] }] });
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('expand', (_e, paths) => expand(paths));
@@ -268,15 +286,15 @@ ipcMain.handle('paths', () => ({
   log: path.join(app.getPath('userData'), 'vlc-log.txt'),
 }));
 ipcMain.handle('choose-folder', async (_e, title) => {
-  const r = await dialog.showOpenDialog(win, { title, properties: ['openDirectory', 'createDirectory'] });
+  const r = await dialog.showOpenDialog(win, { title, buttonLabel: mt('Select folder'), properties: ['openDirectory', 'createDirectory'] });
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('choose-file', async (_e, title, exts) => {
-  const r = await dialog.showOpenDialog(win, { title, properties: ['openFile'], filters: exts ? [{ name: title, extensions: exts }] : [] });
+  const r = await dialog.showOpenDialog(win, { title, buttonLabel: mt('Open'), properties: ['openFile'], filters: exts ? [{ name: title, extensions: exts }] : [] });
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('save-log-as', async () => {
-  const r = await dialog.showSaveDialog(win, { defaultPath: 'vlc-log.txt', filters: [{ name: 'Log', extensions: ['txt', 'log'] }] });
+  const r = await dialog.showSaveDialog(win, { title: mt('Save log'), buttonLabel: mt('Save'), defaultPath: 'vlc-log.txt', filters: [{ name: 'Log', extensions: ['txt', 'log'] }] });
   return r.canceled ? null : r.filePath;
 });
 ipcMain.handle('set-log', (_e, cfg) => { Object.assign(LOG, cfg); log('info', 'logging ' + (LOG.on ? 'enabled' : 'disabled')); });
@@ -356,7 +374,10 @@ ipcMain.handle('update-install', async (e, info) => {
   if (process.platform === 'darwin') shell.openPath(file); else shell.showItemInFolder(file);
   return { done: 'downloaded', file };
 });
-ipcMain.on('set-lang', (_e, l) => { LANG = String(l || 'en'); });
+ipcMain.on('set-lang', (_e, l) => {
+  LANG = String(l || 'en');
+  const p = winPrefs(); if (p.lang !== LANG) { p.lang = LANG; try { fs.writeFileSync(winPrefsFile(), JSON.stringify(p)); } catch {} }
+});
 ipcMain.on('win', (_e, act) => {
   if (!win) return;
   if (act === 'min') win.minimize();
@@ -384,7 +405,7 @@ ipcMain.handle('fit-window', (_e, { chromeW, chromeH, vw, vh }) => {
 const fontDir = () => { const d = path.join(app.getPath('userData'), 'fonts'); fs.mkdirSync(d, { recursive: true }); return d; };
 const inFontDir = f => { const d = fontDir(), p = path.resolve(d, path.basename(String(f || ''))); return p.startsWith(d + path.sep) ? p : null; };
 ipcMain.handle('add-fonts', async () => {
-  const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: [{ name: mt('Fonts'), extensions: ['ttf', 'otf', 'woff', 'woff2'] }] });
+  const r = await dialog.showOpenDialog(win, { title: mt('Add fonts'), buttonLabel: mt('Open'), properties: ['openFile', 'multiSelections'], filters: [{ name: mt('Fonts'), extensions: ['ttf', 'otf', 'woff', 'woff2'] }] });
   if (r.canceled) return [];
   return r.filePaths.map(src => {
     const name = path.parse(src).name;
