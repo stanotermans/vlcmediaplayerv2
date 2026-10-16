@@ -1,5 +1,5 @@
 // VLC Redesign (unofficial VLC-style media player) – Electron main process
-const { app, BrowserWindow, ipcMain, dialog, shell, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, net, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -26,6 +26,7 @@ const MT = {
   'Subtitles': { nl: 'Ondertitels', de: 'Untertitel', fr: 'Sous-titres', es: 'Subtítulos', it: 'Sottotitoli', pt: 'Legendas' },
   'Track': { nl: 'Spoor', de: 'Spur', fr: 'Piste', es: 'Pista', it: 'Traccia', pt: 'Faixa' },
   'Subtitle': { nl: 'Ondertitel', de: 'Untertitel', fr: 'Sous-titre', es: 'Subtítulo', it: 'Sottotitolo', pt: 'Legenda' },
+  'Fonts': { nl: 'Lettertypen', de: 'Schriftarten', fr: 'Polices', es: 'Fuentes', it: 'Caratteri', pt: 'Tipos de letra' },
 };
 const mt = k => (MT[k] && MT[k][LANG]) || k;
 let pendingPaths = [];
@@ -346,6 +347,40 @@ ipcMain.on('win', (_e, act) => {
   else if (act === 'max') win.isMaximized() ? win.unmaximize() : win.maximize();
   else if (act === 'close') win.close();
 });
+// Resize the window so the video area matches the video's aspect ratio (VLC-style).
+// chromeW/chromeH = window size minus the video area. Small videos are scaled up to 720 px wide;
+// the window is never larger than 70% of the screen it is on.
+ipcMain.handle('fit-window', (_e, { chromeW, chromeH, vw, vh }) => {
+  if (!win || win.isMaximized() || win.isFullScreen() || !(vw > 0 && vh > 0)) return false;
+  const b = win.getBounds(), wa = screen.getDisplayMatching(b).workArea;
+  const [minW, minH] = win.getMinimumSize();
+  const s = Math.min((wa.width * 0.7 - chromeW) / vw, (wa.height * 0.7 - chromeH) / vh, Math.max(1, 720 / vw));
+  if (!(s > 0)) return false;
+  const w = Math.max(minW, Math.round(chromeW + vw * s)), h = Math.max(minH, Math.round(chromeH + vh * s));
+  const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+  const x = Math.round(Math.min(Math.max(cx - w / 2, wa.x), wa.x + wa.width - w));
+  const y = Math.round(Math.min(Math.max(cy - h / 2, wa.y), wa.y + wa.height - h));
+  win.setBounds({ x, y, width: w, height: h }, process.platform === 'darwin');
+  return true;
+});
+
+/* ---------------- subtitle fonts added by the user (kept in userData/fonts) ---------------- */
+const fontDir = () => { const d = path.join(app.getPath('userData'), 'fonts'); fs.mkdirSync(d, { recursive: true }); return d; };
+const inFontDir = f => { const d = fontDir(), p = path.resolve(d, path.basename(String(f || ''))); return p.startsWith(d + path.sep) ? p : null; };
+ipcMain.handle('add-fonts', async () => {
+  const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: [{ name: mt('Fonts'), extensions: ['ttf', 'otf', 'woff', 'woff2'] }] });
+  if (r.canceled) return [];
+  return r.filePaths.map(src => {
+    const name = path.parse(src).name;
+    let file = path.basename(src), n = 1;
+    while (fs.existsSync(path.join(fontDir(), file))) file = `${name}-${n++}${path.extname(src)}`;
+    fs.copyFileSync(src, path.join(fontDir(), file));
+    return { name, file };
+  });
+});
+ipcMain.handle('read-font', (_e, file) => { const p = inFontDir(file); return p && fs.existsSync(p) ? fs.readFileSync(p) : null; });
+ipcMain.handle('remove-font', (_e, file) => { const p = inFontDir(file); if (p) try { fs.unlinkSync(p); } catch {} return true; });
+
 ipcMain.on('ready', () => { if (pendingPaths.length) { win.webContents.send('open-paths', expand(pendingPaths)); pendingPaths = []; } });
 
 /* ---------------- window ---------------- */

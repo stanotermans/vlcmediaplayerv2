@@ -1,7 +1,7 @@
 {
   "name": "vlc-redesign",
   "productName": "VLC Redesign",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "VLC Redesign – unofficial fan-made media player (not affiliated with VideoLAN)",
   "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
   "main": "main.js",

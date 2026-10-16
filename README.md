@@ -81,7 +81,9 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Onboarding** on first launch: choose your language, pick a media folder, choose a theme and accent color (with live preview), and learn the key shortcuts.
 - **Library** with videos, music, network streams, playlists and recently played. Browse folders with breadcrumbs (Videos ▸ Shows ▸ The Wand ▸ S01), "continue watching", and watched items dimmed.
 - **Player** with a timeline preview (hover the seek bar to see that moment), mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.
+- **Made for watching:** while a video plays, the sidebar tucks away so the video gets the full width, and the window resizes to the video's shape (up to 70% of the screen, like VLC). Both can be turned off in *Settings → Interface*.
 - **Subtitles:** embedded and external `.srt`/`.ass`/`.vtt` files load automatically. You can set the delay, speed, duration, font, color, outline and background.
+- **Subtitle fonts:** pick any font installed on your computer, or add your own `.ttf`/`.otf`/`.woff` files in *Settings → Subtitles*.
 - **Audio:** multiple audio tracks, a 10-band equalizer with 18 presets, compressor, spatial audio (reverb), stereo widener and volume boost up to 200%.
 - **Video:** brightness, contrast, saturation, hue, gamma, sharpen, film grain, negative, posterize, grayscale, sepia, pixel cropping, rotate, zoom and mirror.
 - **Themes:** light, dark or system, with 9 accent colors.
@@ -144,9 +146,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.5.2"
-git tag v1.5.2
-git push origin v1.5.2
+# first set the version in app/package.json, e.g. "version": "1.6.0"
+git tag v1.6.0
+git push origin v1.6.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

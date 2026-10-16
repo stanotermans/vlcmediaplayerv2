@@ -6,7 +6,7 @@ const DEFAULTS = {
   onboarded: false, language: '', theme: 'dark', accent: '#f28c1b',
   confirmDialogs: true, autoUpdate: true, lastUpdateCheck: 0, skipVersion: '', devMode: false, logOn: false, logFile: '', logLevel: 'error',
   // interface
-  navExpanded: false, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,
+  navExpanded: false, autoHideSide: true, fitWindow: true, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,
   // privacy
   rememberRecent: true, resume: true,
   // playback
@@ -22,7 +22,7 @@ const DEFAULTS = {
   widenOn: false, widen: { delay: 20, feedback: 0.2, crossfeed: 0.3, dry: 0.8 },
   gain: 100,
   // subtitles
-  subAuto: true, subLang: '', subFont: 'Segoe UI', subSize: 100, subColor: '#ffffff', subOutline: '#0c0c0c', subBg: 60,
+  subAuto: true, subLang: '', customFonts: [], subFont: 'Segoe UI', subSize: 100, subColor: '#ffffff', subOutline: '#0c0c0c', subBg: 60,
   // library
   mediaFolders: [],
   // network

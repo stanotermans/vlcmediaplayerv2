@@ -458,3 +458,16 @@ I18N.add('it', {
  "You can change this later in Settings.": "Puoi cambiarlo in seguito nelle Impostazioni.",
  "You can enter multiple links, one per line.": "Puoi inserire più link, uno per riga."
 });
+
+// v1.6: sidebar while playing, window fit, subtitle fonts
+I18N.add('it', {
+ "Hide sidebar while a video plays": "Nascondi la barra laterale durante la riproduzione di un video",
+ "Gives the video the full width. The sidebar button (Q) brings it back.": "Dà al video tutta la larghezza. Il pulsante della barra laterale (Q) la fa ricomparire.",
+ "Resize window to the video": "Adatta la finestra al video",
+ "Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Adatta la finestra alla forma del video quando ne parte uno nuovo, fino al 70% dello schermo.",
+ "Your own fonts, followed by every font installed on this computer.": "I tuoi caratteri, seguiti da tutti i caratteri installati su questo computer.",
+ "Your fonts": "I tuoi caratteri",
+ "Add font file…": "Aggiungi file di carattere…",
+ "Add .ttf, .otf or .woff files to use them for subtitles. They are copied into the app, so you can delete the originals.": "Aggiungi file .ttf, .otf o .woff per usarli nei sottotitoli. Vengono copiati nell’app, quindi puoi eliminare gli originali.",
+ "Not a valid font file: {name}": "File di carattere non valido: {name}"
+});

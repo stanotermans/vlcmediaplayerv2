@@ -285,8 +285,15 @@ function renderSide() {
 }
 
 let mode = 'browser';
-function showPlayer() { mode = 'player'; $('#player').classList.add('show'); $('#browser').style.visibility = 'hidden'; updateMini(); render && $('#navBack') && ($('#navBack').style.opacity = 1); }
-function showBrowser() { mode = 'browser'; $('#player').classList.remove('show'); $('#browser').style.visibility = ''; updateMini(); }
+function showPlayer() { mode = 'player'; $('#player').classList.add('show'); $('#browser').style.visibility = 'hidden'; updateMini(); updateFocus(); render && $('#navBack') && ($('#navBack').style.opacity = 1); }
+function showBrowser() { mode = 'browser'; $('#player').classList.remove('show'); $('#browser').style.visibility = ''; updateMini(); updateFocus(); }
+// While a video plays, the rail and library panel collapse so the video gets the full width (setting autoHideSide).
+// The sidebar button brings them back until the next video starts.
+let sideOverride = false;
+function updateFocus() {
+  const it = state.items[state.current];
+  document.body.classList.toggle('focus-video', !!(S.get('autoHideSide') && mode === 'player' && it && it.type === 'video' && !sideOverride));
+}
 function updateMini() { const cur = state.items[state.current]; $('#mini').classList.toggle('show', !!(mode === 'browser' && cur && S.get('miniPlayer'))); if (cur) $('#miniName').textContent = cur.name; }
 
 /* ---------- playback engine: direct or ffmpeg-transcoded ---------- */
@@ -341,7 +348,7 @@ function setIdle(it) {
 async function playItem(idx, autoplay = true) {
   const it = state.items[idx]; if (!it) return;
   savePos();
-  state.current = idx; P.audio = 0; P.retried = false; P.forceReencode = false;
+  state.current = idx; P.audio = 0; P.retried = false; P.forceReencode = false; P.fit = true; sideOverride = false;
   showPlayer(); render(); setSpinner(true);
   video.removeAttribute('src'); video.load();
   clearSubs(); setIdle(it);
@@ -363,7 +370,17 @@ video.addEventListener('loadedmetadata', () => {
   if (!P.tx && isFinite(video.duration) && video.duration > 0) it.duration = video.duration;
   if (!P.tx && it.info && it.info.vcodec && !video.videoWidth) return fallbackToTx('Video codec not supported');
   setIdle(it);
+  if (P.fit && video.videoWidth) { P.fit = false; fitWindow(); }
 });
+// Resize the window to the video's aspect ratio once per new video (setting fitWindow); main caps it at 70% of the screen.
+function fitWindow() {
+  if (!S.get('fitWindow') || document.fullscreenElement || document.body.classList.contains('fullscreen')) return;
+  setTimeout(() => {                                          // after the sidebar collapse transition
+    const pl = $('#player'), vw = video.videoWidth, vh = video.videoHeight;
+    if (mode !== 'player' || !vw || !pl.clientWidth) return;
+    api.fitWindow({ chromeW: innerWidth - pl.clientWidth, chromeH: innerHeight - pl.clientHeight, vw, vh });
+  }, 260);
+}
 video.addEventListener('error', () => {
   if (!curItem() || !video.getAttribute('src')) return;
   if (!P.tx) return fallbackToTx('Format not supported');
@@ -772,7 +789,10 @@ $('#rail').addEventListener('click', e => {
   else navigate({ view: b.dataset.view });
 });
 $('#addBtn').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu(openMediaItems(), r.right + 4, r.top); };
-$('#sideToggle').onclick = () => { if (S.get('navExpanded')) return S.set('navExpanded', false); $('#side').classList.toggle('hidden'); };
+$('#sideToggle').onclick = () => {
+  if (document.body.classList.contains('focus-video')) { sideOverride = true; $('#side').classList.remove('hidden'); return updateFocus(); }
+  if (S.get('navExpanded')) return S.set('navExpanded', false); $('#side').classList.toggle('hidden');
+};
 $('#backBtn').onclick = $('#navBack').onclick = goBack;
 $('#navFwd').onclick = goFwd;
 $('#sideMore').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu([
@@ -810,6 +830,7 @@ $('#openUrl').onclick = () => doAct('url');
 
 function toggleQueue() {
   const side = $('#side');
+  if (document.body.classList.contains('focus-video')) { sideOverride = true; updateFocus(); side.classList.add('hidden'); }
   if (S.get('navExpanded')) S.set('navExpanded', false);
   if (state.sideMode === 'queue' && !side.classList.contains('hidden')) { state.sideMode = 'view'; side.classList.add('hidden'); }
   else { state.sideMode = 'queue'; side.classList.remove('hidden'); }
@@ -1035,6 +1056,7 @@ addEventListener('beforeunload', () => { savePos(); stopRecord(); });
 function applyLog() { api.setLog({ on: S.get('logOn'), file: S.get('logFile') || PATHS.log, level: S.get('logLevel') }); }
 S.on(path => {
   if (/^sub(Size|Color|Outline|Bg|Font)$/.test(path)) applySubStyle();
+  if (path === 'autoHideSide') updateFocus();
   if (/^(navExpanded|showThumbs|dimWatched|miniPlayer)$/.test(path)) render();
   if (path === 'showBadge') setBadge();
   if (path === 'rememberRecent' && !S.get('rememberRecent')) { state.recent = []; saveRecent(); render(); }

@@ -40,4 +40,8 @@ contextBridge.exposeInMainWorld('api', {
   ready: () => ipcRenderer.send('ready'),
   onOpenPaths: cb => ipcRenderer.on('open-paths', (_e, p) => cb(p)),
   onMaximized: cb => ipcRenderer.on('maximized', (_e, m) => cb(m)),
+  fitWindow: sizes => inv('fit-window', sizes),
+  addFonts: () => inv('add-fonts'),
+  readFont: file => inv('read-font', file),
+  removeFont: file => inv('remove-font', file),
 });

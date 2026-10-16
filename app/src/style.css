@@ -60,6 +60,9 @@ svg{display:block}
 .nav-expanded #side{width:0;overflow:hidden;border:0}
 #side{width:250px;background:var(--bg2);border-right:1px solid var(--edge);display:flex;flex-direction:column;transition:width .2s;min-width:0}
 #side.hidden{width:0;overflow:hidden;border:0}
+/* video playing: rail and library panel collapse (setting "Hide sidebar while a video plays") */
+.focus-video #rail{width:0;padding:0;margin:0;border:0;overflow:hidden}
+.focus-video #side{width:0;overflow:hidden;border:0}
 .side-head{display:flex;align-items:center;gap:6px;padding:12px 10px 4px}
 .side-head h3{font-size:15px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-sub{display:flex;align-items:center;padding:0 10px 10px 14px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);margin:0 6px}
@@ -421,6 +424,8 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
 @media (max-width:820px){
   #side{position:absolute;left:52px;top:0;bottom:0;z-index:6}
   #body{grid-template-columns:auto 0 1fr}
+  #main{grid-column:3}                                /* #side is out of the grid here, keep #main in the last column */
+  .fullscreen #main,body.hide-ui #main{grid-column:auto}
   #search{width:140px}
   #vol,.hide-sm{display:none}
   #settings{left:12px;width:auto}

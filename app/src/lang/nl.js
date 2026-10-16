@@ -458,3 +458,16 @@ I18N.add('nl', {
  "You can change this later in Settings.": "Je kunt dit later wijzigen in Instellingen.",
  "You can enter multiple links, one per line.": "Je kunt meerdere links invoeren, één per regel."
 });
+
+// v1.6: sidebar while playing, window fit, subtitle fonts
+I18N.add('nl', {
+ "Hide sidebar while a video plays": "Zijbalk verbergen tijdens het afspelen van video",
+ "Gives the video the full width. The sidebar button (Q) brings it back.": "Geeft de video de volle breedte. Met de zijbalkknop (Q) haal je hem terug.",
+ "Resize window to the video": "Venster aanpassen aan de video",
+ "Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Past het venster aan de vorm van de video aan als een nieuwe video start, tot 70% van het scherm.",
+ "Your own fonts, followed by every font installed on this computer.": "Je eigen lettertypen, gevolgd door alle lettertypen op deze computer.",
+ "Your fonts": "Je lettertypen",
+ "Add font file…": "Lettertypebestand toevoegen…",
+ "Add .ttf, .otf or .woff files to use them for subtitles. They are copied into the app, so you can delete the originals.": "Voeg .ttf-, .otf- of .woff-bestanden toe om ze voor ondertitels te gebruiken. Ze worden naar de app gekopieerd, dus je kunt de originelen verwijderen.",
+ "Not a valid font file: {name}": "Geen geldig lettertypebestand: {name}"
+});

@@ -129,7 +129,7 @@ function quickPanel(App) {
         slider({ label: 'Subtitle speed', min: 0.5, max: 2, step: 0.001, binding: { get: () => App.sub.speed, set: v => App.sub.speed = v, path: '_subspeed' }, fmt: f3, box: true }),
         slider({ label: 'Duration factor', min: 0, max: 5, step: 0.05, binding: { get: () => App.sub.dur, set: v => App.sub.dur = v, path: '_subdur' }, fmt: v => f3(v) + ' s', box: true })),
       sec('Appearance',
-        row('Font', select(FONTS, 'subFont')),
+        row('Font', fontSelect()),
         slider({ label: 'Size', min: 50, max: 250, binding: 'subSize', fmt: v => v + '%' }),
         row('Text color', color('subColor')), row('Outline color', color('subOutline')),
         slider({ label: 'Background', min: 0, max: 100, binding: 'subBg', fmt: v => v + '%' })),
@@ -156,7 +156,49 @@ function quickPanel(App) {
   show('playback');
   return { toggle: toggleTab, hide, refresh: () => panel.classList.contains('show') && show(current) };
 }
-const FONTS = [['Segoe UI', 'Segoe UI'], ['Inter', 'Inter'], ['Arial', 'Arial'], ['Verdana', 'Verdana'], ['Tahoma', 'Tahoma'], ['Georgia', 'Georgia'], ['Trebuchet MS', 'Trebuchet MS'], ['Consolas', 'Consolas'], ['Comic Sans MS', 'Comic Sans MS']];
+/* ---------- subtitle fonts: your own font files, a few defaults and every font installed on the system ---------- */
+const FONTS = ['Segoe UI', 'Inter', 'Arial', 'Verdana', 'Tahoma', 'Georgia', 'Trebuchet MS', 'Consolas', 'Comic Sans MS'];
+let systemFonts = [];
+function loadSystemFonts() {
+  return loadSystemFonts.p || (loadSystemFonts.p = (async () => {
+    try { if (window.queryLocalFonts) systemFonts = [...new Set((await queryLocalFonts()).map(f => f.family))].sort((a, b) => a.localeCompare(b)); } catch {}
+  })());
+}
+function fontOptions() {
+  const seen = new Set(), out = [];
+  const add = n => { if (n && !seen.has(n)) { seen.add(n); out.push([n, n]); } };
+  S.get('customFonts').forEach(f => add(f.name)); FONTS.forEach(add); systemFonts.forEach(add); add(S.get('subFont'));
+  return out;
+}
+function fontSelect() { const s = select(fontOptions, 'subFont'); loadSystemFonts().then(() => s.isConnected && s.refresh()); return s; }
+// Font files the user added live in userData/fonts and are registered with the page at startup.
+async function loadCustomFont(f) {
+  try { const buf = await api.readFont(f.file); if (!buf) return false; const face = new FontFace(f.name, buf); await face.load(); document.fonts.add(face); return true; } catch { return false; }
+}
+S.get('customFonts').forEach(loadCustomFont);
+async function addFontFiles() {
+  const added = await api.addFonts(), ok = [];
+  for (const f of added) { if (await loadCustomFont(f)) ok.push(f); else { api.removeFont(f.file); window.App?.osd(t('Not a valid font file: {name}', { name: f.name })); } }
+  if (!ok.length) return;
+  S.set('customFonts', [...S.get('customFonts'), ...ok]);
+  S.set('subFont', ok[0].name);
+}
+function removeFontFile(f) {
+  S.set('customFonts', S.get('customFonts').filter(x => x.file !== f.file));
+  api.removeFont(f.file);
+  if (S.get('subFont') === f.name) S.set('subFont', 'Segoe UI');
+}
+function customFontList() {
+  const list = el('div.folderlist');
+  const draw = () => {
+    const fs = S.get('customFonts');
+    list.replaceChildren(...(fs.length ? fs.map(f => el('div.folderitem', {}, el('span', { html: icon('subtitle') }), el('span.fp', { title: f.file, style: { fontFamily: `"${f.name}"` } }, f.name),
+      el('button.ibtn', { type: 'button', title: t('Remove'), html: icon('trash'), onclick: () => removeFontFile(f) })))
+      : [el('p.note', {}, t('Add .ttf, .otf or .woff files to use them for subtitles. They are copied into the app, so you can delete the originals.'))]));
+  };
+  S.on(k => k === 'customFonts' && list.isConnected && draw()); draw();
+  return list;
+}
 function subPreset(k) {
   const P = { '': ['Segoe UI', 100, '#ffffff', '#0c0c0c', 60], big: ['Segoe UI', 150, '#ffe14d', '#000000', 0], cinema: ['Georgia', 115, '#f0f0f0', '#000000', 0], clean: ['Arial', 100, '#ffffff', '#000000', 0] }[k];
   if (!P) return;
@@ -199,6 +241,8 @@ function pages(App) {
     interface: () => [
       sec('Layout',
         row('Sidebar with labels', toggle('navExpanded')),
+        row('Hide sidebar while a video plays', toggle('autoHideSide'), { info: 'Gives the video the full width. The sidebar button (Q) brings it back.' }),
+        row('Resize window to the video', toggle('fitWindow'), { info: "Matches the window to the video's shape when a new video starts, up to 70% of the screen." }),
         row('Show mini player while browsing', toggle('miniPlayer')),
         row('Show preview when hovering the timeline', toggle('seekPreview')),
         row('Show thumbnails', toggle('showThumbs')),
@@ -255,11 +299,12 @@ function pages(App) {
         row('Load subtitles automatically', toggle('subAuto'), { info: 'Loads .srt/.ass files with the same name as the video.' }),
         row('Preferred language', textInput('subLang', 'e.g. en, nl'), { info: 'Embedded subtitles in this language are selected automatically.' })),
       sec('Appearance',
-        row('Font', select(FONTS, 'subFont')),
+        row('Font', fontSelect(), { info: 'Your own fonts, followed by every font installed on this computer.' }),
         slider({ label: 'Size', min: 50, max: 250, binding: 'subSize', fmt: v => v + '%' }),
         row('Text color', color('subColor')), row('Outline color', color('subOutline')),
         slider({ label: 'Background opacity', min: 0, max: 100, binding: 'subBg', fmt: v => v + '%' }),
         el('div.subpreview', {}, el('span', {}, t('Subtitle preview')))),
+      sec('Your fonts', customFontList(), el('div.btnrow', {}, button('Add font file…', addFontFiles, 'primary'))),
     ],
     library: () => {
       const list = el('div.folderlist');
