@@ -180,12 +180,25 @@
         "mimeType": "audio/ac3"
       },
       {
-        "ext": [
-          "mid",
-          "midi",
-          "kar",
-          "rmi"
-        ],
+        "ext": "mid",
+        "name": "MIDI-audio",
+        "role": "Viewer",
+        "mimeType": "audio/midi"
+      },
+      {
+        "ext": "midi",
+        "name": "MIDI-audio",
+        "role": "Viewer",
+        "mimeType": "audio/midi"
+      },
+      {
+        "ext": "kar",
+        "name": "MIDI-audio",
+        "role": "Viewer",
+        "mimeType": "audio/midi"
+      },
+      {
+        "ext": "rmi",
         "name": "MIDI-audio",
         "role": "Viewer",
         "mimeType": "audio/midi"
