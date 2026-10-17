@@ -89,7 +89,9 @@ jobs:
         shell: bash
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
-        run: node -e "require('fs').writeFileSync('keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+        run: |
+          node -e "require('fs').writeFileSync('keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+          node -e "console.log('OpenSubtitles key present:', !!require('./keys.json').opensubtitles)"
 
       # Swap the large ffmpeg-static binary for the slim build
       - uses: actions/download-artifact@v4
