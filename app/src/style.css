@@ -597,3 +597,6 @@ body.rounded-win.snapped #app{border-radius:0;border:0}
 .bmtime{min-width:64px;text-align:left;color:var(--accent);font-variant-numeric:tabular-nums;padding:4px 0}
 span.bmname{flex:1;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 input.bmname{flex:1;min-width:0}
+#seekPreview.textonly canvas{display:none}
+#seekPreview.textonly{padding-top:12px}
+#seekPreview.textonly .pv-title{font-size:15px}

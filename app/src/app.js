@@ -609,6 +609,12 @@ function renderMarks() {
     ...chaptersOf(it).filter(c => c.start > 0.5 && c.start < d - 0.5).map(c => mk('chap', pct(c.start))),
     ...bookmarksOf(it).map(b => mk('bmark', pct(b.t), `${b.name} · ${fmt(b.t)}`)));
 }
+// The lyric line sung at a moment (synced .lrc), for the timeline preview of music (#41); '♪' between lines
+function lyricAt(at) {
+  const lines = LYR.hover; if (!lines) return '';
+  let i = -1; for (let lo = 0, hi = lines.length - 1; lo <= hi;) { const m = (lo + hi) >> 1; if (lines[m].t <= at + 0.05) { i = m; lo = m + 1; } else hi = m - 1; }
+  return i < 0 ? '' : (lines[i].text || '♪');
+}
 // Preview label: long names scroll slowly back and forth instead of being cut off
 function setPvTitle(text) {
   const box = $('#seekPreview .pv-title'), span = box.firstChild;
@@ -661,7 +667,8 @@ function pvSeekNext() {
 }
 function preview(e, f) {
   const it = curItem(), d = curDur();
-  if (!S.get('seekPreview') || !it || !d || isAudio(it)) return hidePreview();   // music: only the time tooltip (#27)
+  // music has no picture (#27): a text-only card with the lyric line or chapter, otherwise just the time tooltip (#41)
+  if (!S.get('seekPreview') || !it || !d || (isAudio(it) && !LYR.hover && !markTimes(it).length)) return hidePreview();
   clearTimeout(pvHideT); pvHideT = null;
   pvLast = { x: e.clientX, f };
   if (!pvBox.classList.contains('show')) {                    // wait until the pointer rests briefly before showing
@@ -707,9 +714,11 @@ function showPreview() {
   const x = Math.min(innerWidth - half - 8, Math.max(half + 8, cx));   // keep the card inside the window
   pvBox.style.left = (x - r.left) + 'px';
   pvTime.textContent = fmt(at);
-  const label = markLabel(it, at);                            // chapter or bookmark name above the picture (#40)
+  pvBox.classList.toggle('textonly', isAudio(it));
+  const label = (isAudio(it) && lyricAt(at)) || markLabel(it, at);   // lyric line, or chapter / bookmark name (#40, #41)
   if (label !== (pvBox.dataset.label || '')) { pvBox.dataset.label = label; setPvTitle(label); }
-  if (isAudio(it) || it.remote) return pvStage();
+  if (isAudio(it)) return;
+  if (it.remote) return pvStage();
   // instant: nearest storyboard frame; then the exact frame once the pointer slows down
   const stepLen = Math.max(0.5, d / 300), step = Math.round(at / stepLen);
   if (step === pvStep) return;
@@ -882,7 +891,7 @@ function parseVTT(text) {
   }
   return cues;
 }
-function clearSubs() { SUB.tracks = []; SUB.active = -1; subSync.delay = 0; subSync.speed = 1; subSync.dur = 0; LYR.lines = null; renderLyrics(); }
+function clearSubs() { SUB.tracks = []; SUB.active = -1; subSync.delay = 0; subSync.speed = 1; subSync.dur = 0; LYR.lines = null; LYR.hover = null; renderLyrics(); }
 async function setupSubs(it) {
   if (it.info) it.info.subs.forEach(s => SUB.tracks.push({ label: s.label + (BITMAP.test(s.codec) ? ' (' + t('image-based, not supported') + ')' : ''), lang: s.lang, src: it.src, idx: s.i, bitmap: BITMAP.test(s.codec) }));
   if (!it.remote && (S.get('subAuto') || S.get('lrcAuto'))) {
@@ -926,6 +935,7 @@ const lrcCues = lrc => lrc.lines.map((l, i, a) => ({ s: l.t || 0, e: a[i + 1] ? 
 async function useLyricsFile(file, it = curItem()) {
   const txt = await api.lyrics(file); if (!txt || !it || curItem() !== it) return false;
   const lrc = parseLRC(txt); if (!lrc.lines.some(l => l.text)) return false;
+  if (lrc.synced) LYR.hover = lrc.lines;                      // for the timeline preview (#41), whatever view is used
   if (isAudio(it) && S.get('lyricsView')) { Object.assign(LYR, { lines: lrc.lines, synced: lrc.synced, hidden: false }); renderLyrics(); return true; }
   SUB.tracks.push({ label: baseName(file), src: file, idx: null, cues: lrcCues(lrc) });
   await selectSub(SUB.tracks.length - 1); return true;
