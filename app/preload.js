@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('api', {
   paths: () => inv('paths'),
   openFiles: () => inv('open-files'),
   openFolder: () => inv('open-folder'),
-  openSubtitle: () => inv('open-subtitle'),
+  openSubtitle: src => inv('open-subtitle', src),
   chooseFolder: title => inv('choose-folder', title),
   chooseFile: (title, exts) => inv('choose-file', title, exts),
   expand: paths => inv('expand', paths),

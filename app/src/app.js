@@ -767,7 +767,7 @@ async function selectSub(i) {
   if (!tr.cues) { osd('Loading subtitles…'); const txt = await api.subs(tr.src, tr.idx); tr.cues = txt ? parseVTT(txt) : []; }
   osd(tr.cues.length ? t('Subtitles: {name}', { name: tr.label }) : 'No subtitles found');
 }
-async function loadSubFile() { if (state.current < 0) return osd('Play something first'); const f = await api.openSubtitle(); if (f) addSubFile(f, true); }
+async function loadSubFile() { if (state.current < 0) return osd('Play something first'); const f = await api.openSubtitle(curItem() && curItem().src); if (f) addSubFile(f, true); }
 /* ---------- lyrics (.lrc) ---------- */
 // Music with a .lrc file gets a full-screen lyrics view that follows the song (setting lyricsView);
 // for videos, or with that setting off, the lyrics are shown as ordinary subtitles.

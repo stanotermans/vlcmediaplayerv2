@@ -292,8 +292,11 @@ ipcMain.handle('open-folder', async () => {
   const r = await dialog.showOpenDialog(win, { title: mt('Add media folder'), buttonLabel: mt('Select folder'), properties: ['openDirectory'] });
   return r.canceled ? [] : expand(r.filePaths);
 });
-ipcMain.handle('open-subtitle', async () => {
-  const r = await dialog.showOpenDialog(win, { title: mt('Open subtitle file'), buttonLabel: mt('Open'), properties: ['openFile'], filters: [{ name: mt('Subtitles'), extensions: ['srt', 'vtt', 'ass', 'ssa', 'lrc'] }] });
+// Starts in the folder of the playing file (subtitles usually sit next to the video); otherwise the system default.
+ipcMain.handle('open-subtitle', async (_e, src) => {
+  const dir = typeof src === 'string' && !/^[a-z][a-z0-9+.-]+:\/\//i.test(src) ? path.resolve(path.dirname(src)) : null;
+  const defaultPath = dir && fs.existsSync(dir) ? dir : undefined;
+  const r = await dialog.showOpenDialog(win, { title: mt('Open subtitle file'), buttonLabel: mt('Open'), defaultPath, properties: ['openFile'], filters: [{ name: mt('Subtitles'), extensions: ['srt', 'vtt', 'ass', 'ssa', 'lrc'] }] });
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('expand', (_e, paths) => expand(paths));

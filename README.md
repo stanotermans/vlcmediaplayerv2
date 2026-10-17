@@ -148,9 +148,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.9.0"
-git tag v1.9.0
-git push origin v1.9.0
+# first set the version in app/package.json, e.g. "version": "1.9.1"
+git tag v1.9.1
+git push origin v1.9.1
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
