@@ -142,7 +142,10 @@ async function importPlaylists(srcs) {
 const ALL_PL = { all: true, cover: null, get name() { return t('All media'); }, get srcs() { return sortItems(state.items).map(i => i.src); }, set srcs(v) {} };
 const plByKey = k => k === 'all' ? ALL_PL : state.playlists[+k];
 let running = 0; const waiting = [];
-function limit(fn) { return new Promise(res => { const go = async () => { running++; try { res(await fn()); } finally { running--; waiting.length && waiting.shift()(); } }; running < 2 ? go() : waiting.push(go); }); }
+function limit(fn, owner) { return new Promise(res => { const go = async () => { running++; try { res(await fn()); } finally { running--; waiting.length && waiting.shift().go(); } }; running < 2 ? go() : waiting.push({ go, owner }); }); }
+// The file you want to play now skips the line: a file opened from Explorer at startup would otherwise wait until
+// the whole library has been read again (#36).
+function hurry(it) { const i = waiting.findIndex(j => j.owner === it); if (i >= 0) waiting.splice(i, 1)[0].go(); }
 function enrich(it) {
   return limit(async () => {
     const info = await api.probe(it.src);
@@ -152,7 +155,7 @@ function enrich(it) {
       if (S.get('thumbs') && (info.vcodec || info.cover)) it.thumb = await api.thumb(it.src, info.vcodec ? Math.min(info.duration * 0.2, 120) : 0);
     } else if (!it.remote) return dropUnplayable(it);
     updateCard(it); renderLater();
-  });
+  }, it);
 }
 // ffmpeg could not open it (not media, or an unsupported/encrypted format): take it out of the library again.
 // Files you opened yourself get a message; files found while scanning a folder disappear quietly.
@@ -443,7 +446,7 @@ async function playItem(idx, autoplay = true) {
   showPlayer(); render(); setSpinner(true);
   video.removeAttribute('src'); video.load();
   clearSubs(); setIdle(it);
-  await it.ready;
+  hurry(it); await it.ready;
   if (curItem() !== it) return;
   P.tx = needsTx(it);
   const resumeAt = S.get('resume') && positions[it.src] && positions[it.src] < (it.duration || 1e9) - 5 ? positions[it.src] : 0;
