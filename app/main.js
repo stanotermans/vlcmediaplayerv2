@@ -1,5 +1,5 @@
 // VLC Redesign (unofficial VLC-style media player) – Electron main process
-const { app, BrowserWindow, ipcMain, dialog, shell, net, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, net, screen, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -312,6 +312,90 @@ ipcMain.handle('frame', async (_e, src, at, w) => {
 ipcMain.handle('thumb',(_e, src, at) => thumbnail(src, at));
 ipcMain.handle('subs', (_e, src, idx) => subtitles(src, idx));
 ipcMain.handle('read-playlist', (_e, file) => readPlaylist(file));
+/* ---------------- online subtitles (OpenSubtitles.com REST API) ---------------- */
+// The app's API key is written to keys.json by the release workflow from a GitHub secret (never committed);
+// for development it can come from the OPENSUBTITLES_API_KEY environment variable.
+const OS_KEY = (() => { if (process.env.OPENSUBTITLES_API_KEY) return process.env.OPENSUBTITLES_API_KEY.trim(); try { return (require('./keys.json').opensubtitles || '').trim(); } catch { return ''; } })();
+const OS = { base: 'https://api.opensubtitles.com/api/v1', token: '', user: null };
+const osFile = () => path.join(app.getPath('userData'), 'opensubtitles.json');
+// Only the session token is kept (never the password), encrypted with the OS keychain when available.
+function osLoad() {
+  try {
+    const j = JSON.parse(fs.readFileSync(osFile(), 'utf8'));
+    const tok = j.enc && safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(Buffer.from(j.enc, 'base64')) : j.token;
+    Object.assign(OS, { token: tok || '', user: j.user || null, base: j.base || OS.base });
+  } catch {}
+}
+function osSave() {
+  const j = { user: OS.user, base: OS.base };
+  if (OS.token) { if (safeStorage.isEncryptionAvailable()) j.enc = safeStorage.encryptString(OS.token).toString('base64'); else j.token = OS.token; }
+  try { fs.writeFileSync(osFile(), JSON.stringify(j)); } catch {}
+}
+async function osApi(method, route, body) {
+  if (!OS_KEY) throw new Error('nokey');
+  const headers = { 'Api-Key': OS_KEY, 'User-Agent': `VLC Redesign v${app.getVersion()}`, Accept: 'application/json' };
+  if (body) headers['Content-Type'] = 'application/json';
+  if (OS.token && route !== '/login') headers.Authorization = 'Bearer ' + OS.token;
+  const r = await net.fetch(OS.base + route, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  let j = null; try { j = await r.json(); } catch {}
+  if (!r.ok) { const e = new Error((j && (j.message || j.errors && j.errors.join(', '))) || 'HTTP ' + r.status); e.status = r.status; e.data = j; throw e; }
+  return j;
+}
+// OpenSubtitles file hash: size + 64-bit sums of the first and last 64 KB (finds subtitles synced to this exact file).
+function osHash(file) {
+  try {
+    const size = fs.statSync(file).size, chunk = 65536; if (size < chunk) return null;
+    const fd = fs.openSync(file, 'r'), buf = Buffer.alloc(chunk * 2);
+    fs.readSync(fd, buf, 0, chunk, 0); fs.readSync(fd, buf, chunk, chunk, size - chunk); fs.closeSync(fd);
+    let h = BigInt(size); for (let i = 0; i < buf.length; i += 8) h = (h + buf.readBigUInt64LE(i)) & 0xffffffffffffffffn;
+    return { hash: h.toString(16).padStart(16, '0'), size };
+  } catch { return null; }
+}
+const osErr = e => ({ error: e.message === 'nokey' ? 'nokey' : e.status === 401 ? 'auth' : e.status === 406 ? 'limit' : e.status === 429 ? 'busy' : 'network', message: e.message, reset: e.data && (e.data.reset_time_utc || e.data.reset_time) });
+ipcMain.handle('os-status', () => ({ available: !!OS_KEY, user: OS.token ? OS.user : null }));
+ipcMain.handle('os-search', async (_e, { query, langs, src }) => {
+  try {
+    const p = new URLSearchParams();
+    const local = src && !/^[a-z][a-z0-9+.-]+:\/\//i.test(src) ? osHash(src) : null;
+    if (local) p.set('moviehash', local.hash);
+    if (query) p.set('query', String(query).slice(0, 200));
+    if (langs) p.set('languages', String(langs).toLowerCase().split(/[,\s]+/).filter(Boolean).sort().join(','));
+    p.set('order_by', 'download_count');
+    const r = await osApi('GET', '/subtitles?' + p.toString());
+    return { results: (r.data || []).filter(d => d.attributes && d.attributes.files && d.attributes.files.length).slice(0, 60).map(d => {
+      const a = d.attributes, f = a.files[0];
+      return { fileId: f.file_id, name: a.release || f.file_name || '', file: f.file_name || '', lang: a.language || '', downloads: a.download_count || 0,
+        hi: !!a.hearing_impaired, match: !!a.moviehash_match, title: (a.feature_details && (a.feature_details.movie_name || a.feature_details.title)) || '', year: a.feature_details && a.feature_details.year };
+    }) };
+  } catch (e) { return osErr(e); }
+});
+ipcMain.handle('os-download', async (_e, { fileId, src, lang }) => {
+  try {
+    const r = await osApi('POST', '/download', { file_id: +fileId });
+    if (!r || !r.link) return { error: 'network', message: r && r.message };
+    const res = await net.fetch(r.link); if (!res.ok) return { error: 'network', message: 'HTTP ' + res.status };
+    const data = Buffer.from(await res.arrayBuffer());
+    const ext = (/\.(srt|vtt|ass|ssa|sub)$/i.exec(r.file_name || '') || [, 'srt'])[1].toLowerCase();
+    const base = src && !/^[a-z][a-z0-9+.-]+:\/\//i.test(src) ? path.parse(src) : null;
+    const name = `${base ? base.name : 'subtitle'}.${(lang || 'xx').toLowerCase()}.${ext}`;
+    // next to the video when possible (picked up automatically next time), otherwise in the app's data folder
+    const targets = [base && base.dir, path.join(app.getPath('userData'), 'subtitles')].filter(Boolean);
+    for (const dir of targets) {
+      try { fs.mkdirSync(dir, { recursive: true }); let out = path.join(dir, name), n = 1; while (fs.existsSync(out)) out = path.join(dir, name.replace(/(\.[^.]+)$/, `-${n++}$1`)); fs.writeFileSync(out, data); return { file: out, remaining: r.remaining, reset: r.reset_time_utc || r.reset_time }; } catch {}
+    }
+    return { error: 'write' };
+  } catch (e) { return osErr(e); }
+});
+ipcMain.handle('os-login', async (_e, { username, password }) => {
+  try {
+    const r = await osApi('POST', '/login', { username, password });
+    OS.token = r.token || ''; OS.user = r.user ? { name: r.user.username || username, allowed: r.user.allowed_downloads, vip: !!r.user.vip } : { name: username };
+    if (r.base_url) OS.base = 'https://' + String(r.base_url).replace(/^https?:\/\//, '').replace(/\/+$/, '') + '/api/v1';
+    osSave(); return { user: OS.user };
+  } catch (e) { return osErr(e); }
+});
+ipcMain.handle('os-logout', async () => { try { if (OS.token) await osApi('DELETE', '/logout'); } catch {} Object.assign(OS, { token: '', user: null, base: 'https://api.opensubtitles.com/api/v1' }); try { fs.unlinkSync(osFile()); } catch {} return true; });
+
 ipcMain.handle('open-playlist', async () => {
   const r = await dialog.showOpenDialog(win, { title: mt('Import playlist'), buttonLabel: mt('Open'), properties: ['openFile', 'multiSelections'], filters: [{ name: mt('Playlists'), extensions: ['m3u', 'm3u8', 'xspf', 'pls'] }] });
   return r.canceled ? [] : r.filePaths;
@@ -514,6 +598,7 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  osLoad();
   pendingPaths = argPaths(process.argv);
   await startServer();
   createWindow();

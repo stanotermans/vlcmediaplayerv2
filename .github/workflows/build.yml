@@ -84,6 +84,13 @@ jobs:
 
       - run: npm ci
 
+      # API keys from repository secrets, packaged with the app but never committed (app/keys.json is git-ignored)
+      - name: API keys
+        shell: bash
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+        run: node -e "require('fs').writeFileSync('keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+
       # Swap the large ffmpeg-static binary for the slim build
       - uses: actions/download-artifact@v4
         with:

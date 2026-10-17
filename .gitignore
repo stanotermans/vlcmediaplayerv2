@@ -3,3 +3,5 @@ app/dist/
 *.log
 .DS_Store
 Thumbs.db
+# API keys written by the release workflow
+app/keys.json

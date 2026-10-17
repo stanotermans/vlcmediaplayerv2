@@ -538,3 +538,39 @@ I18N.add('pt', {
  "Press Y or use the button in the corner of the player to switch between the cover and the lyrics.": "Prima Y ou use o botão no canto do leitor para alternar entre a capa e a letra.",
  "Show cover": "Mostrar capa"
 });
+
+// v1.10: themes, start page, online subtitles
+I18N.add('pt', {
+ "Black is pure black (AMOLED): easier on the eyes in the dark and saves battery on OLED screens.": "Preto é preto puro (AMOLED): mais confortável no escuro e poupa bateria em ecrãs OLED.",
+ "Start page": "Página inicial",
+ "The library page the app opens on.": "A página da biblioteca com que a aplicação abre.",
+ "Library: home / videos / music / network / playlists / recent": "Biblioteca: início / vídeos / música / rede / listas / recentes",
+ "Online subtitle search is not available in this build.": "A pesquisa de legendas online não está disponível nesta versão.",
+ "OpenSubtitles did not accept the login. Check your username and password.": "O OpenSubtitles não aceitou o início de sessão. Verifique o utilizador e a palavra-passe.",
+ "Download limit reached for today. Log in with an OpenSubtitles account for more downloads.": "Limite de transferências atingido por hoje. Inicie sessão com uma conta OpenSubtitles para ter mais.",
+ "OpenSubtitles is busy right now. Try again in a moment.": "O OpenSubtitles está ocupado. Tente de novo daqui a pouco.",
+ "Could not reach OpenSubtitles. Check your internet connection.": "Não foi possível contactar o OpenSubtitles. Verifique a ligação à internet.",
+ "Could not save the subtitle file.": "Não foi possível guardar o ficheiro de legendas.",
+ "Title, e.g. The Show S01E05": "Título, p. ex. The Show S01E05",
+ "Logged in to OpenSubtitles as {name}.": "Sessão iniciada no OpenSubtitles como {name}.",
+ "Without an account OpenSubtitles allows 5 downloads per day; log in under Settings → Subtitles for 20 per day.": "Sem conta, o OpenSubtitles permite 5 transferências por dia; inicie sessão em Definições → Legendas para 20 por dia.",
+ "Searching…": "A pesquisar…",
+ "{n} subtitles found": "{n} legendas encontradas",
+ "No subtitles found. Try a shorter title or another language.": "Nenhuma legenda encontrada. Experimente um título mais curto ou outro idioma.",
+ "Download": "Transferir",
+ "Downloading…": "A transferir…",
+ "Subtitle loaded · {n} downloads left today": "Legendas carregadas · restam {n} transferências hoje",
+ "{n} downloads": "{n} transferências",
+ "Fits this file": "Adequada a este ficheiro",
+ "Languages as two-letter codes, separated by commas.": "Idiomas em códigos de duas letras, separados por vírgulas.",
+ "Search subtitles online": "Pesquisar legendas online",
+ "Log out": "Terminar sessão",
+ "Username": "Utilizador",
+ "Password": "Palavra-passe",
+ "Logging in…": "A iniciar sessão…",
+ "Log in": "Iniciar sessão",
+ "Optional: log in with a free OpenSubtitles.com account for 20 instead of 5 downloads per day. Your password is not stored.": "Opcional: inicie sessão com uma conta gratuita do OpenSubtitles.com para 20 transferências por dia em vez de 5. A palavra-passe não é guardada.",
+ "Online subtitles (OpenSubtitles)": "Legendas online (OpenSubtitles)",
+ "Search online": "Pesquisar online",
+ "Search online…": "Pesquisar online…"
+});

@@ -538,3 +538,39 @@ I18N.add('fr', {
  "Press Y or use the button in the corner of the player to switch between the cover and the lyrics.": "Appuyez sur Y ou utilisez le bouton dans le coin du lecteur pour passer de la pochette aux paroles.",
  "Show cover": "Afficher la pochette"
 });
+
+// v1.10: themes, start page, online subtitles
+I18N.add('fr', {
+ "Black is pure black (AMOLED): easier on the eyes in the dark and saves battery on OLED screens.": "Noir, c’est du noir pur (AMOLED) : plus reposant dans le noir et plus économe sur les écrans OLED.",
+ "Start page": "Page de démarrage",
+ "The library page the app opens on.": "La page de la bibliothèque à l’ouverture de l’application.",
+ "Library: home / videos / music / network / playlists / recent": "Bibliothèque : accueil / vidéos / musique / réseau / playlists / récents",
+ "Online subtitle search is not available in this build.": "La recherche de sous-titres en ligne n’est pas disponible dans cette version.",
+ "OpenSubtitles did not accept the login. Check your username and password.": "OpenSubtitles n’a pas accepté la connexion. Vérifiez votre nom d’utilisateur et votre mot de passe.",
+ "Download limit reached for today. Log in with an OpenSubtitles account for more downloads.": "Limite de téléchargements atteinte pour aujourd’hui. Connectez-vous avec un compte OpenSubtitles pour en avoir plus.",
+ "OpenSubtitles is busy right now. Try again in a moment.": "OpenSubtitles est très sollicité. Réessayez dans un instant.",
+ "Could not reach OpenSubtitles. Check your internet connection.": "Impossible de joindre OpenSubtitles. Vérifiez votre connexion internet.",
+ "Could not save the subtitle file.": "Impossible d’enregistrer le fichier de sous-titres.",
+ "Title, e.g. The Show S01E05": "Titre, par ex. The Show S01E05",
+ "Logged in to OpenSubtitles as {name}.": "Connecté à OpenSubtitles en tant que {name}.",
+ "Without an account OpenSubtitles allows 5 downloads per day; log in under Settings → Subtitles for 20 per day.": "Sans compte, OpenSubtitles autorise 5 téléchargements par jour ; connectez-vous dans Paramètres → Sous-titres pour 20 par jour.",
+ "Searching…": "Recherche…",
+ "{n} subtitles found": "{n} sous-titres trouvés",
+ "No subtitles found. Try a shorter title or another language.": "Aucun sous-titre trouvé. Essayez un titre plus court ou une autre langue.",
+ "Download": "Télécharger",
+ "Downloading…": "Téléchargement…",
+ "Subtitle loaded · {n} downloads left today": "Sous-titres chargés · encore {n} téléchargements aujourd’hui",
+ "{n} downloads": "{n} téléchargements",
+ "Fits this file": "Convient à ce fichier",
+ "Languages as two-letter codes, separated by commas.": "Langues en codes à deux lettres, séparées par des virgules.",
+ "Search subtitles online": "Rechercher des sous-titres en ligne",
+ "Log out": "Se déconnecter",
+ "Username": "Nom d’utilisateur",
+ "Password": "Mot de passe",
+ "Logging in…": "Connexion…",
+ "Log in": "Se connecter",
+ "Optional: log in with a free OpenSubtitles.com account for 20 instead of 5 downloads per day. Your password is not stored.": "Facultatif : connectez-vous avec un compte OpenSubtitles.com gratuit pour 20 téléchargements par jour au lieu de 5. Votre mot de passe n’est pas enregistré.",
+ "Online subtitles (OpenSubtitles)": "Sous-titres en ligne (OpenSubtitles)",
+ "Search online": "Rechercher en ligne",
+ "Search online…": "Rechercher en ligne…"
+});

@@ -19,6 +19,12 @@
   --stage:#d9d8d6; --floor:#cfcecc; --shadow:0 16px 40px #0003;
   color-scheme:light;
 }
+/* AMOLED black (#28): pure black surfaces, same dark text colors */
+:root[data-theme="black"]{
+  --bg:#000; --bg2:#000; --panel:#000; --panel2:#111; --panel3:#181818; --line:#1c1c1c; --track:#161616;
+  --edge:#141414; --stage:#000; --floor:#070707; --shadow:0 16px 40px #000;
+  color-scheme:dark;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font:13px/1.4 "Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif;overflow:hidden;user-select:none}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -413,14 +419,15 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
 .ob-foot .ob-nav{position:static}
 
 /* ============ fullscreen / small ============ */
-.fullscreen #rail,.fullscreen #side{display:none}
-.fullscreen #app{grid-template-rows:1fr}
-.fullscreen #body{grid-template-columns:1fr}
-.fullscreen #titlebar,.fullscreen #controls{position:fixed;left:0;right:0;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
-.fullscreen #titlebar{top:0;transform:translateY(-100%);-webkit-app-region:no-drag}
-.fullscreen #controls{bottom:0;height:52px;transform:translateY(100%)}
-.fullscreen.fs-top #titlebar,.fullscreen.fs-bottom #controls{opacity:1;pointer-events:auto;transform:none}
-.fullscreen.hidecursor{cursor:none}
+/* fullscreen: only the player gets the hide-away title bar and controls; the library keeps its normal layout (#31) */
+.fullscreen.in-player #rail,.fullscreen.in-player #side{display:none}
+.fullscreen.in-player #app{grid-template-rows:1fr}
+.fullscreen.in-player #body{grid-template-columns:1fr}
+.fullscreen.in-player #titlebar,.fullscreen.in-player #controls{position:fixed;left:0;right:0;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.fullscreen.in-player #titlebar{top:0;transform:translateY(-100%);-webkit-app-region:no-drag}
+.fullscreen.in-player #controls{bottom:0;height:52px;transform:translateY(100%)}
+.fullscreen.in-player.fs-top #titlebar,.fullscreen.in-player.fs-bottom #controls{opacity:1;pointer-events:auto;transform:none}
+.fullscreen.in-player.hidecursor{cursor:none}
 @media (max-width:820px){
   #side{position:absolute;left:52px;top:0;bottom:0;z-index:6}
   #body{grid-template-columns:auto 0 1fr}
@@ -494,7 +501,8 @@ body.rounded-win.maxed #app,body.rounded-win.fullscreen #app{border-radius:0;bor
 #lyrics{position:absolute;inset:0;display:none;z-index:1;overflow:hidden;background:#121212;color:#fff}
 #player.lyrics-on #lyrics{display:block}
 #player.lyrics-on #idle,#player.lyrics-on .floor,#player.lyrics-on #subs{visibility:hidden}
-.lyr-bg{position:absolute;inset:-60px;background:center/cover;filter:blur(48px) brightness(.32) saturate(1.3)}
+.lyr-bg{position:absolute;inset:0;background:center/cover}
+.lyr-bg::after{content:'';position:absolute;inset:0;background:#000;opacity:.68}
 .lyr-scroll{position:absolute;inset:0;overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 16%,#000 84%,transparent)}
 .lyr-scroll.free{overflow:auto}
 .lyr-list{position:relative;padding:0 8%;text-align:center;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
@@ -534,16 +542,28 @@ body.rounded-win.maxed #app,body.rounded-win.fullscreen #app{border-radius:0;bor
 #player.audio-bg #audioBg{display:block}
 #player.audio-bg .floor{display:none}
 #audioBg .ab-art{position:absolute;inset:0;background:center/cover}
-#audioBg .ab-art.blur{inset:-60px;filter:blur(48px) saturate(1.3)}
+#audioBg .ab-art.blur{inset:0}
 #audioBg .ab-art.black{background:#000}
 #audioBg .ab-dim{position:absolute;inset:0;background:#000;opacity:var(--abdim,.65)}
 #player.audio-bg #lyrics{background:transparent}
 #player.audio-bg .lyr-bg{display:none}
 #idle .np-cover{width:min(calc(var(--cover,40) * 1cqmin),100cqw,100cqh);max-width:none;border-radius:min(8px,1.2cqmin)}
 /* square corners when snapped / tiled, like maximized */
-body.rounded-win.snapped #app{border-radius:0;border:0}
+body.rounded-win.snapped #app,body.rounded-win.snapped-size #app{border-radius:0;border:0}
 /* cover ⇄ lyrics switch */
 #lyrSwitch{position:absolute;top:12px;left:12px;z-index:3;display:none;align-items:center;gap:6px;padding:5px 10px 5px 8px;border-radius:14px;background:#0008;color:#ddd;font-size:12px;backdrop-filter:blur(6px)}
 #lyrSwitch.show{display:flex}
 #lyrSwitch:hover{background:#000b;color:#fff}
 #lyrSwitch .icon{width:15px;height:15px}
+
+/* online subtitle search */
+.osbar{display:flex;gap:8px;align-items:center}
+.osbar .txt.wide{flex:1}
+.osresults{display:flex;flex-direction:column;gap:2px;max-height:min(52vh,460px);overflow:auto;margin:4px 0}
+.osrow{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:6px}
+.osrow:hover{background:var(--panel2)}
+.osmain{flex:1;min-width:0}
+.osname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.osmeta{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.osbadge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--panel3);color:var(--text2)}
+.osbadge.ok{background:var(--accent-soft);color:var(--accent)}

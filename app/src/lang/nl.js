@@ -538,3 +538,39 @@ I18N.add('nl', {
  "Press Y or use the button in the corner of the player to switch between the cover and the lyrics.": "Druk op Y of gebruik de knop in de hoek van de speler om te wisselen tussen de hoes en de songtekst.",
  "Show cover": "Hoes tonen"
 });
+
+// v1.10: themes, start page, online subtitles
+I18N.add('nl', {
+ "Black is pure black (AMOLED): easier on the eyes in the dark and saves battery on OLED screens.": "Zwart is puur zwart (AMOLED): rustiger voor de ogen in het donker en zuiniger op OLED-schermen.",
+ "Start page": "Startpagina",
+ "The library page the app opens on.": "De bibliotheekpagina waarmee de app opent.",
+ "Library: home / videos / music / network / playlists / recent": "Bibliotheek: start / video’s / muziek / netwerk / afspeellijsten / recent",
+ "Online subtitle search is not available in this build.": "Online ondertitels zoeken is niet beschikbaar in deze versie.",
+ "OpenSubtitles did not accept the login. Check your username and password.": "OpenSubtitles accepteerde de login niet. Controleer je gebruikersnaam en wachtwoord.",
+ "Download limit reached for today. Log in with an OpenSubtitles account for more downloads.": "Downloadlimiet voor vandaag bereikt. Log in met een OpenSubtitles-account voor meer downloads.",
+ "OpenSubtitles is busy right now. Try again in a moment.": "OpenSubtitles is nu druk. Probeer het zo nog eens.",
+ "Could not reach OpenSubtitles. Check your internet connection.": "Kan OpenSubtitles niet bereiken. Controleer je internetverbinding.",
+ "Could not save the subtitle file.": "Kan het ondertitelbestand niet opslaan.",
+ "Title, e.g. The Show S01E05": "Titel, bijv. The Show S01E05",
+ "Logged in to OpenSubtitles as {name}.": "Ingelogd bij OpenSubtitles als {name}.",
+ "Without an account OpenSubtitles allows 5 downloads per day; log in under Settings → Subtitles for 20 per day.": "Zonder account staat OpenSubtitles 5 downloads per dag toe; log in onder Instellingen → Ondertitels voor 20 per dag.",
+ "Searching…": "Zoeken…",
+ "{n} subtitles found": "{n} ondertitels gevonden",
+ "No subtitles found. Try a shorter title or another language.": "Geen ondertitels gevonden. Probeer een kortere titel of een andere taal.",
+ "Download": "Downloaden",
+ "Downloading…": "Downloaden…",
+ "Subtitle loaded · {n} downloads left today": "Ondertitel geladen · nog {n} downloads vandaag",
+ "{n} downloads": "{n} downloads",
+ "Fits this file": "Past bij dit bestand",
+ "Languages as two-letter codes, separated by commas.": "Talen als tweeletterige codes, gescheiden door komma’s.",
+ "Search subtitles online": "Ondertitels online zoeken",
+ "Log out": "Uitloggen",
+ "Username": "Gebruikersnaam",
+ "Password": "Wachtwoord",
+ "Logging in…": "Inloggen…",
+ "Log in": "Inloggen",
+ "Optional: log in with a free OpenSubtitles.com account for 20 instead of 5 downloads per day. Your password is not stored.": "Optioneel: log in met een gratis OpenSubtitles.com-account voor 20 in plaats van 5 downloads per dag. Je wachtwoord wordt niet bewaard.",
+ "Online subtitles (OpenSubtitles)": "Online ondertitels (OpenSubtitles)",
+ "Search online": "Online zoeken",
+ "Search online…": "Online zoeken…"
+});

@@ -36,7 +36,7 @@ const saveWatched = () => store.set('watched', S.get('rememberRecent') ? [...wat
 
 /* ---------- state ---------- */
 const state = {
-  items: [], current: -1, view: 'videos',
+  items: [], current: -1, view: ['home', 'videos', 'music', 'network', 'playlists', 'recent'].includes(S.get('startView')) ? S.get('startView') : 'videos',
   playlists: store.get('playlists3', null) || store.get('playlists2', [{ name: 'Cool Songs', srcs: [] }, { name: 'Anime to Watch', srcs: [] }]),
   activePlaylist: null, recent: store.get('recent2', []),
   sort: 'name', sortDesc: false, list: store.get('listView', false), query: '', dir: { videos: null, music: null },
@@ -324,8 +324,8 @@ function renderSide() {
 }
 
 let mode = 'browser';
-function showPlayer() { mode = 'player'; $('#player').classList.add('show'); $('#browser').style.visibility = 'hidden'; updateMini(); updateFocus(); render && $('#navBack') && ($('#navBack').style.opacity = 1); }
-function showBrowser() { mode = 'browser'; $('#player').classList.remove('show'); $('#browser').style.visibility = ''; updateMini(); updateFocus(); }
+function showPlayer() { mode = 'player'; document.body.classList.add('in-player'); $('#player').classList.add('show'); $('#browser').style.visibility = 'hidden'; updateMini(); updateFocus(); render && $('#navBack') && ($('#navBack').style.opacity = 1); }
+function showBrowser() { mode = 'browser'; document.body.classList.remove('in-player'); $('#player').classList.remove('show'); $('#browser').style.visibility = ''; updateMini(); updateFocus(); }
 // While media plays (video or music), the rail and library panel collapse so the player gets the full width (setting autoHideSide).
 // The sidebar button brings them back until the next video starts.
 let sideOverride = false;
@@ -552,7 +552,7 @@ function pvSeekNext() {
 }
 function preview(e, f) {
   const it = curItem(), d = curDur();
-  if (!S.get('seekPreview') || !it || !d) return hidePreview();
+  if (!S.get('seekPreview') || !it || !d || isAudio(it)) return hidePreview();   // music: only the time tooltip (#27)
   clearTimeout(pvHideT); pvHideT = null;
   pvLast = { x: e.clientX, f };
   if (!pvBox.classList.contains('show')) {                    // wait until the pointer rests briefly before showing
@@ -666,6 +666,10 @@ $('#minBtn').onclick = () => api.win('min');
 $('#maxBtn').onclick = () => api.win('max');
 $('#closeBtn').onclick = () => { savePos(); stopRecord(); api.win('close'); };
 api.onSnapped(s => document.body.classList.toggle('snapped', s));
+// Wayland (e.g. GNOME) doesn't tell apps where their window is, so the position check above can't see tiling there.
+// A window as tall or as wide as the usable screen is snapped/tiled (or maximized): square corners too (#18).
+const sizeSnap = () => document.body.classList.toggle('snapped-size', outerHeight >= screen.availHeight - 4 || outerWidth >= screen.availWidth - 4);
+addEventListener('resize', sizeSnap); sizeSnap();
 api.onMaximized(m => { document.body.classList.toggle('maxed', m); $('#maxIcon').innerHTML = m ? '<rect x="8" y="5" width="11" height="11" rx="1"/><path d="M5 8v10a1 1 0 0 0 1 1h10"/>' : '<rect x="6" y="6" width="12" height="12" rx="1"/>'; });
 $('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('button')) api.win('max'); });
 function toggleFs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
@@ -697,7 +701,18 @@ function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); 
 
 /* ---------- per-frame: mini preview + subtitles ---------- */
 const mctx = $('#miniCanvas').getContext('2d');
-const miniArt = { src: null, img: null };
+const miniArt = { key: null, src: null, img: null, blur: null };   // the music mini player is only redrawn when this changes
+// A cover blurred once into a small image; scaled up it looks like a heavy blur but costs nothing per frame
+// (a live CSS/canvas blur had to be recomputed on every animation frame, e.g. while the sidebar slides).
+const blurCache = {};
+function blurredArt(art) {
+  if (blurCache[art]) return Promise.resolve(blurCache[art]);
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'); g.filter = 'blur(7px) saturate(1.3)'; g.drawImage(img, -16, -16, 128, 128); res(blurCache[art] = c.toDataURL('image/jpeg', 0.85)); };
+    img.onerror = () => res(null); img.src = art;
+  });
+}
 let lastSub = null;
 const SUB = { tracks: [], active: -1 };
 const LYR = { lines: null, synced: false, hidden: false, shown: false, idx: -2 };   // lyrics (.lrc), see below
@@ -707,17 +722,24 @@ const subSync = { delay: 0, speed: 1, dur: 0 };
     const c = mctx.canvas, r = Math.min(c.width / video.videoWidth, c.height / video.videoHeight), w = video.videoWidth * r, h = video.videoHeight * r;
     mctx.fillStyle = '#000'; mctx.fillRect(0, 0, c.width, c.height);
     try { mctx.filter = FX.filterString().replace(/url\([^)]*\)\s*/g, '') || 'none'; mctx.drawImage(video, (c.width - w) / 2, (c.height - h) / 2, w, h); mctx.filter = 'none'; } catch {}
-    $('#miniCanvasWrap .cat').style.display = 'none';
+    $('#miniCanvasWrap .cat').style.display = 'none'; miniArt.key = null;
   } else if (mode === 'browser') {
     const it = curItem(), art = it && isAudio(it) && (it.cover || it.thumb);
-    mctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--stage') || '#2a2928'; mctx.fillRect(0, 0, 320, 180);
-    if (art && miniArt.src !== art) { miniArt.src = art; miniArt.img = new Image(); miniArt.img.src = art; }
-    const img = art && miniArt.img && miniArt.img.complete && miniArt.img.naturalWidth ? miniArt.img : null;
-    if (img) {                                                // blurred cover behind, sharp square cover in the middle
-      mctx.filter = 'blur(14px) brightness(.45)'; mctx.drawImage(img, -20, -90, 360, 360); mctx.filter = 'none';
-      mctx.drawImage(img, 160 - 66, 90 - 66, 132, 132);
+    if (art && miniArt.src !== art) {
+      miniArt.src = art; miniArt.img = new Image(); miniArt.img.src = art; miniArt.blur = null;
+      blurredArt(art).then(b => { if (miniArt.src !== art || !b) return; const bi = new Image(); bi.onload = () => { miniArt.blur = bi; miniArt.key = null; }; bi.src = b; });
     }
-    $('#miniCanvasWrap .cat').style.display = img ? 'none' : '';
+    const img = art && miniArt.img && miniArt.img.complete && miniArt.img.naturalWidth ? miniArt.img : null;
+    const key = (img ? art : 'stage') + (miniArt.blur ? '+b' : '') + document.documentElement.dataset.theme;
+    if (key !== miniArt.key) {                               // draw once per change instead of every frame
+      miniArt.key = key;
+      mctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--stage') || '#2a2928'; mctx.fillRect(0, 0, 320, 180);
+      if (img) {                                              // blurred cover behind, sharp square cover in the middle
+        if (miniArt.blur) { mctx.globalAlpha = 0.55; mctx.drawImage(miniArt.blur, 0, -70, 320, 320); mctx.globalAlpha = 1; }
+        mctx.drawImage(img, 160 - 66, 90 - 66, 132, 132);
+      }
+      $('#miniCanvasWrap .cat').style.display = img ? 'none' : '';
+    }
   }
   const tr = SUB.tracks[SUB.active];
   let htmlSub = '';
@@ -801,7 +823,8 @@ function renderLyrics() {
   sw.classList.toggle('show', can); sw.innerHTML = can ? icon(on ? 'audio' : 'subtitle') + `<span>${esc(t(on ? 'Show cover' : 'Show lyrics'))}</span>` : '';
   if (!on) return;
   const box = $('#lyrics'), art = it.cover || it.thumb;
-  box.querySelector('.lyr-bg').style.backgroundImage = art ? `url('${art}')` : '';   // only used with the default stage background
+  const lb = box.querySelector('.lyr-bg'); lb.style.backgroundImage = '';           // only used with the default stage background
+  if (art) blurredArt(art).then(b => { if (b && curItem() === it) lb.style.backgroundImage = `url('${b}')`; });
   box.querySelector('.lyr-scroll').classList.toggle('free', !LYR.synced);
   const list = box.querySelector('.lyr-list');
   list.style.transform = '';
@@ -850,7 +873,8 @@ function renderAudioBg(it = curItem()) {
   const layer = $('#audioBg .ab-art'), art = it.cover || it.thumb;
   layer.className = 'ab-art ' + (bg === 'blur' && art ? 'blur' : bg === 'black' ? 'black' : 'gradient');
   layer.style.background = '';
-  layer.style.backgroundImage = bg === 'blur' && art ? `url('${art}')` : '';
+  layer.style.backgroundImage = '';
+  if (bg === 'blur' && art) blurredArt(art).then(b => { if (b && curItem() === it && S.get('audioBg') === 'blur') layer.style.backgroundImage = `url('${b}')`; });
   if (bg === 'black') return;
   if (bg === 'gradient' || !art) {
     layer.style.background = 'linear-gradient(135deg,#3a3a46,#121214)';
@@ -1088,6 +1112,7 @@ function playerMenu(x, y) {
       ...SUB.tracks.map((t, i) => ({ label: t.label, checked: SUB.active === i, disabled: t.bitmap, action: () => selectSub(i) })),
       { sep: true },
       { label: 'Add file…', icon: 'file', action: loadSubFile, disabled: !it },
+      { label: 'Search online…', icon: 'search', action: () => Panels.searchSubtitles(App), disabled: !it },
       ...(LYR.lines ? [{ label: 'Show lyrics', checked: !LYR.hidden, action: toggleLyrics }] : []),
       { label: 'Delay −0.1 s', kbd: 'G', action: () => nudgeSub(-0.1) },
       { label: 'Delay +0.1 s', kbd: 'H', action: () => nudgeSub(0.1) },
@@ -1176,6 +1201,8 @@ document.addEventListener('keydown', e => {
   const k = e.key, low = k.toLowerCase(), jump = S.get('jump');
   if (e.ctrlKey) {
     const zoom = d => { const v = d ? Math.min(150, Math.max(75, S.get('uiScale') + d)) : 100; S.set('uiScale', v); osd(t('Interface size {v}%', { v })); };
+    const VIEWS = ['home', 'videos', 'music', 'network', 'playlists', 'recent'];
+    if (/^[1-6]$/.test(k)) { e.preventDefault(); if (mode === 'player') showBrowser(); state.sideMode = 'view'; return navigate({ view: VIEWS[+k - 1], activePlaylist: null }); }
     const map = { '=': () => zoom(10), '+': () => zoom(10), '-': () => zoom(-10), '0': () => zoom(0), o: () => doAct('files'), f: () => doAct('folder'), n: () => doAct('url'), i: () => doAct('mediainfo'), p: () => Panels.openSettings(App), q: () => $('#closeBtn').click(), '\\': toggleHideUI };
     if (map[low]) { e.preventDefault(); map[low](); }
     return;
@@ -1283,13 +1310,13 @@ const App = {
   clearPositions: () => { for (const k in positions) delete positions[k]; store.set('pos', positions); watched = new Set(); saveWatched(); state.items.forEach(i => i.progress = 0); render(); App.osd('Playback positions cleared'); },
   audioTracks, audioTrack: () => P.audio, setAudioTrack,
   subTracks: () => [[-1, 'Off'], ...SUB.tracks.map((t, i) => [i, t.label])], subActive: () => SUB.active, selectSub, loadSubFile, sub: subSync,
-  reloadSource, showOnboarding, applyLog,
+  reloadSource, showOnboarding, applyLog, viewTitle, addSubFile, current: () => curItem(),
   update: { get: () => Upd, check: checkUpdates, install: installUpdate, label: updActionLabel, on: fn => Upd.fns.push(fn), off: fn => { const i = Upd.fns.indexOf(fn); if (i >= 0) Upd.fns.splice(i, 1); } },
 };
 function showOnboarding() {
   video.pause();
   Onboarding.show(App, { onDone: () => {
-    navigate({ view: 'videos' }, false);
+    navigate({ view: S.get('startView') || 'videos' }, false);
     if (pendingOpen) { const p = pendingOpen; pendingOpen = null; addSources(p, { play: true }); }
   } });
 }

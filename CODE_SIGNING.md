@@ -31,6 +31,8 @@ This program will not transfer any information to other networked systems unless
 
 Everything else only happens when you ask for it: downloading an update, playing a network stream you entered, or opening a link (GitHub, the website, the design video) in your browser.
 
+**Online subtitles:** only when you search for subtitles, the search text, the chosen languages and a fingerprint of the video file (the OpenSubtitles hash, which contains no personal data) are sent to [OpenSubtitles.com](https://www.opensubtitles.com). If you log in with an OpenSubtitles account, your username and password go only to OpenSubtitles; the app keeps just the session token, encrypted on your computer.
+
 ## Reporting
 
 If you find a signed file that does not match this repository, or have any other security concern, please follow the [security policy](SECURITY.md).

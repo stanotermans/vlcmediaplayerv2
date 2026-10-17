@@ -12,7 +12,7 @@ const SHORTCUTS = [
   ['Stop', ['S']], ['Mute', ['M']], ['Hide interface', ['Ctrl', '\\']], ['Slower / faster / normal', ['[', ']', '=']],
   ['Subtitle delay − / +', ['G', 'H']], ['Seek 3 seconds', ['SHIFT', '← →']], ['Jump to 0–90%', ['0 – 9']], ['Open files', ['Ctrl', 'O']],
   ['Open folder', ['Ctrl', 'F']], ['Open network stream', ['Ctrl', 'N']], ['Media information', ['Ctrl', 'I']], ['Settings', ['Ctrl', 'P']],
-  ['Show lyrics', ['Y']],   ['Interface size', ['Ctrl', '+ − 0']], ['Keyboard shortcuts', ['F1']], ['Quit VLC', ['Ctrl', 'Q']],
+  ['Show lyrics', ['Y']], ['Library: home / videos / music / network / playlists / recent', ['Ctrl', '1 – 6']],   ['Interface size', ['Ctrl', '+ − 0']], ['Keyboard shortcuts', ['F1']], ['Quit VLC', ['Ctrl', 'Q']],
 ];
 const keycaps = keys => el('span.keys', {}, ...keys.map((k, i) => [i && keys.length === 2 && !['SHIFT', 'Ctrl'].includes(keys[0]) ? el('span.kslash', {}, '/') : null, el('kbd.cap', {}, t(k))]));
 
@@ -122,7 +122,8 @@ function quickPanel(App) {
     subs: () => [sec('Defaults',
       row('Subtitle track', select(() => App.subTracks(), { get: () => App.subActive(), set: v => App.selectSub(+v), path: '_strack' })),
       row('Preferred language', textInput('subLang', 'e.g. en, nl')),
-      row('Load file', button('.srt / .ass / .vtt…', () => App.loadSubFile()))),
+      row('Load file', button('.srt / .ass / .vtt…', () => App.loadSubFile())),
+      row('Search online', button('OpenSubtitles…', () => { hide(); searchSubtitles(App); }))),
       sec('Synchronization',
         slider({ label: 'Subtitle delay', min: -10, max: 10, step: 0.05, binding: { get: () => App.sub.delay, set: v => App.sub.delay = v, path: '_subdelay' }, fmt: v => f3(v) + ' s', box: true, center: true }),
         el('div.scale', {}, el('span', {}, '−10 s'), el('span', {}, '0 s'), el('span', {}, '+10 s')),
@@ -225,10 +226,11 @@ function pages(App) {
     general: () => [
       sec('Appearance',
         row('Interface language', select(I18N.LANGS, { get: () => I18N.lang(), set: v => I18N.set(v), path: 'language' })),
-        row('Theme', segmented([['dark', 'Dark'], ['light', 'Light'], ['system', 'System']], 'theme')),
+        row('Theme', segmented([['dark', 'Dark'], ['black', 'Black'], ['light', 'Light'], ['system', 'System']], 'theme'), { info: 'Black is pure black (AMOLED): easier on the eyes in the dark and saves battery on OLED screens.' }),
         slider({ label: 'Interface size', min: 75, max: 150, step: 5, binding: 'uiScale', fmt: v => v + '%', ticks: 2 }),
         row('Accent color', swatches(S.ACCENTS, 'accent'))),
       sec('Startup',
+        row('Start page', select(() => ['home', 'videos', 'music', 'network', 'playlists', 'recent'].map(v => [v, App.viewTitle ? App.viewTitle(v) : v]), 'startView'), { info: 'The library page the app opens on.' }),
         row('Show confirmation and error dialogs', toggle('confirmDialogs'), { info: 'Ask for confirmation before deleting or clearing.' }),
         row('Check for updates automatically', toggle('autoUpdate')),
         row('Show welcome screen again', button('Start onboarding', () => { UI.$('.dlg-layer')?.querySelector('.dlg')?._close(null); App.showOnboarding(); }, 'ghost'))),
@@ -323,6 +325,7 @@ function pages(App) {
         row('Text color', color('subColor')), row('Outline color', color('subOutline')),
         slider({ label: 'Background opacity', min: 0, max: 100, binding: 'subBg', fmt: v => v + '%' }),
         el('div.subpreview', {}, el('span', {}, t('Subtitle preview')))),
+      sec('Online subtitles (OpenSubtitles)', osAccountBlock()),
       sec('Lyrics',
         row('Load lyrics (.lrc) automatically', toggle('lrcAuto'), { info: 'Loads a .lrc file with the same name as the song, also when subtitles are not loaded automatically.' }),
         row('Show lyrics full-screen for music', toggle('lyricsView'), { info: 'Shows the lyrics large, following the song. Off: lyrics appear as subtitles. For videos, .lrc files are always shown as subtitles.' })),
@@ -487,5 +490,80 @@ function shortcuts() {
   return dialog({ title: 'Keyboard shortcuts', width: 820, body: el('div.kbgrid', {}, col(SHORTCUTS.slice(0, half)), col(SHORTCUTS.slice(half))), buttons: [{ label: 'Close', primary: true, value: true }] });
 }
 
-window.Panels = { quickPanel, openSettings, openNetwork, newPlaylist, shortcuts, SHORTCUTS, keycaps };
+
+/* ---------- online subtitles (OpenSubtitles) ---------- */
+const OS_ERRORS = {
+  nokey: 'Online subtitle search is not available in this build.',
+  auth: 'OpenSubtitles did not accept the login. Check your username and password.',
+  limit: 'Download limit reached for today. Log in with an OpenSubtitles account for more downloads.',
+  busy: 'OpenSubtitles is busy right now. Try again in a moment.',
+  network: 'Could not reach OpenSubtitles. Check your internet connection.',
+  write: 'Could not save the subtitle file.',
+};
+const osError = r => t(OS_ERRORS[r.error] || OS_ERRORS.network);
+// "The.Show.S01E05.1080p.WEB-DL.x264-GRP.mkv" → "The Show S01E05"
+function subtitleQuery(name) {
+  let q = String(name || '').replace(/\.[a-z0-9]{2,4}$/i, '').replace(/[\[(][^\])]*[\])]/g, ' ').replace(/[._]+/g, ' ');
+  const cut = q.search(/\b(2160p|1080p|720p|480p|4k|uhd|web[ -]?dl|webrip|blu[ -]?ray|bdrip|brrip|hdtv|dvdrip|x26[45]|h ?26[45]|hevc|aac|ac3|ddp?5 ?1|proper|repack)\b/i);
+  if (cut > 0) q = q.slice(0, cut);
+  return q.replace(/\s+/g, ' ').trim();
+}
+async function searchSubtitles(App) {
+  const it = App.current && App.current();
+  if (!it) return App.osd('Play something first');
+  const st = await api.osStatus();
+  if (!st.available) return UI.alert ? UI.alert('Search subtitles online', t(OS_ERRORS.nokey)) : App.osd(OS_ERRORS.nokey);
+  const query = el('input.txt.wide', { value: subtitleQuery(it.name), placeholder: t('Title, e.g. The Show S01E05') });
+  const langs = el('input.txt', { value: S.get('subLang') || I18N.lang(), placeholder: 'en, nl', style: { width: '110px' } });
+  const status = el('p.hint'), list = el('div.osresults');
+  const quota = el('p.note', {}, st.user ? t('Logged in to OpenSubtitles as {name}.', { name: st.user.name }) : t('Without an account OpenSubtitles allows 5 downloads per day; log in under Settings → Subtitles for 20 per day.'));
+  let closeDlg = null;
+  const run = async () => {
+    status.textContent = t('Searching…'); list.replaceChildren();
+    const r = await api.osSearch({ query: query.value.trim(), langs: langs.value, src: it.src });
+    if (r.error) { status.textContent = osError(r); return; }
+    status.textContent = r.results.length ? t('{n} subtitles found', { n: r.results.length }) : t('No subtitles found. Try a shorter title or another language.');
+    list.replaceChildren(...r.results.map(s => {
+      const btn = button('Download', async () => {
+        btn.disabled = true; btn.textContent = t('Downloading…');
+        const d = await api.osDownload({ fileId: s.fileId, src: it.src, lang: s.lang });
+        if (d.error) { btn.disabled = false; btn.textContent = t('Download'); status.textContent = osError(d); return; }
+        if (S.get('subLang') !== langs.value.trim()) S.set('subLang', langs.value.trim());
+        closeDlg && closeDlg(null);
+        await App.addSubFile(d.file, true);
+        if (d.remaining != null) App.osd(t('Subtitle loaded · {n} downloads left today', { n: d.remaining }));
+      }, 'primary');
+      return el('div.osrow', {},
+        el('div.osmain', {}, el('div.osname', { title: s.file }, s.name || s.file),
+          el('div.osmeta', {}, [s.lang.toUpperCase(), s.title && (s.title + (s.year ? ` (${s.year})` : '')), t('{n} downloads', { n: s.downloads })].filter(Boolean).join(' · '),
+            s.match ? el('span.osbadge.ok', {}, t('Fits this file')) : null, s.hi ? el('span.osbadge', {}, 'HI') : null)),
+        btn);
+    }));
+  };
+  query.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  langs.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  const body = el('div.formcol', {},
+    el('div.osbar', {}, query, langs, button('Search', run, 'primary')),
+    el('p.hint', {}, t('Languages as two-letter codes, separated by commas.')), status, list, quota);
+  dialog({ title: 'Search subtitles online', body, width: 720, buttons: [{ label: 'Close', value: null }], onOpen: (_b, close) => { closeDlg = close; run(); } });
+}
+// Settings → Subtitles: optional OpenSubtitles login (more downloads per day). Only the session token is stored.
+function osAccountBlock() {
+  const box = el('div.formcol');
+  const draw = async () => {
+    const st = await api.osStatus();
+    if (!st.available) return box.replaceChildren(el('p.note', {}, t(OS_ERRORS.nokey)));
+    if (st.user) return box.replaceChildren(el('p.note', {}, t('Logged in to OpenSubtitles as {name}.', { name: st.user.name })),
+      el('div.btnrow', {}, button('Log out', async () => { await api.osLogout(); draw(); }, 'ghost')));
+    const user = el('input.txt', { placeholder: t('Username'), autocomplete: 'off' }), pass = el('input.txt', { type: 'password', placeholder: t('Password') });
+    const msg = el('p.hint');
+    const login = async () => { msg.textContent = t('Logging in…'); const r = await api.osLogin({ username: user.value.trim(), password: pass.value }); pass.value = ''; if (r.error) msg.textContent = osError(r); else draw(); };
+    pass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    box.replaceChildren(el('p.note', {}, t('Optional: log in with a free OpenSubtitles.com account for 20 instead of 5 downloads per day. Your password is not stored.')),
+      el('div.osbar', {}, user, pass, button('Log in', login, 'primary')), msg);
+  };
+  draw();
+  return box;
+}
+window.Panels = { quickPanel, openSettings, openNetwork, newPlaylist, shortcuts, SHORTCUTS, keycaps, searchSubtitles };
 })();
