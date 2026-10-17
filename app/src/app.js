@@ -39,13 +39,17 @@ const state = {
   items: [], current: -1, view: ['home', 'videos', 'music', 'network', 'playlists', 'recent'].includes(S.get('startView')) ? S.get('startView') : 'videos',
   playlists: store.get('playlists3', null) || store.get('playlists2', [{ name: 'Cool Songs', srcs: [] }, { name: 'Anime to Watch', srcs: [] }]),
   activePlaylist: null, recent: store.get('recent2', []),
-  sort: 'name', sortDesc: false, list: store.get('listView', false), query: '', dir: { videos: null, music: null },
+  sort: 'name', sortDesc: false, gridLimit: 240, sideLimit: 400, list: store.get('listView', false), query: '', dir: { videos: null, music: null },
   sideMode: 'view',
 };
 const history = { back: [], fwd: [] };
 let rec = null, quick = null;
 let uid = 0;
-const bySrc = src => state.items.find(i => i.src === src);
+// Lookups by path and position use maps rebuilt only when the item list changed (thousands of items stay fast).
+let lookup = { arr: null, len: -1, src: new Map(), idx: new Map() };
+function lookupFresh() { if (lookup.arr !== state.items || lookup.len !== state.items.length) lookup = { arr: state.items, len: state.items.length, src: new Map(state.items.map(i => [i.src, i])), idx: new Map(state.items.map((it, n) => [it, n])) }; return lookup; }
+const bySrc = src => lookupFresh().src.get(src);
+const idxOf = it => { const n = lookupFresh().idx.get(it); return n == null ? -1 : n; };
 const saveLibrary = () => store.set('library', S.get('rememberRecent') ? state.items.filter(i => i.manual).map(i => ({ src: i.src, added: i.added })) : []);
 const savePlaylists = () => store.set('playlists3', state.playlists);
 const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.recent.slice(0, 50) : []);
@@ -53,6 +57,8 @@ const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.re
 const isAudio = it => it.type === 'audio';
 const AUDIO_RE = /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
 const SUB_RE = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
+// TypeScript & co. share .ts with MPEG-TS video; never treat these as media (same rule as main.js)
+const NOT_MEDIA_RE = /\.d\.[cm]?ts$|[\\/]node_modules[\\/]|\.(spec|test|config|module|service|component|types?)\.ts$/i;
 const PLAYLIST_RE = /\.(m3u8?|xspf|pls)$/i;
 const SEP = /[\\/]/;
 const baseName = s => { try { return decodeURIComponent(s.split(SEP).pop().split('?')[0]) || s; } catch { return s; } };
@@ -66,7 +72,7 @@ const isWatched = it => watched.has(it.src);
 
 /* ---------- adding media ---------- */
 async function addSources(srcs, { play = true, silent = false, added, manual = true, extra = null } = {}) {
-  const imp = await importPlaylists(srcs); srcs = imp.srcs;
+  const imp = await importPlaylists(srcs.filter(s => !NOT_MEDIA_RE.test(s))); srcs = imp.srcs;
   const subs = srcs.filter(s => SUB_RE.test(s));
   const media = srcs.filter(s => !SUB_RE.test(s));
   const newOnes = []; let first = null;
@@ -78,15 +84,17 @@ async function addSources(srcs, { play = true, silent = false, added, manual = t
              progress: positions[src] || 0, added: (added && added[src]) || Date.now(), info: null, manual };
       it.ready = enrich(it);
       state.items.push(it); newOnes.push(it);
+      const L = lookupFresh(); L.src.set(src, it); L.idx.set(it, state.items.length - 1); L.len = state.items.length;   // keep the maps current without a rebuild
     } else if (manual && !it.manual) it.manual = !S.get('mediaFolders').some(f => under(src, f));
     if (extra) it.extra = extra;
     first = first || it;
   }
+  lookup.arr = null;
   if (newOnes.length) saveLibrary();
   renderSoon();
   if (subs.length && state.current >= 0) for (const s of subs) addSubFile(s, true);
   if (play && first && imp.queue) state.queueList = imp.queue.map(bySrc).filter(Boolean);
-  if (play && first) playItem(state.items.indexOf(first));
+  if (play && first) playItem(idxOf(first));
   else if (!silent && newOnes.length) osd(t('{n} item(s) added', { n: newOnes.length }));
   return newOnes;
 }
@@ -120,10 +128,13 @@ function enrich(it) {
       it.type = info.vcodec ? 'video' : 'audio';
       if (S.get('thumbs') && (info.vcodec || info.cover)) it.thumb = await api.thumb(it.src, info.vcodec ? Math.min(info.duration * 0.2, 120) : 0);
     }
-    renderSoon();
+    updateCard(it); renderLater();
   });
 }
 let rs; function renderSoon() { clearTimeout(rs); rs = setTimeout(render, 80); }
+// While a big folder is being read, redraw the whole page at most every 1.5 s; single tiles update right away.
+let rl; function renderLater() { if (!rl) rl = setTimeout(() => { rl = null; render(); }, 1500); }
+function updateCard(it) { const c = document.querySelector(`#grid .card[data-idx="${idxOf(it)}"]`); if (c) c.outerHTML = cardHTML(it); }
 
 /* media folders */
 async function scanFolders() {
@@ -137,7 +148,7 @@ async function scanFolders() {
   // drop folder items whose folder was removed or file vanished
   const cur = state.items[state.current];
   state.items = state.items.filter(it => it.manual || it.remote || it === cur || found.has(it.src));
-  state.current = cur ? state.items.indexOf(cur) : -1;
+  state.current = cur ? idxOf(cur) : -1;
   render();
 }
 let curItemRef = null;
@@ -201,7 +212,7 @@ function visibleItems() {
 function navigate(patch, push = true) {
   if (push) { history.back.push({ view: state.view, dir: { ...state.dir }, pl: state.activePlaylist }); history.fwd = []; }
   Object.assign(state, patch);
-  state.query = ''; $('#search').value = '';
+  state.query = ''; $('#search').value = ''; state.gridLimit = 240; state.sideLimit = 400;
   showBrowser(); render();
 }
 function goBack() { if (mode === 'player') return showBrowser(); const h = history.back.pop(); if (!h) return; history.fwd.push({ view: state.view, dir: { ...state.dir }, pl: state.activePlaylist }); state.view = h.view; state.dir = h.dir; state.activePlaylist = h.pl; render(); }
@@ -210,7 +221,7 @@ function goFwd() { const h = history.fwd.pop(); if (!h) return; history.back.pus
 /* ---------- rendering ---------- */
 const ICON_PLAY = icon('play'), ICON_AUDIO = '<svg class="icon" viewBox="0 0 24 24"><circle cx="8" cy="17" r="3"/><path d="M11 17V5l8 2"/></svg>', ICON_VIDEO = '<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/></svg>';
 function cardHTML(it) {
-  const idx = state.items.indexOf(it);
+  const idx = idxOf(it);
   const w = isWatched(it), pct = w ? 100 : it.duration ? Math.min(100, it.progress / it.duration * 100) : 0;
   const thumb = S.get('showThumbs') && it.thumb;
   return `<div class="card ${isAudio(it) ? 'audio' : ''} ${idx === state.current ? 'on' : ''} ${w && S.get('dimWatched') ? 'watched' : ''}" data-idx="${idx}" title="${esc(it.src)}">
@@ -231,6 +242,7 @@ function folderHTML(f) {
 const sectionHead = s => `<div style="grid-column:1/-1;font-size:15px;font-weight:600;color:var(--text);margin-top:4px">${esc(t(s))}</div>`;
 
 function render() {
+  lookup.arr = null;                                          // refresh the path/position maps once per redraw
   curItemRef = state.items[state.current] || null;
   const cur = curItemRef, v = state.view;
   $$('#rail [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === v));
@@ -278,7 +290,7 @@ function render() {
     const list = visibleItems();
     if (state.list && list.length) html += listHead();
     if (b && !state.query) html += b.folders.map(folderHTML).join('');
-    html += list.map(cardHTML).join('');
+    html += list.slice(0, state.gridLimit).map(cardHTML).join('');
     count = list.length + (b && !state.query ? b.folders.length : 0);
   }
   grid.innerHTML = html;
@@ -304,7 +316,7 @@ function renderSide() {
   if (state.sideMode === 'queue') {
     title = t('Queue');
     const q = queue(); n = q.length;
-    html = q.map(it => { const idx = state.items.indexOf(it); return `<div class="srow ${idx === state.current ? 'on' : ''}" data-idx="${idx}" title="${esc(it.src)}">${idx === state.current ? ICON_PLAY : (isAudio(it) ? ICON_AUDIO : ICON_VIDEO)}<span>${esc(it.name)}</span></div>`; }).join('');
+    html = q.map(it => { const idx = idxOf(it); return `<div class="srow ${idx === state.current ? 'on' : ''}" data-idx="${idx}" title="${esc(it.src)}">${idx === state.current ? ICON_PLAY : (isAudio(it) ? ICON_AUDIO : ICON_VIDEO)}<span>${esc(it.name)}</span></div>`; }).join('');
   } else if (v === 'playlists') {
     n = state.playlists.length;
     html = `<div class="srow muted" data-act="newpl">${icon('plus')}<span>${esc(t('Create playlist'))}</span></div>` +
@@ -315,7 +327,7 @@ function renderSide() {
     let entries = [];
     if ((v === 'videos' || v === 'music') && !state.query) { const b = browse(v); entries = b.folders.map(f => `<div class="srow" data-dir="${esc(f.path)}">${icon('folder')}<span>${esc(f.name)}</span></div>`); }
     const list = visibleItems(); n = list.length + entries.length;
-    html = entries.join('') + list.map(it => { const idx = state.items.indexOf(it); return `<div class="srow ${idx === state.current ? 'on' : ''}" data-idx="${idx}" title="${esc(it.src)}">${idx === state.current ? ICON_PLAY : (isAudio(it) ? ICON_AUDIO : ICON_VIDEO)}<span>${esc(it.name)}</span></div>`; }).join('');
+    html = entries.join('') + list.slice(0, state.sideLimit).map(it => { const idx = idxOf(it); return `<div class="srow ${idx === state.current ? 'on' : ''}" data-idx="${idx}" title="${esc(it.src)}">${idx === state.current ? ICON_PLAY : (isAudio(it) ? ICON_AUDIO : ICON_VIDEO)}<span>${esc(it.name)}</span></div>`; }).join('');
     if (!n) html = `<div class="srow muted" data-act="files">${icon('plus')}<span>${esc(t('Add media'))}</span></div>`;
   }
   $('#sideTitle').textContent = title;
@@ -324,8 +336,11 @@ function renderSide() {
 }
 
 let mode = 'browser';
-function showPlayer() { mode = 'player'; document.body.classList.add('in-player'); $('#player').classList.add('show'); $('#browser').style.visibility = 'hidden'; updateMini(); updateFocus(); render && $('#navBack') && ($('#navBack').style.opacity = 1); }
-function showBrowser() { mode = 'browser'; document.body.classList.remove('in-player'); $('#player').classList.remove('show'); $('#browser').style.visibility = ''; updateMini(); updateFocus(); }
+function showPlayer() { if (fsForLibrary && !document.fullscreenElement) { fsForLibrary = false; document.documentElement.requestFullscreen().catch(() => {}); } mode = 'player'; document.body.classList.add('in-player'); $('#player').classList.add('show'); $('#browser').style.visibility = 'hidden'; updateMini(); updateFocus(); render && $('#navBack') && ($('#navBack').style.opacity = 1); }
+// The library never stays in fullscreen: on Windows the taskbar can sit on top of a fullscreen window and hide the
+// bottom bar and the last rows (#31). Leaving the player exits fullscreen; going back to the player restores it.
+let fsForLibrary = false;
+function showBrowser() { if (document.fullscreenElement) { fsForLibrary = true; document.exitFullscreen().catch(() => {}); } mode = 'browser'; document.body.classList.remove('in-player'); $('#player').classList.remove('show'); $('#browser').style.visibility = ''; updateMini(); updateFocus(); }
 // While media plays (video or music), the rail and library panel collapse so the player gets the full width (setting autoHideSide).
 // The sidebar button brings them back until the next video starts.
 let sideOverride = false;
@@ -463,24 +478,24 @@ function seekTo(t) {
   txSeekTimer = setTimeout(() => loadSource(t, true), 250);
 }
 function togglePlay() {
-  if (state.current < 0) { const v = visibleItems()[0] || state.items[0]; if (v) playItem(state.items.indexOf(v)); else doAct('files'); return; }
+  if (state.current < 0) { const v = visibleItems()[0] || state.items[0]; if (v) playItem(idxOf(v)); else doAct('files'); return; }
   if (video.paused) video.play().catch(() => {}); else video.pause();
   flashBig();
 }
 function flashBig() { const d = $('#bigplay div'); $('#bigIcon').innerHTML = video.paused ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4l13 8-13 8z"/>'; d.classList.add('flash'); clearTimeout(flashBig.t); flashBig.t = setTimeout(() => d.classList.remove('flash'), 350); }
 function queue() {
-  if (state.queueList && state.queueList.some(i => state.items.indexOf(i) === state.current)) return state.queueList;
+  if (state.queueList && state.queueList.some(i => idxOf(i) === state.current)) return state.queueList;
   const v = state.query ? visibleItems() : (state.view === 'home' ? sortItems(state.items) : visibleItems());
-  return v.some(i => state.items.indexOf(i) === state.current) ? v : (curItem() && !curItem().remote && S.get('mediaFolders').length ? siblingsOf(curItem()) : state.items);
+  return v.some(i => idxOf(i) === state.current) ? v : (curItem() && !curItem().remote && S.get('mediaFolders').length ? siblingsOf(curItem()) : state.items);
 }
 function siblingsOf(it) { const dir = it.src.split(SEP).slice(0, -1).join('\\'); return sortItems(state.items.filter(i => i.type === it.type && i.src.split(SEP).slice(0, -1).join('\\') === dir)); }
 function step(dir, auto) {
   const q = queue(); if (!q.length) return;
-  if (S.get('shuffle') && q.length > 1) { let n; do { n = q[Math.floor(Math.random() * q.length)]; } while (state.items.indexOf(n) === state.current); return playItem(state.items.indexOf(n)); }
-  let pos = q.findIndex(i => state.items.indexOf(i) === state.current) + dir;
+  if (S.get('shuffle') && q.length > 1) { let n; do { n = q[Math.floor(Math.random() * q.length)]; } while (idxOf(n) === state.current); return playItem(idxOf(n)); }
+  let pos = q.findIndex(i => idxOf(i) === state.current) + dir;
   if (pos >= q.length) { if (S.get('repeat') === 'all') pos = 0; else { setPlayIcon(); render(); return auto ? null : osd('End of the list'); } }
   if (pos < 0) pos = S.get('repeat') === 'all' ? q.length - 1 : 0;
-  playItem(state.items.indexOf(q[pos]));
+  playItem(idxOf(q[pos]));
 }
 function prev() { if (curTime() > 3) return seekTo(0); step(-1); }
 function stopPlayback() { stopRecord(); savePos(); video.pause(); video.removeAttribute('src'); video.load(); state.current = -1; clearSubs(); P.tx = false; setBadge(); setSpinner(false); setIdle(null); showBrowser(); render(); updateTime(); setPlayIcon(); }
@@ -672,7 +687,7 @@ const sizeSnap = () => document.body.classList.toggle('snapped-size', outerHeigh
 addEventListener('resize', sizeSnap); sizeSnap();
 api.onMaximized(m => { document.body.classList.toggle('maxed', m); $('#maxIcon').innerHTML = m ? '<rect x="8" y="5" width="11" height="11" rx="1"/><path d="M5 8v10a1 1 0 0 0 1 1h10"/>' : '<rect x="6" y="6" width="12" height="12" rx="1"/>'; });
 $('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('button')) api.win('max'); });
-function toggleFs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
+function toggleFs() { fsForLibrary = false; if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
 document.addEventListener('fullscreenchange', () => {
   const fs = !!document.fullscreenElement;
   document.body.classList.toggle('fullscreen', fs);
@@ -949,7 +964,7 @@ async function addToPlaylist(it) {
   savePlaylists(); osd(t('Added to {name}', { name: p.name })); render();
 }
 function removeItem(it) {
-  const idx = state.items.indexOf(it);
+  const idx = idxOf(it);
   if (idx === state.current) stopPlayback();
   state.items.splice(idx, 1);
   if (state.current > idx) state.current--;
@@ -995,7 +1010,11 @@ $('#grid').addEventListener('click', e => {
   state.queueList = state.view === 'home' ? null : visibleItems();
   playItem(+c.dataset.idx);
 });
-$('#search').addEventListener('input', e => { state.query = e.target.value.trim().toLowerCase(); render(); });
+$('#search').addEventListener('input', e => { state.query = e.target.value.trim().toLowerCase(); state.gridLimit = 240; render(); });
+// Load more tiles / rows when scrolling near the end of a long list.
+const nearEnd = el => el.scrollTop + el.clientHeight > el.scrollHeight - 800;
+$('#grid').addEventListener('scroll', e => { if (nearEnd(e.target) && state.gridLimit < 1e6 && e.target.querySelectorAll('.card').length >= state.gridLimit) { state.gridLimit += 240; render(); } }, { passive: true });
+$('#sideList').addEventListener('scroll', e => { if (nearEnd(e.target) && e.target.children.length >= state.sideLimit) { state.sideLimit += 400; renderSide(); } }, { passive: true });
 const toggleList = () => { state.list = !state.list; store.set('listView', state.list); render(); };
 $('#viewToggle').onclick = toggleList;
 $('#sortBtn').onclick = $('#sortBtn2').onclick = () => { state.sort = state.sort === 'name' ? 'added' : 'name'; state.sortDesc = false; osd(state.sort === 'name' ? 'Sort by name' : 'Sort by date added'); render(); };
@@ -1029,7 +1048,7 @@ document.addEventListener('contextmenu', e => {
   if (card) {
     const it = state.items[+card.dataset.idx];
     UI.menu([
-      { label: 'Play', icon: 'play', accent: true, action: () => playItem(state.items.indexOf(it)) },
+      { label: 'Play', icon: 'play', accent: true, action: () => playItem(idxOf(it)) },
       { label: 'Add to playlist…', icon: 'playlist', action: () => addToPlaylist(it) },
       { label: isWatched(it) ? 'Mark as unwatched' : 'Mark as watched', icon: 'eye', action: () => { isWatched(it) ? watched.delete(it.src) : watched.add(it.src); saveWatched(); render(); } },
       !it.remote ? { label: 'Show in folder', icon: 'folder', action: () => api.reveal(it.src) } : null,
@@ -1042,7 +1061,7 @@ document.addEventListener('contextmenu', e => {
   } else if (pl) {
     const p = plByKey(pl.dataset.pl); if (!p) return;
     UI.menu([
-      { label: 'Play', icon: 'play', accent: true, action: () => { const f = bySrc(p.srcs[0]); if (f) { state.queueList = p.srcs.map(bySrc).filter(Boolean); playItem(state.items.indexOf(f)); } else osd('Playlist is empty'); } },
+      { label: 'Play', icon: 'play', accent: true, action: () => { const f = bySrc(p.srcs[0]); if (f) { state.queueList = p.srcs.map(bySrc).filter(Boolean); playItem(idxOf(f)); } else osd('Playlist is empty'); } },
       ...(p.all ? [] : [
       { label: 'Rename…', icon: 'general', action: async () => { const n = await UI.prompt('Rename', { value: p.name }); if (n && n.trim()) { p.name = n.trim(); savePlaylists(); render(); } } },
       { label: 'Choose cover…', icon: 'camera', action: async () => { const f = await api.chooseFile(t('Cover image'), ['png', 'jpg', 'jpeg', 'webp']); if (f) { p.cover = await api.readImage(f); savePlaylists(); render(); } } },
@@ -1054,7 +1073,7 @@ document.addEventListener('contextmenu', e => {
     const path = dir.dataset.dir;
     UI.menu([
       { label: 'Open', icon: 'folder', action: () => navigate({ dir: { ...state.dir, [state.view]: path } }) },
-      { label: 'Play all', icon: 'play', accent: true, action: () => { const list = sortItems(state.items.filter(i => under(i.src, path) && i.type === typeOf(state.view))); if (list.length) { state.queueList = list; playItem(state.items.indexOf(list[0])); } } },
+      { label: 'Play all', icon: 'play', accent: true, action: () => { const list = sortItems(state.items.filter(i => under(i.src, path) && i.type === typeOf(state.view))); if (list.length) { state.queueList = list; playItem(idxOf(list[0])); } } },
       { label: 'Show in folder', icon: 'open', action: () => api.openPath(path) },
     ], e.clientX, e.clientY);
   }

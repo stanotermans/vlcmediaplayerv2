@@ -14,6 +14,8 @@ const bundled = (load) => { try { const p = unpacked(load()); return p && fs.exi
 const FFMPEG = process.env.VLCX_FFMPEG || bundled(() => require('ffmpeg-static')) || 'ffmpeg';
 const REPO = 'stanotermans/vlcmediaplayerv2';
 
+// Programmer files that share an extension with media (.ts = MPEG-TS video, but also TypeScript): never media.
+const NOT_MEDIA = /\.d\.[cm]?ts$|[\\/]node_modules[\\/]|\.(spec|test|config|module|service|component|types?)\.ts$/i;
 const PLAYLIST_EXT = /\.(m3u8?|xspf|pls)$/i;
 const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|avi|wmv|flv|mpg|mpeg|ts|m2ts|mts|3gp|ogv|vob|divx|mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
 const SUB_EXT = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
@@ -156,7 +158,7 @@ function expand(paths, depth = 0) {
     if (st.isDirectory() && depth < 6) {
       let entries = []; try { entries = fs.readdirSync(p); } catch {}
       out.push(...expand(entries.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(e => path.join(p, e)), depth + 1));
-    } else if (st.isFile() && (MEDIA_EXT.test(p) || (depth === 0 && (SUB_EXT.test(p) || PLAYLIST_EXT.test(p))))) out.push(p);
+    } else if (st.isFile() && !NOT_MEDIA.test(p) && (MEDIA_EXT.test(p) || (depth === 0 && (SUB_EXT.test(p) || PLAYLIST_EXT.test(p))))) out.push(p);
   }
   return out;
 }
