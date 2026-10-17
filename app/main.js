@@ -149,6 +149,7 @@ function startServer() {
 }
 
 function serveFile(file, req, resp) {
+  resp.on('error', () => {});
   let st; try { st = fs.statSync(file); } catch { resp.writeHead(404); return resp.end(); }
   const ext = path.extname(file).slice(1).toLowerCase();
   const type = MIME[ext] || 'application/octet-stream';
@@ -159,10 +160,10 @@ function serveFile(file, req, resp) {
     if (start >= st.size) { resp.writeHead(416, { 'Content-Range': `bytes */${st.size}` }); return resp.end(); }
     end = Math.min(end, st.size - 1);
     resp.writeHead(206, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Content-Range': `bytes ${start}-${end}/${st.size}` });
-    fs.createReadStream(file, { start, end }).pipe(resp);
+    fs.createReadStream(file, { start, end }).on('error', () => resp.destroy()).pipe(resp);
   } else {
     resp.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': st.size });
-    fs.createReadStream(file).pipe(resp);
+    fs.createReadStream(file).on('error', () => resp.destroy()).pipe(resp);
   }
 }
 
@@ -189,11 +190,13 @@ function serveStream(src, q, req, resp) {
   const ff = spawn(FFMPEG, args, { windowsHide: true });
   active.add(ff);
   resp.writeHead(200, { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store' });
-  ff.stdout.pipe(resp);
+  ff.stdout.pipe(resp);   // ends the response itself once ffmpeg's output is fully drained
+  // closing the app (or the player) mid-stream: never let a late write or a broken pipe become an error popup (#38)
+  resp.on('error', () => {}); ff.stdout.on('error', () => {}); ff.on('error', () => { if (!resp.writableEnded) resp.end(); });
   ff.stderr.on('data', d => log('error', '[ffmpeg] ' + String(d).trim()));
   log('info', `stream ${src} ss=${ss} a=${a} vcopy=${vcopy}`);
   const kill = () => { try { ff.kill('SIGKILL'); } catch {} active.delete(ff); };
-  req.on('close', kill); ff.on('exit', () => { active.delete(ff); resp.end(); });
+  req.on('close', kill); ff.on('close', () => { active.delete(ff); if (!resp.writableEnded) resp.end(); });
 }
 
 /* ---------------- optional log file (Settings → General → Diagnostics) ---------------- */
