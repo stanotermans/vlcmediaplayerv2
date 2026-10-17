@@ -495,6 +495,17 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.on('maximize', () => win.webContents.send('maximized', true));
   win.on('unmaximize', () => win.webContents.send('maximized', false));
+  // Snapped/tiled (e.g. GNOME split screen) is not "maximized", but the window touches the screen edges:
+  // report it so rounded corners are switched off there too.
+  let snapped = null;
+  const checkSnap = () => {
+    if (!win || win.isDestroyed()) return;
+    const b = win.getBounds(), wa = screen.getDisplayMatching(b).workArea, near = (a, c) => Math.abs(a - c) <= 2;
+    const top = near(b.y, wa.y), bottom = near(b.y + b.height, wa.y + wa.height), left = near(b.x, wa.x), right = near(b.x + b.width, wa.x + wa.width);
+    const s = !win.isMaximized() && ((top && bottom && (left || right)) || (left && right && (top || bottom)));
+    if (s !== snapped) { snapped = s; win.webContents.send('snapped', s); }
+  };
+  win.on('resize', checkSnap); win.on('move', checkSnap); win.webContents.on('did-finish-load', () => { snapped = null; checkSnap(); });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
 }

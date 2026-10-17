@@ -523,3 +523,18 @@ I18N.add('de', {
  "Show more options": "Weitere Optionen anzeigen",
  "Show fewer options": "Weniger Optionen anzeigen"
 });
+
+// v1.9: music player options
+I18N.add('de', {
+ "Hide sidebar while media plays": "Seitenleiste während der Wiedergabe ausblenden",
+ "Gives videos and music the full width. The sidebar button (Q) brings it back.": "Gibt Videos und Musik die volle Breite. Mit der Seitenleisten-Taste (Q) holst du sie zurück.",
+ "Music player": "Musikplayer",
+ "Blur": "Unscharf",
+ "Gradient": "Farbverlauf",
+ "Black": "Schwarz",
+ "Blur and gradient use the colors of the album cover.": "Unscharf und Farbverlauf nutzen die Farben des Albumcovers.",
+ "Background dimming": "Hintergrund abdunkeln",
+ "Cover size": "Covergröße",
+ "Press Y or use the button in the corner of the player to switch between the cover and the lyrics.": "Drücke Y oder nutze die Schaltfläche in der Ecke des Players, um zwischen Cover und Liedtext zu wechseln.",
+ "Show cover": "Cover anzeigen"
+});

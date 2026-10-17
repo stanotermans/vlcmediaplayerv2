@@ -523,3 +523,18 @@ I18N.add('fr', {
  "Show more options": "Afficher plus d’options",
  "Show fewer options": "Afficher moins d’options"
 });
+
+// v1.9: music player options
+I18N.add('fr', {
+ "Hide sidebar while media plays": "Masquer la barre latérale pendant la lecture",
+ "Gives videos and music the full width. The sidebar button (Q) brings it back.": "Donne toute la largeur aux vidéos et à la musique. Le bouton de barre latérale (Q) la fait réapparaître.",
+ "Music player": "Lecteur de musique",
+ "Blur": "Flou",
+ "Gradient": "Dégradé",
+ "Black": "Noir",
+ "Blur and gradient use the colors of the album cover.": "Le flou et le dégradé utilisent les couleurs de la pochette.",
+ "Background dimming": "Assombrir l’arrière-plan",
+ "Cover size": "Taille de la pochette",
+ "Press Y or use the button in the corner of the player to switch between the cover and the lyrics.": "Appuyez sur Y ou utilisez le bouton dans le coin du lecteur pour passer de la pochette aux paroles.",
+ "Show cover": "Afficher la pochette"
+});

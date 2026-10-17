@@ -523,3 +523,18 @@ I18N.add('pt', {
  "Show more options": "Mostrar mais opções",
  "Show fewer options": "Mostrar menos opções"
 });
+
+// v1.9: music player options
+I18N.add('pt', {
+ "Hide sidebar while media plays": "Ocultar a barra lateral durante a reprodução",
+ "Gives videos and music the full width. The sidebar button (Q) brings it back.": "Dá aos vídeos e à música toda a largura. O botão da barra lateral (Q) volta a mostrá-la.",
+ "Music player": "Leitor de música",
+ "Blur": "Desfocado",
+ "Gradient": "Gradiente",
+ "Black": "Preto",
+ "Blur and gradient use the colors of the album cover.": "Desfocado e gradiente usam as cores da capa do álbum.",
+ "Background dimming": "Escurecer o fundo",
+ "Cover size": "Tamanho da capa",
+ "Press Y or use the button in the corner of the player to switch between the cover and the lyrics.": "Prima Y ou use o botão no canto do leitor para alternar entre a capa e a letra.",
+ "Show cover": "Mostrar capa"
+});

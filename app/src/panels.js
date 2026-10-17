@@ -12,7 +12,7 @@ const SHORTCUTS = [
   ['Stop', ['S']], ['Mute', ['M']], ['Hide interface', ['Ctrl', '\\']], ['Slower / faster / normal', ['[', ']', '=']],
   ['Subtitle delay − / +', ['G', 'H']], ['Seek 3 seconds', ['SHIFT', '← →']], ['Jump to 0–90%', ['0 – 9']], ['Open files', ['Ctrl', 'O']],
   ['Open folder', ['Ctrl', 'F']], ['Open network stream', ['Ctrl', 'N']], ['Media information', ['Ctrl', 'I']], ['Settings', ['Ctrl', 'P']],
-  ['Interface size', ['Ctrl', '+ − 0']], ['Keyboard shortcuts', ['F1']], ['Quit VLC', ['Ctrl', 'Q']],
+  ['Show lyrics', ['Y']],   ['Interface size', ['Ctrl', '+ − 0']], ['Keyboard shortcuts', ['F1']], ['Quit VLC', ['Ctrl', 'Q']],
 ];
 const keycaps = keys => el('span.keys', {}, ...keys.map((k, i) => [i && keys.length === 2 && !['SHIFT', 'Ctrl'].includes(keys[0]) ? el('span.kslash', {}, '/') : null, el('kbd.cap', {}, t(k))]));
 
@@ -249,13 +249,18 @@ function pages(App) {
           let on = !!info.roundedCorners;
           return row('Rounded window corners', toggle({ get: () => on, set: async v => { on = v; info.roundedCorners = v; if (await api.setWindowPref('roundedCorners', v)) App.osd('Restart the app to apply this'); }, path: '_rounded' }), { info: 'Takes effect after restarting the app.' });
         })(),
-        row('Hide sidebar while a video plays', toggle('autoHideSide'), { info: 'Gives the video the full width. The sidebar button (Q) brings it back.' }),
+        row('Hide sidebar while media plays', toggle('autoHideSide'), { info: 'Gives videos and music the full width. The sidebar button (Q) brings it back.' }),
         row('Resize window to the video', toggle('fitWindow'), { info: "Matches the window to the video's shape when a new video starts, up to 70% of the screen." }),
         row('Show mini player while browsing', toggle('miniPlayer')),
         row('Show preview when hovering the timeline', toggle('seekPreview')),
         row('Show thumbnails', toggle('showThumbs')),
         row('Dim watched items', toggle('dimWatched')),
         row('Show ffmpeg label in player', toggle('showBadge'))),
+      sec('Music player',
+        row('Background', segmented([['blur', 'Blur'], ['gradient', 'Gradient'], ['black', 'Black'], ['stage', 'Default']], 'audioBg'), { info: 'Blur and gradient use the colors of the album cover.' }),
+        slider({ label: 'Background dimming', min: 0, max: 90, step: 5, binding: 'audioBgDim', fmt: v => v + '%' }),
+        slider({ label: 'Cover size', min: 15, max: 100, step: 5, binding: 'coverSize', fmt: v => v + '%' }),
+        el('p.note', {}, t('Press Y or use the button in the corner of the player to switch between the cover and the lyrics.'))),
       sec('Player controls',
         row('Previous / next', toggle('ctl.prevnext')), row('Play / pause', toggle('ctl.play')),
         row('Time', toggle('ctl.time')), row('Volume', toggle('ctl.volume')),

@@ -326,12 +326,12 @@ function renderSide() {
 let mode = 'browser';
 function showPlayer() { mode = 'player'; $('#player').classList.add('show'); $('#browser').style.visibility = 'hidden'; updateMini(); updateFocus(); render && $('#navBack') && ($('#navBack').style.opacity = 1); }
 function showBrowser() { mode = 'browser'; $('#player').classList.remove('show'); $('#browser').style.visibility = ''; updateMini(); updateFocus(); }
-// While a video plays, the rail and library panel collapse so the video gets the full width (setting autoHideSide).
+// While media plays (video or music), the rail and library panel collapse so the player gets the full width (setting autoHideSide).
 // The sidebar button brings them back until the next video starts.
 let sideOverride = false;
 function updateFocus() {
   const it = state.items[state.current];
-  document.body.classList.toggle('focus-video', !!(S.get('autoHideSide') && mode === 'player' && it && it.type === 'video' && !sideOverride));
+  document.body.classList.toggle('focus-video', !!(S.get('autoHideSide') && mode === 'player' && it && !sideOverride));
 }
 function updateMini() { const cur = state.items[state.current]; $('#mini').classList.toggle('show', !!(mode === 'browser' && cur && S.get('miniPlayer'))); if (cur) $('#miniName').textContent = cur.name; }
 
@@ -384,6 +384,7 @@ function setIdle(it) {
   $('#player').classList.toggle('playing-video', !!showVideo);
   if (showVideo) { idle.innerHTML = ''; return; }
   const art = it && isAudio(it) && (it.cover || it.thumb);
+  renderAudioBg(it);
   idle.innerHTML = art ? `<div class="np-cover" style="background-image:url('${art}')"></div>` : catSVG();
 }
 async function playItem(idx, autoplay = true) {
@@ -664,6 +665,7 @@ $('#fsBtn2').onclick = toggleFs;
 $('#minBtn').onclick = () => api.win('min');
 $('#maxBtn').onclick = () => api.win('max');
 $('#closeBtn').onclick = () => { savePos(); stopRecord(); api.win('close'); };
+api.onSnapped(s => document.body.classList.toggle('snapped', s));
 api.onMaximized(m => { document.body.classList.toggle('maxed', m); $('#maxIcon').innerHTML = m ? '<rect x="8" y="5" width="11" height="11" rx="1"/><path d="M5 8v10a1 1 0 0 0 1 1h10"/>' : '<rect x="6" y="6" width="12" height="12" rx="1"/>'; });
 $('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('button')) api.win('max'); });
 function toggleFs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
@@ -695,6 +697,7 @@ function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); 
 
 /* ---------- per-frame: mini preview + subtitles ---------- */
 const mctx = $('#miniCanvas').getContext('2d');
+const miniArt = { src: null, img: null };
 let lastSub = null;
 const SUB = { tracks: [], active: -1 };
 const LYR = { lines: null, synced: false, hidden: false, shown: false, idx: -2 };   // lyrics (.lrc), see below
@@ -705,7 +708,17 @@ const subSync = { delay: 0, speed: 1, dur: 0 };
     mctx.fillStyle = '#000'; mctx.fillRect(0, 0, c.width, c.height);
     try { mctx.filter = FX.filterString().replace(/url\([^)]*\)\s*/g, '') || 'none'; mctx.drawImage(video, (c.width - w) / 2, (c.height - h) / 2, w, h); mctx.filter = 'none'; } catch {}
     $('#miniCanvasWrap .cat').style.display = 'none';
-  } else if (mode === 'browser') { mctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--stage') || '#2a2928'; mctx.fillRect(0, 0, 320, 180); $('#miniCanvasWrap .cat').style.display = ''; }
+  } else if (mode === 'browser') {
+    const it = curItem(), art = it && isAudio(it) && (it.cover || it.thumb);
+    mctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--stage') || '#2a2928'; mctx.fillRect(0, 0, 320, 180);
+    if (art && miniArt.src !== art) { miniArt.src = art; miniArt.img = new Image(); miniArt.img.src = art; }
+    const img = art && miniArt.img && miniArt.img.complete && miniArt.img.naturalWidth ? miniArt.img : null;
+    if (img) {                                                // blurred cover behind, sharp square cover in the middle
+      mctx.filter = 'blur(14px) brightness(.45)'; mctx.drawImage(img, -20, -90, 360, 360); mctx.filter = 'none';
+      mctx.drawImage(img, 160 - 66, 90 - 66, 132, 132);
+    }
+    $('#miniCanvasWrap .cat').style.display = img ? 'none' : '';
+  }
   const tr = SUB.tracks[SUB.active];
   let htmlSub = '';
   if (tr && tr.cues) {
@@ -783,9 +796,12 @@ function renderLyrics() {
   const it = curItem(), on = !!(LYR.lines && !LYR.hidden && S.get('lyricsView') && it && isAudio(it));
   LYR.shown = on; LYR.idx = -2;
   $('#player').classList.toggle('lyrics-on', on);
+  // cover ⇄ lyrics switch in the corner of the player (#20); Y does the same
+  const sw = $('#lyrSwitch'), can = !!(LYR.lines && S.get('lyricsView') && it && isAudio(it));
+  sw.classList.toggle('show', can); sw.innerHTML = can ? icon(on ? 'audio' : 'subtitle') + `<span>${esc(t(on ? 'Show cover' : 'Show lyrics'))}</span>` : '';
   if (!on) return;
   const box = $('#lyrics'), art = it.cover || it.thumb;
-  box.querySelector('.lyr-bg').style.backgroundImage = art ? `url('${art}')` : '';
+  box.querySelector('.lyr-bg').style.backgroundImage = art ? `url('${art}')` : '';   // only used with the default stage background
   box.querySelector('.lyr-scroll').classList.toggle('free', !LYR.synced);
   const list = box.querySelector('.lyr-list');
   list.style.transform = '';
@@ -805,11 +821,42 @@ function syncLyrics() {
   const sc = box.querySelector('.lyr-scroll');
   list.style.transform = `translateY(${Math.round(sc.clientHeight / 2 - (cur.offsetTop + cur.offsetHeight / 2))}px)`;
 }
+$('#lyrSwitch').addEventListener('click', e => { e.stopPropagation(); toggleLyrics(); });
 $('#lyrics').addEventListener('click', e => {
   const line = e.target.closest('.lyr-line');
   if (line && LYR.synced) { seekTo(LYR.lines[+line.dataset.i].t); LYR.idx = -2; } else if (!line) togglePlay();
 });
 addEventListener('resize', () => { LYR.idx = -2; });
+/* ---------- music stage: background (blur / gradient / black / default) with dim, and cover size ---------- */
+const artColors = {};                                         // cover → [color1, color2] for the gradient background
+function coverColors(art) {
+  if (artColors[art]) return Promise.resolve(artColors[art]);
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d'); g.drawImage(img, 0, 0, 8, 8);
+      const d = g.getImageData(0, 0, 8, 8).data, avg = (x0, y0) => { let r = 0, gg = 0, b = 0; for (let y = y0; y < y0 + 4; y++) for (let x = x0; x < x0 + 4; x++) { const i = (y * 8 + x) * 4; r += d[i]; gg += d[i + 1]; b += d[i + 2]; } return `rgb(${r / 16 | 0},${gg / 16 | 0},${b / 16 | 0})`; };
+      res(artColors[art] = [avg(0, 0), avg(4, 4)]);
+    };
+    img.onerror = () => res(null); img.src = art;
+  });
+}
+function renderAudioBg(it = curItem()) {
+  const pl = $('#player'), bg = S.get('audioBg'), on = !!(it && isAudio(it) && bg !== 'stage');
+  pl.classList.toggle('audio-bg', on);
+  pl.style.setProperty('--cover', S.get('coverSize'));
+  pl.style.setProperty('--abdim', S.get('audioBgDim') / 100);
+  if (!on) return;
+  const layer = $('#audioBg .ab-art'), art = it.cover || it.thumb;
+  layer.className = 'ab-art ' + (bg === 'blur' && art ? 'blur' : bg === 'black' ? 'black' : 'gradient');
+  layer.style.background = '';
+  layer.style.backgroundImage = bg === 'blur' && art ? `url('${art}')` : '';
+  if (bg === 'black') return;
+  if (bg === 'gradient' || !art) {
+    layer.style.background = 'linear-gradient(135deg,#3a3a46,#121214)';
+    if (art) coverColors(art).then(c => { if (c && curItem() === it && S.get('audioBg') === 'gradient') layer.style.background = `linear-gradient(135deg,${c[0]},${c[1]})`; });
+  }
+}
 function toggleLyrics() { if (!LYR.lines) return osd('No lyrics'); LYR.hidden = !LYR.hidden; renderLyrics(); }
 function cycleSubs() { if (!SUB.tracks.length) return osd('No subtitles'); const n = SUB.active + 1 >= SUB.tracks.length ? -1 : SUB.active + 1; selectSub(n); }
 function applySubStyle() {
@@ -1148,6 +1195,7 @@ document.addEventListener('keydown', e => {
     case 'p': case '<': prev(); break;
     case 'q': toggleQueue(); break;
     case 'l': toggleLibrary(); break;
+    case 'y': toggleLyrics(); break;
     case 'v': cycleSubs(); break;
     case 'b': cycleAudio(); break;
     case 'g': nudgeSub(-0.1); break;
@@ -1178,6 +1226,7 @@ S.on(path => {
   if (/^sub(Size|Color|Outline|Bg|Font)$/.test(path)) applySubStyle();
   if (path === 'autoHideSide') updateFocus();
   if (path === 'lyricsView') renderLyrics();
+  if (/^(audioBg|audioBgDim|coverSize)$/.test(path)) renderAudioBg();
   if (path === 'audioLabel') { applyAudioLabel(); render(); }
   if (path === 'uiScale') api.setZoom(S.get('uiScale') / 100);
   if (path.startsWith('ctl')) applyControls();

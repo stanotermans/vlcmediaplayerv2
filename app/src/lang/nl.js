@@ -523,3 +523,18 @@ I18N.add('nl', {
  "Show more options": "Meer opties tonen",
  "Show fewer options": "Minder opties tonen"
 });
+
+// v1.9: music player options
+I18N.add('nl', {
+ "Hide sidebar while media plays": "Zijbalk verbergen tijdens het afspelen",
+ "Gives videos and music the full width. The sidebar button (Q) brings it back.": "Geeft video’s en muziek de volle breedte. Met de zijbalkknop (Q) haal je hem terug.",
+ "Music player": "Muziekspeler",
+ "Blur": "Vervaagd",
+ "Gradient": "Kleurverloop",
+ "Black": "Zwart",
+ "Blur and gradient use the colors of the album cover.": "Vervaagd en kleurverloop gebruiken de kleuren van de albumhoes.",
+ "Background dimming": "Achtergrond dimmen",
+ "Cover size": "Grootte van de hoes",
+ "Press Y or use the button in the corner of the player to switch between the cover and the lyrics.": "Druk op Y of gebruik de knop in de hoek van de speler om te wisselen tussen de hoes en de songtekst.",
+ "Show cover": "Hoes tonen"
+});

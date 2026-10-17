@@ -527,3 +527,23 @@ body.rounded-win.maxed #app,body.rounded-win.fullscreen #app{border-radius:0;bor
 #grid.list .card .thumb{width:46px;height:30px;aspect-ratio:auto}
 .formcol > .linkbtn{align-self:flex-start;background:none;border:0;padding:4px 0;margin-top:6px;color:var(--accent)}
 .formcol > .linkbtn:hover{background:none;text-decoration:underline}
+
+/* music stage: background behind the cover / lyrics (Settings → Interface → Music player) */
+#player{container-type:size}
+#audioBg{position:absolute;inset:0;display:none;overflow:hidden}
+#player.audio-bg #audioBg{display:block}
+#player.audio-bg .floor{display:none}
+#audioBg .ab-art{position:absolute;inset:0;background:center/cover}
+#audioBg .ab-art.blur{inset:-60px;filter:blur(48px) saturate(1.3)}
+#audioBg .ab-art.black{background:#000}
+#audioBg .ab-dim{position:absolute;inset:0;background:#000;opacity:var(--abdim,.65)}
+#player.audio-bg #lyrics{background:transparent}
+#player.audio-bg .lyr-bg{display:none}
+#idle .np-cover{width:min(calc(var(--cover,40) * 1cqmin),100cqw,100cqh);max-width:none;border-radius:min(8px,1.2cqmin)}
+/* square corners when snapped / tiled, like maximized */
+body.rounded-win.snapped #app{border-radius:0;border:0}
+/* cover ⇄ lyrics switch */
+#lyrSwitch{position:absolute;top:12px;left:12px;z-index:3;display:none;align-items:center;gap:6px;padding:5px 10px 5px 8px;border-radius:14px;background:#0008;color:#ddd;font-size:12px;backdrop-filter:blur(6px)}
+#lyrSwitch.show{display:flex}
+#lyrSwitch:hover{background:#000b;color:#fff}
+#lyrSwitch .icon{width:15px;height:15px}
