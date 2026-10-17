@@ -570,3 +570,12 @@ body.rounded-win.snapped #app{border-radius:0;border:0}
 .osmeta{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .osbadge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--panel3);color:var(--text2)}
 .osbadge.ok{background:var(--accent-soft);color:var(--accent)}
+
+/* Settings → Controls: changeable keys */
+.kbedit .kbright{display:flex;align-items:center;gap:10px}
+.kbedit .kbchange{min-height:30px;padding:0 10px}
+.kbedit .kbrow.changed > span:first-child{color:var(--accent)}
+.kblisten{color:var(--accent);font-weight:600;animation:kbpulse 1s infinite alternate}
+.kbnone{color:var(--muted);font-style:italic}
+@keyframes kbpulse{from{opacity:.55}to{opacity:1}}
+.kbtable.kbedit{grid-template-columns:1fr;gap:2px}

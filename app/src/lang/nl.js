@@ -600,3 +600,27 @@ I18N.add('nl', {
 I18N.add('nl', {
  "Cannot play this file: {name}": "Kan dit bestand niet afspelen: {name}"
 });
+
+// v1.11.1: changeable keys
+I18N.add('nl', {
+ "Next": "Volgende",
+ "Previous": "Vorige",
+ "Seek forward": "Vooruit spoelen",
+ "Seek backward": "Terug spoelen",
+ "Seek 3 s forward": "3 s vooruit",
+ "Seek 3 s backward": "3 s terug",
+ "Volume up": "Volume omhoog",
+ "Volume down": "Volume omlaag",
+ "Subtitle delay −": "Ondertitelvertraging −",
+ "Subtitle delay +": "Ondertitelvertraging +",
+ "Slower": "Langzamer",
+ "Faster": "Sneller",
+ "Normal speed": "Normale snelheid",
+ "Next frame": "Volgend beeld",
+ "Previous frame": "Vorig beeld",
+ "Change": "Wijzigen",
+ "Press a key…": "Druk op een toets…",
+ "No key": "Geen toets",
+ "Reset to defaults": "Standaard herstellen",
+ "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Klik op Wijzigen en druk op de nieuwe toets. Esc annuleert, Backspace verwijdert de toets. Een toets hoort bij één actie."
+});

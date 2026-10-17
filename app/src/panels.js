@@ -16,6 +16,49 @@ const SHORTCUTS = [
 ];
 const keycaps = keys => el('span.keys', {}, ...keys.map((k, i) => [i && keys.length === 2 && !['SHIFT', 'Ctrl'].includes(keys[0]) ? el('span.kslash', {}, '/') : null, el('kbd.cap', {}, t(k))]));
 
+
+// "ArrowRight" → ["→"], "Shift+ArrowLeft" → ["Shift", "←"], "S" → ["Shift", "S"], "MediaTrackNext" → ["⏭"]
+const KEY_NAMES = { Space: 'Space', ArrowRight: '→', ArrowLeft: '←', ArrowUp: '↑', ArrowDown: '↓', MediaPlayPause: '⏯', MediaTrackNext: '⏭', MediaTrackPrevious: '⏮', MediaStop: '⏹',
+  Enter: 'Enter', Backspace: '⌫', Tab: 'Tab', PageUp: 'Page Up', PageDown: 'Page Down', Home: 'Home', End: 'End', Insert: 'Ins', Delete: 'Del' };
+function keyParts(key) {
+  const parts = key.split('+').filter((p, i, a) => p || i === a.length - 1), last = parts.pop() || '+';
+  const mods = parts.map(m => m === 'Ctrl' ? 'Ctrl' : m);
+  if (last.length === 1 && /[A-Z]/.test(last)) return [...mods, 'SHIFT', last];
+  return [...mods, KEY_NAMES[last] || (last.length === 1 ? last.toUpperCase() : last)];
+}
+const keyChips = keys => el('span.keys', {}, ...keys.flatMap((k, i) => [i ? el('span.kslash', {}, '/') : null, ...keyParts(k).map(p => el('kbd.cap', {}, t(p)))]).filter(Boolean));
+// Settings → Controls: every action with its keys and a Change button that listens for the next key press.
+function keyEditor(App) {
+  const box = el('div.kbtable.kbedit');
+  let listening = null;
+  const draw = () => box.replaceChildren(...App.keys.actions().map(a => el('div.kbrow' + (a.changed ? '.changed' : ''), { dataset: { search: t(a.label) } },
+    el('span', {}, t(a.label)),
+    el('span.kbright', {}, listening === a.id ? el('span.kblisten', {}, t('Press a key…')) : (a.keys.length ? keyChips(a.keys) : el('span.kbnone', {}, t('No key'))),
+      el('button.btn.ghost.kbchange', { type: 'button', onclick: () => { listening = a.id; draw(); } }, t('Change'))))));
+  const onKey = e => {
+    if (!listening || !box.isConnected) return;
+    if (['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock'].includes(e.key)) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const id = listening; listening = null;
+    if (e.key === 'Escape') return draw();
+    // a new key replaces the keyboard keys; the media keys (⏯ ⏭ ⏮ ⏹) stay with the action
+    const key = App.keys.of(e), media = App.keys.actions().find(x => x.id === id).keys.filter(k => /^Media/.test(k) && k !== key);
+    App.keys.set(id, ['Backspace', 'Delete'].includes(e.key) ? [] : [key, ...media]);
+    draw();
+  };
+  window.addEventListener('keydown', onKey, true);                 // before the dialog's own Escape handling
+  new MutationObserver((_, o) => { if (!box.isConnected) { window.removeEventListener('keydown', onKey, true); o.disconnect(); } }).observe(document.body, { childList: true, subtree: true });
+  draw();
+  return [box, el('p.note', {}, t('Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.')),
+    el('div.btnrow', {}, button('Reset to defaults', () => { App.keys.reset(); draw(); }, 'ghost'))];
+}
+// F1: your keys for the actions, plus the fixed shortcuts
+const FIXED_SHORTCUTS = [
+  ['Hide interface', ['Ctrl', '\\']], ['Jump to 0–90%', ['0 – 9']], ['Open files', ['Ctrl', 'O']], ['Open folder', ['Ctrl', 'F']], ['Open network stream', ['Ctrl', 'N']],
+  ['Media information', ['Ctrl', 'I']], ['Settings', ['Ctrl', 'P']], ['Library: home / videos / music / network / playlists / recent', ['Ctrl', '1 – 6']],
+  ['Interface size', ['Ctrl', '+ − 0']], ['Keyboard shortcuts', ['F1']], ['Quit VLC', ['Ctrl', 'Q']],
+];
+
 const VIDEO_PRESETS = {
   '': ['Default', {}],
   vivid: ['Vivid', { brightness: 105, contrast: 115, saturate: 160, gamma: 1, sepia: 0, gray: false }],
@@ -283,7 +326,7 @@ function pages(App) {
       sec('Data', el('p.note', {}, t('VLC does not collect any data. Everything is stored locally on this computer.'))),
     ],
     controls: () => [
-      sec('Keyboard shortcuts', el('div.kbtable', {}, SHORTCUTS.map(([l, k]) => el('div.kbrow', { dataset: { search: t(l) } }, el('span', {}, t(l)), keycaps(k))))),
+      sec('Keyboard shortcuts', ...keyEditor(App)),
       sec('Mouse',
         row('Scroll wheel in player', select([['volume', 'Volume'], ['seek', 'Seek'], ['none', 'Nothing']], { get: () => S.get('wheel') || 'volume', set: v => S.set('wheel', v), path: 'wheel' })),
         row('Double-click in player', select([['fullscreen', 'Fullscreen'], ['play', 'Play / pause']], { get: () => S.get('dblclick') || 'fullscreen', set: v => S.set('dblclick', v), path: 'dblclick' }))),
@@ -495,9 +538,10 @@ async function newPlaylist(App) {
   return App.createPlaylist(r, files, cover, true);
 }
 function shortcuts() {
-  const half = Math.ceil(SHORTCUTS.length / 2);
-  const col = list => el('div.kbcol', {}, list.map(([l, k]) => el('div.kbrow', {}, el('span', {}, t(l)), keycaps(k))));
-  return dialog({ title: 'Keyboard shortcuts', width: 820, body: el('div.kbgrid', {}, col(SHORTCUTS.slice(0, half)), col(SHORTCUTS.slice(half))), buttons: [{ label: 'Close', primary: true, value: true }] });
+  const App = window.App, rows = [...App.keys.actions().filter(a => a.keys.length).map(a => [a.label, null, a.keys]), ...FIXED_SHORTCUTS];
+  const half = Math.ceil(rows.length / 2);
+  const col = list => el('div.kbcol', {}, list.map(([l, k, mine]) => el('div.kbrow', {}, el('span', {}, t(l)), mine ? keyChips(mine) : keycaps(k))));
+  return dialog({ title: 'Keyboard shortcuts', width: 820, body: el('div.kbgrid', {}, col(rows.slice(0, half)), col(rows.slice(half))), buttons: [{ label: 'Close', primary: true, value: true }] });
 }
 
 

@@ -92,6 +92,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Video:** brightness, contrast, saturation, hue, gamma, sharpen, film grain, negative, posterize, grayscale, sepia, pixel cropping, rotate, zoom and mirror.
 - **Themes:** light, dark, AMOLED black or system, with 9 accent colors, and an interface size from 75% to 150% (*Settings → General*, or Ctrl + / Ctrl − / Ctrl 0).
 - **Recording** (R) and **snapshots** (Shift+S).
+- **Your own keys:** every keyboard shortcut can be changed under *Settings → Controls*, and the media keys (play/pause, next, previous, stop) work too, also from the Windows media overlay, Linux (MPRIS) and headsets.
 - **Settings:** right-click menu with submenus, quick settings in the player, and a full settings window with search (Ctrl+P).
 
 <details>
@@ -150,9 +151,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.11.0"
-git tag v1.11.0
-git push origin v1.11.0
+# first set the version in app/package.json, e.g. "version": "1.11.1"
+git tag v1.11.1
+git push origin v1.11.1
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

@@ -600,3 +600,27 @@ I18N.add('pt', {
 I18N.add('pt', {
  "Cannot play this file: {name}": "Não é possível reproduzir este ficheiro: {name}"
 });
+
+// v1.11.1: changeable keys
+I18N.add('pt', {
+ "Next": "Seguinte",
+ "Previous": "Anterior",
+ "Seek forward": "Avançar",
+ "Seek backward": "Recuar",
+ "Seek 3 s forward": "Avançar 3 s",
+ "Seek 3 s backward": "Recuar 3 s",
+ "Volume up": "Aumentar volume",
+ "Volume down": "Diminuir volume",
+ "Subtitle delay −": "Atraso das legendas −",
+ "Subtitle delay +": "Atraso das legendas +",
+ "Slower": "Mais lento",
+ "Faster": "Mais rápido",
+ "Normal speed": "Velocidade normal",
+ "Next frame": "Fotograma seguinte",
+ "Previous frame": "Fotograma anterior",
+ "Change": "Alterar",
+ "Press a key…": "Prima uma tecla…",
+ "No key": "Sem tecla",
+ "Reset to defaults": "Repor predefinições",
+ "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Clique em Alterar e prima a nova tecla. Esc cancela, Backspace remove a tecla. Cada tecla pertence a uma só ação."
+});

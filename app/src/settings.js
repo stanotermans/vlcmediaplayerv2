@@ -6,7 +6,7 @@ const DEFAULTS = {
   onboarded: false, language: '', theme: 'dark', accent: '#f28c1b',
   confirmDialogs: true, autoUpdate: true, lastUpdateCheck: 0, skipVersion: '', devMode: false, logOn: false, logFile: '', logLevel: 'error',
   // interface
-  uiScale: 100, startView: 'videos', audioLabel: false, audioBg: 'blur', audioBgDim: 65, coverSize: 40, ctl: { prevnext: true, play: true, time: true, volume: true, audio: true, subs: true, settings: true, library: true },
+  uiScale: 100, keys: {}, startView: 'videos', audioLabel: false, audioBg: 'blur', audioBgDim: 65, coverSize: 40, ctl: { prevnext: true, play: true, time: true, volume: true, audio: true, subs: true, settings: true, library: true },
   navExpanded: false, autoHideSide: true, fitWindow: true, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, dimWatched: true, showBadge: true,
   // privacy
   rememberRecent: true, resume: true,

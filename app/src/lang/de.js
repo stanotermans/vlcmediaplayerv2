@@ -600,3 +600,27 @@ I18N.add('de', {
 I18N.add('de', {
  "Cannot play this file: {name}": "Diese Datei kann nicht abgespielt werden: {name}"
 });
+
+// v1.11.1: changeable keys
+I18N.add('de', {
+ "Next": "Weiter",
+ "Previous": "Zurück",
+ "Seek forward": "Vorspulen",
+ "Seek backward": "Zurückspulen",
+ "Seek 3 s forward": "3 s vor",
+ "Seek 3 s backward": "3 s zurück",
+ "Volume up": "Lauter",
+ "Volume down": "Leiser",
+ "Subtitle delay −": "Untertitelverzögerung −",
+ "Subtitle delay +": "Untertitelverzögerung +",
+ "Slower": "Langsamer",
+ "Faster": "Schneller",
+ "Normal speed": "Normale Geschwindigkeit",
+ "Next frame": "Nächstes Bild",
+ "Previous frame": "Vorheriges Bild",
+ "Change": "Ändern",
+ "Press a key…": "Taste drücken…",
+ "No key": "Keine Taste",
+ "Reset to defaults": "Standard wiederherstellen",
+ "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Klicke auf Ändern und drücke die neue Taste. Esc bricht ab, Rücktaste entfernt die Taste. Eine Taste gehört zu genau einer Aktion."
+});

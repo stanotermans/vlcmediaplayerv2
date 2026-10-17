@@ -430,7 +430,8 @@ async function playItem(idx, autoplay = true) {
   if (S.get('rememberRecent')) { state.recent = [it.src, ...state.recent.filter(s => s !== it.src)]; saveRecent(); }
   setupSubs(it);
   buildStoryboard(it);
-  if (isAudio(it) && it.info && it.info.cover && !it.cover) api.cover(it.src).then(c => { if (!c) return; it.cover = c; if (curItem() === it) { setIdle(it); renderLyrics(); } });
+  updateMediaSession(it);
+  if (isAudio(it) && it.info && it.info.cover && !it.cover) api.cover(it.src).then(c => { if (!c) return; it.cover = c; if (curItem() === it) { setIdle(it); renderLyrics(); updateMediaSession(it); } });
   render(); quick && quick.refresh();
 }
 video.addEventListener('loadedmetadata', () => {
@@ -1228,11 +1229,80 @@ api.onOpenPaths(paths => {
   addSources(paths, { play: true });
 });
 
+/* ---------- keyboard: actions with changeable keys (Settings → Controls, #37) ---------- */
+// Keys are KeyboardEvent.key values; printable keys keep their case ("S" = Shift+S), other keys get modifier
+// prefixes ("Shift+ArrowRight"). Media keys (MediaTrackNext …) also arrive through the Media Session below.
+const jumpBy = (d, label) => { seekTo(curTime() + d); osd(label); };
+const KEY_ACTIONS = [
+  ['playPause', 'Play / pause', ['Space', 'k', 'MediaPlayPause'], () => togglePlay()],
+  ['stop', 'Stop', ['s', 'MediaStop'], () => { if (curItem()) { stopPlayback(); osd('Stopped'); } }],
+  ['next', 'Next', ['n', '>', 'MediaTrackNext'], () => step(1)],
+  ['prev', 'Previous', ['p', '<', 'MediaTrackPrevious'], () => prev()],
+  ['seekFwd', 'Seek forward', ['ArrowRight'], () => jumpBy(S.get('jump'), '+' + S.get('jump') + ' s')],
+  ['seekBack', 'Seek backward', ['ArrowLeft'], () => jumpBy(-S.get('jump'), '−' + S.get('jump') + ' s')],
+  ['seekFwdShort', 'Seek 3 s forward', ['Shift+ArrowRight'], () => jumpBy(3, '+3 s')],
+  ['seekBackShort', 'Seek 3 s backward', ['Shift+ArrowLeft'], () => jumpBy(-3, '−3 s')],
+  ['volUp', 'Volume up', ['ArrowUp'], () => { video.muted = false; setVol(volume + .05); osd(t('Volume {v}%', { v: Math.round(volume * 100) })); }],
+  ['volDown', 'Volume down', ['ArrowDown'], () => { setVol(volume - .05); osd(t('Volume {v}%', { v: Math.round(volume * 100) })); }],
+  ['mute', 'Mute', ['m'], () => toggleMute()],
+  ['fullscreen', 'Fullscreen', ['f'], () => toggleFs()],
+  ['library', 'Library / player', ['l'], () => toggleLibrary()],
+  ['queue', 'Show / hide queue', ['q'], () => toggleQueue()],
+  ['lyrics', 'Show lyrics', ['y'], () => toggleLyrics()],
+  ['subs', 'Cycle subtitle track', ['v'], () => cycleSubs()],
+  ['audio', 'Cycle audio track', ['b'], () => cycleAudio()],
+  ['subMinus', 'Subtitle delay −', ['g'], () => nudgeSub(-0.1)],
+  ['subPlus', 'Subtitle delay +', ['h'], () => nudgeSub(0.1)],
+  ['snapshot', 'Snapshot', ['S'], () => snapshot()],
+  ['record', 'Record', ['r', 'R'], () => toggleRecord()],
+  ['slower', 'Slower', ['['], () => { video.playbackRate = Math.max(.25, +(video.playbackRate - .25).toFixed(2)); osd(t('Speed {v}×', { v: video.playbackRate })); }],
+  ['faster', 'Faster', [']'], () => { video.playbackRate = Math.min(4, +(video.playbackRate + .25).toFixed(2)); osd(t('Speed {v}×', { v: video.playbackRate })); }],
+  ['normalSpeed', 'Normal speed', ['='], () => { video.playbackRate = 1; osd(t('Speed {v}×', { v: 1 })); }],
+  ['frameNext', 'Next frame', ['.'], () => frameStep(1)],
+  ['framePrev', 'Previous frame', [','], () => frameStep(-1)],
+];
+function frameStep(dir) { if (!curItem()) return; video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }
+const keyOf = e => {
+  const mods = (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '');
+  if (e.key === ' ') return mods + 'Space';
+  return mods + (e.key.length === 1 ? e.key : (e.shiftKey ? 'Shift+' : '') + e.key);
+};
+const keysFor = id => { const c = S.get('keys') || {}; const a = KEY_ACTIONS.find(x => x[0] === id); return c[id] || (a ? a[2] : []); };
+function keyLookup() { const m = new Map(); for (const [id] of KEY_ACTIONS) for (const k of keysFor(id)) if (!m.has(k)) m.set(k, id); return m; }
+// Hardware media keys can arrive both as a key press and as a Media Session action: run them once.
+let lastMedia = 0;
+function runAction(id, media) {
+  if (media) { const now = performance.now(); if (now - lastMedia < 350) return; lastMedia = now; }
+  const a = KEY_ACTIONS.find(x => x[0] === id); if (a) a[3]();
+}
+// Give one action a new key (removed from any other action that had it); [] removes its keys.
+function setKeys(id, keys) {
+  const c = { ...(S.get('keys') || {}) };
+  for (const k of keys) for (const [other] of KEY_ACTIONS) if (other !== id && keysFor(other).includes(k)) c[other] = keysFor(other).filter(x => x !== k);
+  c[id] = keys; S.set('keys', c);
+}
+/* media keys, the Windows media overlay, MPRIS on Linux, headset buttons */
+if ('mediaSession' in navigator) {
+  const byKey = k => () => { const id = keyLookup().get(k); if (id) runAction(id, true); };
+  const ms = navigator.mediaSession;
+  [['play', 'MediaPlayPause'], ['pause', 'MediaPlayPause'], ['nexttrack', 'MediaTrackNext'], ['previoustrack', 'MediaTrackPrevious'], ['stop', 'MediaStop']]
+    .forEach(([action, key]) => { try { ms.setActionHandler(action, byKey(key)); } catch {} });
+  try { ms.setActionHandler('seekto', d => { if (d.seekTime != null) seekTo(d.seekTime); }); } catch {}
+  video.addEventListener('play', () => { ms.playbackState = 'playing'; });
+  video.addEventListener('pause', () => { ms.playbackState = 'paused'; });
+}
+function updateMediaSession(it) {
+  if (!('mediaSession' in navigator) || !it) return;
+  const art = it.cover || it.thumb, info = it.info || {};
+  try { navigator.mediaSession.metadata = new MediaMetadata({ title: it.name, artist: info.artist || '', album: info.album || '', artwork: art ? [{ src: art, sizes: '512x512', type: 'image/jpeg' }] : [] }); } catch {}
+}
 /* ---------- keyboard ---------- */
 document.addEventListener('keydown', e => {
   if (UI.dialogOpen() || document.querySelector('.ob-layer')) return;
   if (e.target.matches?.('input:not([type=range]),select,textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
   const k = e.key, low = k.toLowerCase(), jump = S.get('jump');
+  const custom = e.ctrlKey && keyLookup().get(keyOf(e));
+  if (custom) { e.preventDefault(); return runAction(custom); }
   if (e.ctrlKey) {
     const zoom = d => { const v = d ? Math.min(150, Math.max(75, S.get('uiScale') + d)) : 100; S.set('uiScale', v); osd(t('Interface size {v}%', { v })); };
     const VIEWS = ['home', 'videos', 'music', 'network', 'playlists', 'recent'];
@@ -1243,31 +1313,12 @@ document.addEventListener('keydown', e => {
   }
   if (k === 'F1') { e.preventDefault(); return Panels.shortcuts(); }
   if (k === 'F11') { e.preventDefault(); return toggleFs(); }
-  if (e.metaKey || e.altKey) return;
+  if (e.metaKey) return;
+  // your keys (or the defaults) for the actions above
+  const act = keyLookup().get(keyOf(e));
+  if (act) { e.preventDefault(); return runAction(act, /^Media/.test(e.key)); }
+  if (e.altKey) return;
   switch (k) {
-    case ' ': case 'k': e.preventDefault(); togglePlay(); break;
-    case 'ArrowRight': e.preventDefault(); seekTo(curTime() + (e.shiftKey ? 3 : jump)); osd('+' + (e.shiftKey ? 3 : jump) + ' s'); break;
-    case 'ArrowLeft': e.preventDefault(); seekTo(curTime() - (e.shiftKey ? 3 : jump)); osd('−' + (e.shiftKey ? 3 : jump) + ' s'); break;
-    case 'ArrowUp': e.preventDefault(); video.muted = false; setVol(volume + .05); osd(t('Volume {v}%', { v: Math.round(volume * 100) })); break;
-    case 'ArrowDown': e.preventDefault(); setVol(volume - .05); osd(t('Volume {v}%', { v: Math.round(volume * 100) })); break;
-    case 'm': toggleMute(); break;
-    case 'f': toggleFs(); break;
-    case 'n': case '>': step(1); break;
-    case 'p': case '<': prev(); break;
-    case 'q': toggleQueue(); break;
-    case 'l': toggleLibrary(); break;
-    case 'y': toggleLyrics(); break;
-    case 'v': cycleSubs(); break;
-    case 'b': cycleAudio(); break;
-    case 'g': nudgeSub(-0.1); break;
-    case 'h': nudgeSub(0.1); break;
-    case 'S': snapshot(); break;
-    case 's': if (curItem()) { stopPlayback(); osd('Stopped'); } break;
-    case 'r': case 'R': toggleRecord(); break;
-    case '[': video.playbackRate = Math.max(.25, +(video.playbackRate - .25).toFixed(2)); osd(t('Speed {v}×', { v: video.playbackRate })); break;
-    case ']': video.playbackRate = Math.min(4, +(video.playbackRate + .25).toFixed(2)); osd(t('Speed {v}×', { v: video.playbackRate })); break;
-    case '=': video.playbackRate = 1; osd(t('Speed {v}×', { v: 1 })); break;
-    case '.': case ',': if (!curItem()) break; video.pause(); if (P.tx) seekTo(curTime() + (k === '.' ? 0.04 : -0.04)); else video.currentTime = Math.max(0, video.currentTime + (k === '.' ? 1 / 30 : -1 / 30)); break;
     case 'Escape':
       if (document.body.classList.contains('hide-ui')) toggleHideUI();
       else if ($('#settings').classList.contains('show')) quick.hide();
@@ -1344,7 +1395,8 @@ const App = {
   clearPositions: () => { for (const k in positions) delete positions[k]; store.set('pos', positions); watched = new Set(); saveWatched(); state.items.forEach(i => i.progress = 0); render(); App.osd('Playback positions cleared'); },
   audioTracks, audioTrack: () => P.audio, setAudioTrack,
   subTracks: () => [[-1, 'Off'], ...SUB.tracks.map((t, i) => [i, t.label])], subActive: () => SUB.active, selectSub, loadSubFile, sub: subSync,
-  reloadSource, showOnboarding, applyLog, viewTitle, addSubFile, current: () => curItem(),
+  reloadSource, showOnboarding, applyLog, viewTitle,
+  keys: { actions: () => KEY_ACTIONS.map(([id, label, def]) => ({ id, label, keys: keysFor(id), changed: JSON.stringify(keysFor(id)) !== JSON.stringify(def) })), set: setKeys, reset: () => S.set('keys', {}), of: keyOf }, addSubFile, current: () => curItem(),
   update: { get: () => Upd, check: checkUpdates, install: installUpdate, label: updActionLabel, on: fn => Upd.fns.push(fn), off: fn => { const i = Upd.fns.indexOf(fn); if (i >= 0) Upd.fns.splice(i, 1); } },
 };
 function showOnboarding() {

@@ -600,3 +600,27 @@ I18N.add('fr', {
 I18N.add('fr', {
  "Cannot play this file: {name}": "Impossible de lire ce fichier : {name}"
 });
+
+// v1.11.1: changeable keys
+I18N.add('fr', {
+ "Next": "Suivant",
+ "Previous": "Précédent",
+ "Seek forward": "Avancer",
+ "Seek backward": "Reculer",
+ "Seek 3 s forward": "Avancer de 3 s",
+ "Seek 3 s backward": "Reculer de 3 s",
+ "Volume up": "Volume +",
+ "Volume down": "Volume −",
+ "Subtitle delay −": "Décalage des sous-titres −",
+ "Subtitle delay +": "Décalage des sous-titres +",
+ "Slower": "Plus lent",
+ "Faster": "Plus rapide",
+ "Normal speed": "Vitesse normale",
+ "Next frame": "Image suivante",
+ "Previous frame": "Image précédente",
+ "Change": "Modifier",
+ "Press a key…": "Appuyez sur une touche…",
+ "No key": "Aucune touche",
+ "Reset to defaults": "Rétablir les valeurs par défaut",
+ "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Cliquez sur Modifier puis appuyez sur la nouvelle touche. Échap annule, Retour arrière supprime la touche. Une touche ne peut servir qu’à une action."
+});
