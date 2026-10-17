@@ -524,6 +524,13 @@ ipcMain.on('win', (_e, act) => {
 // Resize the window so the video area matches the video's aspect ratio (VLC-style).
 // chromeW/chromeH = window size minus the video area. Small videos are scaled up to 720 px wide;
 // the window is never larger than 70% of the screen it is on.
+// Window geometry in screen DIPs (also shown in Settings → ⓘ About on Linux, to diagnose tiling detection).
+function winGeometry() {
+  const b = win.getBounds(), d = screen.getDisplayMatching(b);
+  return { bounds: b, workArea: d.workArea, size: d.size, scale: d.scaleFactor, maximized: win.isMaximized(), fullscreen: win.isFullScreen(),
+    session: process.env.XDG_SESSION_TYPE || '', desktop: process.env.XDG_CURRENT_DESKTOP || '', ozone: app.commandLine.getSwitchValue('ozone-platform') || '' };
+}
+ipcMain.handle('win-geometry', () => (win ? winGeometry() : null));
 ipcMain.handle('fit-window', (_e, { chromeW, chromeH, vw, vh }) => {
   if (!win || win.isMaximized() || win.isFullScreen() || !(vw > 0 && vh > 0)) return false;
   const b = win.getBounds(), wa = screen.getDisplayMatching(b).workArea;
@@ -585,17 +592,25 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.on('maximize', () => win.webContents.send('maximized', true));
   win.on('unmaximize', () => win.webContents.send('maximized', false));
-  // Snapped/tiled (e.g. GNOME split screen) is not "maximized", but the window touches the screen edges:
-  // report it so rounded corners are switched off there too.
+  // Snapped/tiled windows (e.g. GNOME split screen) are not "maximized", yet should get square corners (#18).
+  // X11/Windows: the window touches work-area edges. Wayland gives no window position (always 0,0) and usually no
+  // work area either (it equals the full screen, top bar included), and Electron does not expose xdg_toplevel's
+  // tiled state (electron#48357). So there a window counts as tiled by its size, measured here in screen DIPs
+  // (independent of the page zoom): 40–60 % or the full screen width, and the full height minus at most 80 px for
+  // a top bar or dock.
   let snapped = null;
   const checkSnap = () => {
     if (!win || win.isDestroyed()) return;
-    const b = win.getBounds(), wa = screen.getDisplayMatching(b).workArea, near = (a, c) => Math.abs(a - c) <= 2;
+    const g = winGeometry(), b = g.bounds, wa = g.workArea, sz = g.size, near = (a, c, t = 3) => Math.abs(a - c) <= t;
     const top = near(b.y, wa.y), bottom = near(b.y + b.height, wa.y + wa.height), left = near(b.x, wa.x), right = near(b.x + b.width, wa.x + wa.width);
-    const s = !win.isMaximized() && ((top && bottom && (left || right)) || (left && right && (top || bottom)));
-    if (s !== snapped) { snapped = s; win.webContents.send('snapped', s); }
+    const byEdges = (top && bottom && (left || right)) || (left && right && (top || bottom));
+    const fullH = b.height >= Math.min(wa.height, sz.height) - 80 && b.height <= sz.height + 2;
+    const wFrac = b.width / Math.min(wa.width, sz.width), bySize = fullH && ((wFrac >= 0.4 && wFrac <= 0.6) || wFrac >= 0.97);
+    const s = !g.maximized && !g.fullscreen && (byEdges || (process.platform === 'linux' && bySize));
+    if (s !== snapped) { snapped = s; win.webContents.send('snapped', s); log('info', `window ${b.width}x${b.height} at ${b.x},${b.y}; screen ${sz.width}x${sz.height}; work area ${wa.width}x${wa.height} at ${wa.x},${wa.y}; snapped=${s}`); }
   };
-  win.on('resize', checkSnap); win.on('move', checkSnap); win.webContents.on('did-finish-load', () => { snapped = null; checkSnap(); });
+  win.on('resize', checkSnap); win.on('move', checkSnap); win.on('maximize', checkSnap); win.on('unmaximize', checkSnap);
+  win.webContents.on('did-finish-load', () => { snapped = null; checkSnap(); });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
 }

@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('api', {
   onOpenPaths: cb => ipcRenderer.on('open-paths', (_e, p) => cb(p)),
   onMaximized: cb => ipcRenderer.on('maximized', (_e, m) => cb(m)),
   onSnapped: cb => ipcRenderer.on('snapped', (_e, s) => cb(s)),
+  winGeometry: () => inv('win-geometry'),
   fitWindow: sizes => inv('fit-window', sizes),
   cover: src => inv('cover', src),
   lyrics: file => inv('lyrics', file),

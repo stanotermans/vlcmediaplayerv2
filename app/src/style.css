@@ -549,7 +549,7 @@ body.rounded-win.maxed #app,body.rounded-win.fullscreen #app{border-radius:0;bor
 #player.audio-bg .lyr-bg{display:none}
 #idle .np-cover{width:min(calc(var(--cover,40) * 1cqmin),100cqw,100cqh);max-width:none;border-radius:min(8px,1.2cqmin)}
 /* square corners when snapped / tiled, like maximized */
-body.rounded-win.snapped #app,body.rounded-win.snapped-size #app{border-radius:0;border:0}
+body.rounded-win.snapped #app{border-radius:0;border:0}
 /* cover ⇄ lyrics switch */
 #lyrSwitch{position:absolute;top:12px;left:12px;z-index:3;display:none;align-items:center;gap:6px;padding:5px 10px 5px 8px;border-radius:14px;background:#0008;color:#ddd;font-size:12px;backdrop-filter:blur(6px)}
 #lyrSwitch.show{display:flex}

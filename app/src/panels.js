@@ -387,7 +387,12 @@ function pages(App) {
       new MutationObserver((_, o) => { if (!keepAlive.isConnected) { App.update.off(draw); o.disconnect(); } }).observe(document.body, { childList: true, subtree: true });
       return [keepAlive,
         el('div.about-head', {}, el('img.about-icon', { src: '../build/icon.png', alt: '' }),
-          el('div', {}, el('h2', {}, 'VLC Redesign'), el('p.about-ver', {}, t('Version {v}', { v: info.version || '' }) + ` · ${info.platform || ''} ${info.arch || ''}${info.portable ? ' · portable' : ''}`))),
+          el('div', {}, el('h2', {}, 'VLC Redesign'), el('p.about-ver', {}, t('Version {v}', { v: info.version || '' }) + ` · ${info.platform || ''} ${info.arch || ''}${info.portable ? ' · portable' : ''}`),
+            info.platform === 'linux' ? (() => {                    // window/screen numbers, for reports about tiling and rounded corners
+              const p = el('p.about-ver.diag');
+              api.winGeometry().then(g => { if (!g) return; const b = g.bounds, w = g.workArea, s = g.size;
+                p.textContent = `${g.session || '?'}${g.desktop ? ' · ' + g.desktop : ''} · window ${b.width}×${b.height} · screen ${s.width}×${s.height} · work area ${w.width}×${w.height} · scale ${g.scale}${document.body.classList.contains('snapped') ? ' · tiled' : ''}`; });
+              return p; })() : null)),
         el('p.about-note', {}, t('Unofficial fan project. Not made by or affiliated with VideoLAN, the makers of VLC media player.')),
         sec('Updates', row('Check for updates automatically', toggle('autoUpdate')), status, actions),
         sec('Credits',

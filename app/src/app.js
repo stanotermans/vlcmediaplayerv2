@@ -674,17 +674,18 @@ $('#miniClose').onclick = stopPlayback;
 $('#miniCanvasWrap').onclick = showPlayer;
 $('#listBtn').onclick = toggleLibrary;
 function toggleLibrary() { mode === 'player' ? showBrowser() : showPlayer(); }
-video.addEventListener('click', togglePlay);
-$('#player').addEventListener('dblclick', e => { if ((S.get('dblclick') || 'fullscreen') === 'fullscreen') toggleFs(); else togglePlay(); });
+// A single click waits briefly: if it turns out to be a double click (fullscreen), it must not also pause and
+// resume the video (#32).
+let clickT = null;
+function clickToggle() { clearTimeout(clickT); clickT = setTimeout(() => { clickT = null; togglePlay(); }, 230); }
+video.addEventListener('click', clickToggle);
+$('#player').addEventListener('dblclick', e => { clearTimeout(clickT); clickT = null; if ((S.get('dblclick') || 'fullscreen') === 'fullscreen') toggleFs(); else togglePlay(); });
 $('#fsBtn2').onclick = toggleFs;
 $('#minBtn').onclick = () => api.win('min');
 $('#maxBtn').onclick = () => api.win('max');
 $('#closeBtn').onclick = () => { savePos(); stopRecord(); api.win('close'); };
 api.onSnapped(s => document.body.classList.toggle('snapped', s));
-// Wayland (e.g. GNOME) doesn't tell apps where their window is, so the position check above can't see tiling there.
-// A window as tall or as wide as the usable screen is snapped/tiled (or maximized): square corners too (#18).
-const sizeSnap = () => document.body.classList.toggle('snapped-size', outerHeight >= screen.availHeight - 4 || outerWidth >= screen.availWidth - 4);
-addEventListener('resize', sizeSnap); sizeSnap();
+
 api.onMaximized(m => { document.body.classList.toggle('maxed', m); $('#maxIcon').innerHTML = m ? '<rect x="8" y="5" width="11" height="11" rx="1"/><path d="M5 8v10a1 1 0 0 0 1 1h10"/>' : '<rect x="6" y="6" width="12" height="12" rx="1"/>'; });
 $('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('button')) api.win('max'); });
 function toggleFs() { fsForLibrary = false; if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
@@ -862,7 +863,7 @@ function syncLyrics() {
 $('#lyrSwitch').addEventListener('click', e => { e.stopPropagation(); toggleLyrics(); });
 $('#lyrics').addEventListener('click', e => {
   const line = e.target.closest('.lyr-line');
-  if (line && LYR.synced) { seekTo(LYR.lines[+line.dataset.i].t); LYR.idx = -2; } else if (!line) togglePlay();
+  if (line && LYR.synced) { seekTo(LYR.lines[+line.dataset.i].t); LYR.idx = -2; } else if (!line) clickToggle();
 });
 addEventListener('resize', () => { LYR.idx = -2; });
 /* ---------- music stage: background (blur / gradient / black / default) with dim, and cover size ---------- */
