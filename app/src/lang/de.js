@@ -656,5 +656,15 @@ I18N.add('de', {
  "Export bookmarks": "Lesezeichen exportieren",
  "Bookmarks exported": "Lesezeichen exportiert",
  "Shift+N and Shift+P jump to the next and previous chapter or bookmark. Export saves your bookmarks (or the chapters if you have none) as a chapter file that other players and MKVToolNix can read.": "Umschalt+N und Umschalt+P springen zum nächsten und vorherigen Kapitel oder Lesezeichen. Exportieren speichert deine Lesezeichen (oder die Kapitel, wenn du keine hast) als Kapiteldatei, die andere Player und MKVToolNix lesen können.",
- "Jump to": "Springen zu"
+ "Jump to": "Springen zu",
+ "A-B repeat: A set at {time}": "A-B-Wiederholung: A bei {time} gesetzt",
+ "Point B must come after point A": "Punkt B muss nach Punkt A kommen",
+ "A-B repeat: {a} – {b}": "A-B-Wiederholung: {a} – {b}",
+ "A-B repeat off": "A-B-Wiederholung aus",
+ "A-B repeat (set A, set B, off)": "A-B-Wiederholung (A setzen, B setzen, aus)",
+ "A-B repeat": "A-B-Wiederholung",
+ "Set point A ({time})": "Punkt A setzen ({time})",
+ "Set point A": "Punkt A setzen",
+ "Set point B ({time})": "Punkt B setzen ({time})",
+ "Set point B": "Punkt B setzen"
 });

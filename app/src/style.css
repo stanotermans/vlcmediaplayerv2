@@ -600,3 +600,5 @@ input.bmname{flex:1;min-width:0}
 #seekPreview.textonly canvas{display:none}
 #seekPreview.textonly{padding-top:12px}
 #seekPreview.textonly .pv-title{font-size:15px}
+#seekMarks .abzone{position:absolute;top:-3px;bottom:-3px;border:2px solid var(--accent);border-radius:5px;background:color-mix(in srgb,var(--accent) 22%,transparent);box-sizing:border-box;min-width:4px}
+#seekMarks .abzone.open{border-right:0;border-radius:5px 0 0 5px;width:6px!important;background:none}

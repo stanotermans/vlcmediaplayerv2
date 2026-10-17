@@ -656,5 +656,15 @@ I18N.add('nl', {
  "Export bookmarks": "Bladwijzers exporteren",
  "Bookmarks exported": "Bladwijzers geëxporteerd",
  "Shift+N and Shift+P jump to the next and previous chapter or bookmark. Export saves your bookmarks (or the chapters if you have none) as a chapter file that other players and MKVToolNix can read.": "Shift+N en Shift+P springen naar het volgende en vorige hoofdstuk of de volgende en vorige bladwijzer. Exporteren slaat je bladwijzers (of de hoofdstukken als je er geen hebt) op als hoofdstukbestand dat andere spelers en MKVToolNix kunnen lezen.",
- "Jump to": "Ga naar"
+ "Jump to": "Ga naar",
+ "A-B repeat: A set at {time}": "A-B herhalen: A gezet op {time}",
+ "Point B must come after point A": "Punt B moet na punt A komen",
+ "A-B repeat: {a} – {b}": "A-B herhalen: {a} – {b}",
+ "A-B repeat off": "A-B herhalen uit",
+ "A-B repeat (set A, set B, off)": "A-B herhalen (A zetten, B zetten, uit)",
+ "A-B repeat": "A-B herhalen",
+ "Set point A ({time})": "Punt A zetten ({time})",
+ "Set point A": "Punt A zetten",
+ "Set point B ({time})": "Punt B zetten ({time})",
+ "Set point B": "Punt B zetten"
 });

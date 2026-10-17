@@ -656,5 +656,15 @@ I18N.add('fr', {
  "Export bookmarks": "Exporter les signets",
  "Bookmarks exported": "Signets exportés",
  "Shift+N and Shift+P jump to the next and previous chapter or bookmark. Export saves your bookmarks (or the chapters if you have none) as a chapter file that other players and MKVToolNix can read.": "Maj+N et Maj+P passent au chapitre ou signet suivant et précédent. Exporter enregistre vos signets (ou les chapitres si vous n’en avez pas) dans un fichier de chapitres lisible par d’autres lecteurs et MKVToolNix.",
- "Jump to": "Aller à"
+ "Jump to": "Aller à",
+ "A-B repeat: A set at {time}": "Répétition A-B : A placé à {time}",
+ "Point B must come after point A": "Le point B doit venir après le point A",
+ "A-B repeat: {a} – {b}": "Répétition A-B : {a} – {b}",
+ "A-B repeat off": "Répétition A-B désactivée",
+ "A-B repeat (set A, set B, off)": "Répétition A-B (placer A, placer B, désactiver)",
+ "A-B repeat": "Répétition A-B",
+ "Set point A ({time})": "Placer le point A ({time})",
+ "Set point A": "Placer le point A",
+ "Set point B ({time})": "Placer le point B ({time})",
+ "Set point B": "Placer le point B"
 });

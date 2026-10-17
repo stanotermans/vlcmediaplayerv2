@@ -442,6 +442,7 @@ function setIdle(it) {
 async function playItem(idx, autoplay = true) {
   const it = state.items[idx]; if (!it) return;
   savePos();
+  abClear(true);
   state.current = idx; P.audio = 0; P.retried = false; P.forceReencode = false; P.fit = true; sideOverride = false;
   showPlayer(); render(); setSpinner(true);
   video.removeAttribute('src'); video.load();
@@ -497,6 +498,7 @@ video.addEventListener('pause', () => { setPlayIcon(); savePos(); });
 video.addEventListener('ended', () => {
   const it = curItem();
   if (it) { it.progress = 0; delete positions[it.src]; store.set('pos', positions); watched.add(it.src); saveWatched(); }
+  if (AB.b != null) { P.tx ? loadSource(AB.a, true) : (video.currentTime = AB.a, video.play()); return; }   // B at the very end
   if (S.get('repeat') === 'one') { P.tx ? loadSource(0, true) : (video.currentTime = 0, video.play()); }
   else if (S.get('autoNext') || S.get('repeat') === 'all') step(1, true);
   else { setPlayIcon(); render(); }
@@ -608,7 +610,32 @@ function renderMarks() {
   box.replaceChildren(
     ...chaptersOf(it).filter(c => c.start > 0.5 && c.start < d - 0.5).map(c => mk('chap', pct(c.start))),
     ...bookmarksOf(it).map(b => mk('bmark', pct(b.t), `${b.name} · ${fmt(b.t)}`)));
+  if (AB.a != null) {                                        // A-B repeat: the looped part, or just A while B is not set yet
+    const r = mk('abzone' + (AB.b == null ? ' open' : ''), pct(AB.a));
+    r.style.width = AB.b != null ? `calc(${pct(AB.b)} - ${pct(AB.a)})` : '0';
+    box.append(r);
+  }
 }
+/* ---------- A-B repeat (#42): loop the part between two points ---------- */
+const AB = { a: null, b: null };
+// One key cycles like VLC: set A → set B (the loop starts) → off
+function abCycle() {
+  if (!curItem()) return;
+  const now = curTime();
+  if (AB.a == null || AB.b != null) { if (AB.b != null) return abClear(); AB.a = now; osd(t('A-B repeat: A set at {time}', { time: fmt(now) })); }
+  else if (now <= AB.a + 0.3) return osd('Point B must come after point A');
+  else { AB.b = now; seekTo(AB.a); osd(t('A-B repeat: {a} – {b}', { a: fmt(AB.a), b: fmt(AB.b) })); }
+  renderMarks();
+}
+function abSet(which) {
+  const now = curTime(); if (!curItem()) return;
+  if (which === 'a') { AB.a = now; if (AB.b != null && AB.b <= now + 0.3) AB.b = null; }
+  else { if (AB.a == null) AB.a = 0; if (now <= AB.a + 0.3) return osd('Point B must come after point A'); AB.b = now; seekTo(AB.a); }
+  osd(AB.b != null ? t('A-B repeat: {a} – {b}', { a: fmt(AB.a), b: fmt(AB.b) }) : t('A-B repeat: A set at {time}', { time: fmt(AB.a) }));
+  renderMarks();
+}
+function abClear(quiet) { const was = AB.a != null; AB.a = AB.b = null; renderMarks(); if (was && !quiet) osd('A-B repeat off'); }
+// The rest of the A-B loop runs in the frame loop below: past B → back to A
 // The lyric line sung at a moment (synced .lrc), for the timeline preview of music (#41); '♪' between lines
 function lyricAt(at) {
   const lines = LYR.hover; if (!lines) return '';
@@ -874,6 +901,7 @@ const subSync = { delay: 0, speed: 1, dur: 0 };
   }
   if (htmlSub !== lastSub) { $('#subs').innerHTML = htmlSub; lastSub = htmlSub; }
   if (LYR.shown && LYR.synced) syncLyrics();
+  if (AB.b != null && !video.paused && P.seekTarget == null && curTime() >= AB.b) seekTo(AB.a);
   if (rec) $('#rec span').textContent = 'REC ' + fmt((performance.now() - rec.t0) / 1000).slice(3);
   requestAnimationFrame(frame);
 })();
@@ -1220,6 +1248,10 @@ function playerMenu(x, y) {
       { label: t('{n} s back', { n: S.get('jump') }), kbd: '←', action: () => seekTo(curTime() - S.get('jump')) },
       { sep: true },
       { label: 'Add bookmark', icon: 'bookmark', kbd: 'Ctrl + B', action: () => addBookmark(), disabled: !it },
+      { sep: true }, { header: 'A-B repeat' },
+      { label: AB.a != null ? t('Set point A ({time})', { time: fmt(AB.a) }) : 'Set point A', kbd: 'A', action: () => abSet('a'), disabled: !it },
+      { label: AB.b != null ? t('Set point B ({time})', { time: fmt(AB.b) }) : 'Set point B', action: () => abSet('b'), disabled: !it },
+      { label: 'A-B repeat off', action: () => abClear(), disabled: AB.a == null },
       { label: 'Next chapter / bookmark', kbd: 'Shift + N', action: () => jumpMark(1), disabled: !it || !markTimes(it).length },
       { label: 'Previous chapter / bookmark', kbd: 'Shift + P', action: () => jumpMark(-1), disabled: !it || !markTimes(it).length },
       { label: 'Chapters and bookmarks…', kbd: 'Ctrl + Shift + B', action: () => Panels.bookmarks(App), disabled: !it },
@@ -1363,6 +1395,7 @@ const KEY_ACTIONS = [
   ['nextChapter', 'Next chapter / bookmark', ['N'], () => jumpMark(1)],
   ['prevChapter', 'Previous chapter / bookmark', ['P'], () => jumpMark(-1)],
   ['bookmark', 'Add bookmark', ['Ctrl+b'], () => addBookmark()],
+  ['abRepeat', 'A-B repeat (set A, set B, off)', ['a'], () => abCycle()],
   ['bookmarks', 'Chapters and bookmarks', ['Ctrl+B'], () => Panels.bookmarks(App)],
 ];
 function frameStep(dir) { if (!curItem()) return; video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }

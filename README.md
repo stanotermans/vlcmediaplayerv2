@@ -85,6 +85,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Playlists:** import `.m3u`, `.m3u8`, `.xspf` and `.pls` files (open, drag or *Playlists → Import playlist…*), an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
 - **Player** with a timeline preview (hover the seek bar to see that moment), mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.
 - **Made for watching:** while a video plays, the sidebar tucks away so the video gets the full width, and the window resizes to the video's shape (up to 70% of the screen, like VLC). Both can be turned off in *Settings → Interface*. There you can also hide individual player controls (e.g. keep only the timeline) and turn on rounded window corners.
+- **A-B repeat:** press A to set the start, A again to set the end and loop that part, and A once more to stop (also in the right-click menu under *Playback*). The looped part is shown on the timeline.
 - **Chapters and bookmarks:** chapters embedded in a file (MKV, MP4, DVD) show as marks on the timeline, with the chapter name above the preview. Add your own bookmarks with Ctrl+B, jump between chapters and bookmarks with Shift+N / Shift+P, and manage, import or export them (OGM chapter files, FFmpeg metadata, Matroska XML, CUE and "1:23 Title" lists) via Ctrl+Shift+B.
 - **Subtitles:** embedded and external `.srt`/`.ass`/`.vtt` files load automatically. You can set the delay, speed, duration, font, color, outline and background.
 - **Subtitle fonts:** pick any font installed on your computer, or add your own `.ttf`/`.otf`/`.woff` files in *Settings → Subtitles*.
@@ -113,7 +114,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 | `Ctrl+O` | Open files | `Ctrl+N` | Network stream |
 | `Ctrl+P` | Settings | `Ctrl+\` | Hide interface |
 | `Shift+N` `Shift+P` | Next / previous chapter or bookmark | `Ctrl+B` | Add bookmark |
-| `Ctrl+Shift+B` | Chapters and bookmarks | | |
+| `Ctrl+Shift+B` | Chapters and bookmarks | `A` | A-B repeat (A, B, off) |
 | `F1` | All shortcuts | `Ctrl+Q` | Quit |
 </details>
 
