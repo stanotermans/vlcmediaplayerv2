@@ -581,3 +581,9 @@ I18N.add('es', {
  "Log in with a free OpenSubtitles.com account to download subtitles.": "Inicia sesión con una cuenta gratuita de OpenSubtitles.com para descargar subtítulos.",
  "Download limit reached for today. It resets at midnight (UTC).": "Límite de descargas alcanzado por hoy. Se reinicia a medianoche (UTC)."
 });
+
+// v1.10.2: subtitle languages
+I18N.add('es', {
+ "Unknown language. Use two-letter codes like en or nl.": "Idioma desconocido. Usa códigos de dos letras como en o es.",
+ "Languages as two-letter codes (en, nl, de …) or names (English, Dutch), separated by commas.": "Idiomas como códigos de dos letras (en, nl, de …) o nombres (inglés, español), separados por comas."
+});

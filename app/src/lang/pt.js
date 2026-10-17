@@ -581,3 +581,9 @@ I18N.add('pt', {
  "Log in with a free OpenSubtitles.com account to download subtitles.": "Inicie sessão com uma conta gratuita do OpenSubtitles.com para transferir legendas.",
  "Download limit reached for today. It resets at midnight (UTC).": "Limite de transferências atingido por hoje. É reposto à meia-noite (UTC)."
 });
+
+// v1.10.2: subtitle languages
+I18N.add('pt', {
+ "Unknown language. Use two-letter codes like en or nl.": "Idioma desconhecido. Use códigos de duas letras como en ou pt.",
+ "Languages as two-letter codes (en, nl, de …) or names (English, Dutch), separated by commas.": "Idiomas em códigos de duas letras (en, nl, de …) ou nomes (inglês, português), separados por vírgulas."
+});

@@ -792,7 +792,7 @@ async function setupSubs(it) {
     for (const f of sib) SUB.tracks.push({ label: baseName(f), src: f, idx: null });
     if (sib.length) return selectSub(SUB.tracks.length - sib.length);
   }
-  const prefs = (S.get('subLang') || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
+  const prefs = I18N.langCodes(S.get('subLang')).map(c => c.slice(0, 2));   // also accepts names like "English"
   if (prefs.length) { const i = SUB.tracks.findIndex(t => !t.bitmap && t.lang && prefs.some(p => t.lang.toLowerCase().startsWith(p))); if (i >= 0) selectSub(i); }
 }
 async function addSubFile(file, select) { if (/\.lrc$/i.test(file)) { if (!await useLyricsFile(file)) osd('No lyrics found'); return quick && quick.refresh(); } SUB.tracks.push({ label: baseName(file), src: file, idx: null }); if (select) await selectSub(SUB.tracks.length - 1); quick && quick.refresh(); }

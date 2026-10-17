@@ -515,14 +515,17 @@ async function searchSubtitles(App) {
   const st = await api.osStatus();
   if (!st.available) return UI.alert ? UI.alert('Search subtitles online', t(OS_ERRORS.nokey)) : App.osd(OS_ERRORS.nokey);
   const query = el('input.txt.wide', { value: subtitleQuery(it.name), placeholder: t('Title, e.g. The Show S01E05') });
-  const langs = el('input.txt', { value: S.get('subLang') || I18N.lang(), placeholder: 'en, nl', style: { width: '110px' } });
+  const langs = el('input.txt', { value: (I18N.langCodes(S.get('subLang')).join(', ') || I18N.lang()), placeholder: t('e.g. en, nl'), style: { width: '130px' } });
   const status = el('p.hint'), list = el('div.osresults');
   // downloading needs an OpenSubtitles account: without one, the login form sits right in this dialog
   const quota = el('div.formcol', {}, osAccountBlock(() => status.textContent = ''));
   let closeDlg = null;
   const run = async () => {
     status.textContent = t('Searching…'); list.replaceChildren();
-    const r = await api.osSearch({ query: query.value.trim(), langs: langs.value, src: it.src });
+    const codes = I18N.langCodes(langs.value);                // "English, Nederlands" works too
+    if (langs.value.trim() && !codes.length) { status.textContent = t('Unknown language. Use two-letter codes like en or nl.'); return; }
+    if (codes.length) langs.value = codes.join(', ');
+    const r = await api.osSearch({ query: query.value.trim(), langs: codes.join(','), src: it.src });
     if (r.error) { status.textContent = osError(r); return; }
     status.textContent = r.results.length ? t('{n} subtitles found', { n: r.results.length }) : t('No subtitles found. Try a shorter title or another language.');
     list.replaceChildren(...r.results.map(s => {
@@ -546,7 +549,7 @@ async function searchSubtitles(App) {
   langs.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
   const body = el('div.formcol', {},
     el('div.osbar', {}, query, langs, button('Search', run, 'primary')),
-    el('p.hint', {}, t('Languages as two-letter codes, separated by commas.')), status, list, quota);
+    el('p.hint', {}, t('Languages as two-letter codes (en, nl, de …) or names (English, Dutch), separated by commas.')), status, list, quota);
   dialog({ title: 'Search subtitles online', body, width: 720, buttons: [{ label: 'Close', value: null }], onOpen: (_b, close) => { closeDlg = close; run(); } });
 }
 // Settings → Subtitles: optional OpenSubtitles login (more downloads per day). Only the session token is stored.

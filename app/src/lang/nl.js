@@ -581,3 +581,9 @@ I18N.add('nl', {
  "Log in with a free OpenSubtitles.com account to download subtitles.": "Log in met een gratis OpenSubtitles.com-account om ondertitels te downloaden.",
  "Download limit reached for today. It resets at midnight (UTC).": "Downloadlimiet voor vandaag bereikt. Die wordt om middernacht (UTC) gereset."
 });
+
+// v1.10.2: subtitle languages
+I18N.add('nl', {
+ "Unknown language. Use two-letter codes like en or nl.": "Onbekende taal. Gebruik tweeletterige codes zoals en of nl.",
+ "Languages as two-letter codes (en, nl, de …) or names (English, Dutch), separated by commas.": "Talen als tweeletterige codes (en, nl, de …) of namen (Engels, Nederlands), gescheiden door komma’s."
+});
