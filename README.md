@@ -75,7 +75,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 ## ✨ Features
 
 - **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more, plus old game and cutscene formats like TGV, Bink and Smacker. Files you open yourself are always tried, whatever the extension. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
-- **DVDs:** open a DVD `.iso` image or a DVD folder (`VIDEO_TS`) and the main title plays. Copy-protected (CSS-encrypted) retail DVDs are not supported.
+- **DVDs:** open a DVD `.iso` image or a DVD folder (`VIDEO_TS`). A disc with several titles (episodes, extras) is added as *Title 1, Title 2, …* in disc order and plays them one after another; DVD menus themselves are not shown. Copy-protected (CSS-encrypted) retail DVDs are not supported.
 - **MIDI:** `.mid`, `.midi`, `.kar` and `.rmi` files play with a built-in General MIDI SoundFont (FluidR3 Mono), with no extra download. Pick your own `.sf2`/`.sf3` SoundFont under *Settings → Audio → MIDI*.
 - **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
 - **Instant seek preview.** Hover the timeline to see a thumbnail; a storyboard of frames is generated in the background so the preview follows your mouse without delay.
@@ -152,9 +152,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.12.0"
-git tag v1.12.0
-git push origin v1.12.0
+# first set the version in app/package.json, e.g. "version": "1.12.1"
+git tag v1.12.1
+git push origin v1.12.1
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

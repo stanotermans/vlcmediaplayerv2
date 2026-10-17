@@ -626,5 +626,8 @@ I18N.add('nl', {
  "Built-in (FluidR3 Mono)": "Ingebouwd (FluidR3 Mono)",
  "The instrument sounds used to play MIDI files (.sf2 or .sf3).": "De instrumentgeluiden waarmee MIDI-bestanden worden afgespeeld (.sf2 of .sf3).",
  "Choose SoundFont": "SoundFont kiezen",
- "Use built-in": "Ingebouwde gebruiken"
+ "Use built-in": "Ingebouwde gebruiken",
+ "Title {n}": "Titel {n}",
+ "Hide the mouse cursor": "Muisaanwijzer verbergen",
+ "When off, the cursor stays visible in fullscreen; only the controls hide.": "Als dit uit staat, blijft de muisaanwijzer zichtbaar in volledig scherm; alleen de bediening verdwijnt."
 });

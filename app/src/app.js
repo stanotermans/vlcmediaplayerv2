@@ -59,7 +59,25 @@ const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.re
 const isAudio = it => it.type === 'audio';
 const AUDIO_RE = /\.(mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc|mid|midi|kar|rmi|smf)$/i;
 // A DVD folder is opened through its VIDEO_TS.IFO; show the folder's name instead ("My DVD", not "VIDEO_TS.IFO").
-const itemName = src => /[\\/]VIDEO_TS[\\/]VIDEO_TS\.IFO$/i.test(src) ? (src.split(/[\\/]/).slice(-3, -2)[0] || 'DVD') : baseName(src);
+// One title of a DVD is "<disc>#t<n>" (#35) and is named "My DVD – Title 3".
+const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)(#t\d+)?$/i;
+const itemName = src => {
+  const tm = /#t(\d+)$/.exec(src), file = tm ? src.slice(0, tm.index) : src;
+  const disc = /[\\/]VIDEO_TS[\\/]VIDEO_TS\.IFO$/i.test(file) ? (file.split(/[\\/]/).slice(-3, -2)[0] || 'DVD') : baseName(file);
+  return tm ? `${disc.replace(/\.iso$/i, '')} – ${t('Title {n}', { n: +tm[1] })}` : disc;
+};
+// A DVD with several titles is added as one item per title, in disc order (the menus themselves cannot be shown).
+async function expandDvds(srcs) {
+  const out = []; let queue = null;
+  for (const s of srcs) {
+    if (!DVD_RE.test(s) || /#t\d+$/.test(s)) { out.push(s); continue; }
+    const titles = await api.dvdTitles(s);
+    if (titles.length < 2) { out.push(s); continue; }
+    const list = titles.map(x => `${s}#t${x.title}`);
+    out.push(...list); queue = queue || list;
+  }
+  return { srcs: out, queue };
+}
 const SUB_RE = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 // TypeScript & co. share .ts with MPEG-TS video; never treat these as media (same rule as main.js)
 const NOT_MEDIA_RE = /\.d\.[cm]?ts$|[\\/]node_modules[\\/]|\.(spec|test|config|module|service|component|types?)\.ts$/i;
@@ -77,6 +95,7 @@ const isWatched = it => watched.has(it.src);
 /* ---------- adding media ---------- */
 async function addSources(srcs, { play = true, silent = false, added, manual = true, extra = null } = {}) {
   const imp = await importPlaylists(srcs.filter(s => !NOT_MEDIA_RE.test(s))); srcs = imp.srcs;
+  if (!added && srcs.some(s => DVD_RE.test(s))) { const dvd = await expandDvds(srcs); srcs = dvd.srcs; imp.queue = imp.queue || dvd.queue; }
   const subs = srcs.filter(s => SUB_RE.test(s));
   const media = srcs.filter(s => !SUB_RE.test(s));
   const newOnes = []; let first = null;
@@ -728,10 +747,11 @@ let hideT, lastXY = ''; document.addEventListener('mousemove', e => {
   document.body.classList.remove('hidecursor'); clearTimeout(hideT);
   hideT = setTimeout(() => {
     const b = document.body.classList;
-    if (!video.paused && !b.contains('fs-top') && !b.contains('fs-bottom')) b.add('hidecursor');
+    if (S.get('hideCursor') !== false && !video.paused && !b.contains('fs-top') && !b.contains('fs-bottom')) b.add('hidecursor');
   }, S.get('hideCursorDelay') * 1000);
 });
 document.documentElement.addEventListener('mouseleave', () => fsZones(null));
+S.on(k => { if (k === 'hideCursor' && !S.get('hideCursor')) document.body.classList.remove('hidecursor'); });
 function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); if (on) showPlayer(); osd(on ? 'Interface hidden – press Ctrl+\\ to show it again' : 'Interface visible'); }
 
 /* ---------- per-frame: mini preview + subtitles ---------- */

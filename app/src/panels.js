@@ -313,6 +313,7 @@ function pages(App) {
         row('Settings', toggle('ctl.settings')), row('Library / player', toggle('ctl.library')),
         el('p.note', {}, t('Hidden controls still work with the keyboard. Press F1 for all shortcuts.'))),
       sec('Fullscreen',
+        row('Hide the mouse cursor', toggle('hideCursor'), { info: 'When off, the cursor stays visible in fullscreen; only the controls hide.' }),
         slider({ label: 'Hide cursor and controls after', min: 1, max: 10, step: 0.5, binding: 'hideCursorDelay', fmt: v => f1(v) + ' s' })),
     ],
     privacy: () => [

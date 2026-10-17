@@ -626,5 +626,8 @@ I18N.add('es', {
  "Built-in (FluidR3 Mono)": "Integrada (FluidR3 Mono)",
  "The instrument sounds used to play MIDI files (.sf2 or .sf3).": "Los sonidos de instrumentos usados para reproducir archivos MIDI (.sf2 o .sf3).",
  "Choose SoundFont": "Elegir SoundFont",
- "Use built-in": "Usar la integrada"
+ "Use built-in": "Usar la integrada",
+ "Title {n}": "Título {n}",
+ "Hide the mouse cursor": "Ocultar el cursor",
+ "When off, the cursor stays visible in fullscreen; only the controls hide.": "Si está desactivado, el cursor sigue visible en pantalla completa; solo se ocultan los controles."
 });

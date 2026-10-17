@@ -50,24 +50,37 @@ function midiWav(src) {
 app.on('will-quit', () => { try { midiProc && midiProc.kill(); fs.rmSync(path.join(app.getPath('temp'), 'vlc-redesign-midi'), { recursive: true, force: true }); } catch {} });
 // DVDs: an .iso image or a VIDEO_TS folder (represented by its VIDEO_TS.IFO). Played with ffmpeg's dvdvideo demuxer
 // (libdvdread/libdvdnav, no decryption: copy-protected retail DVDs do not play).
-const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)$/i;
-const dvdInput = src => /\.iso$/i.test(src) ? src : path.dirname(src);   // the .iso file or the VIDEO_TS folder
-const DVD_TITLE = new Map();                                       // src → main title (the longest one)
-async function dvdTitle(src) {
-  if (DVD_TITLE.has(src)) return DVD_TITLE.get(src);
-  let best = 1, bestDur = -1;
-  for (let t = 1; t <= 60; t++) {                                  // titles are numbered 1…n; stop at the first missing one
-    const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-f', 'dvdvideo', '-title', String(t), '-i', dvdInput(src)], 15000);
-    if (!/Input #0/.test(txt)) break;
-    const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt), d = m ? (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]) : 0;
-    if (d > bestDur) { best = t; bestDur = d; }
-  }
-  DVD_TITLE.set(src, best); return best;
+// A DVD with several titles (menu discs: episodes, extras …) becomes one item per title: "<disc>#t<n>" (#35).
+const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)(#t\d+)?$/i;
+const dvdSplit = src => { const m = /^(.*)#t(\d+)$/.exec(src); return m ? { file: m[1], title: +m[2] } : { file: src, title: 0 }; };
+const realPath = src => DVD_RE.test(src) ? dvdSplit(src).file : src;   // the file on disk behind a source
+const dvdInput = src => { const f = dvdSplit(src).file; return /\.iso$/i.test(f) ? f : path.dirname(f); };   // the .iso file or the VIDEO_TS folder
+const DVD_TITLES = new Map();                                      // disc → [{ title, duration }] in disc order
+function dvdTitles(src) {
+  const file = dvdSplit(src).file;
+  if (!DVD_TITLES.has(file)) DVD_TITLES.set(file, (async () => {
+    const out = [];
+    for (let t = 1; t <= 99; t++) {                                // titles are numbered 1…n; stop at the first missing one
+      const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-f', 'dvdvideo', '-title', String(t), '-i', dvdInput(file)], 15000);
+      if (!/Input #0/.test(txt)) break;
+      const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt);
+      out.push({ title: t, duration: m ? (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]) : 0 });
+    }
+    return out;
+  })());
+  return DVD_TITLES.get(file);
 }
+// The title a source plays: its own (#t<n>), or for a whole disc the longest one (the main movie)
+async function dvdTitle(src) {
+  const { title } = dvdSplit(src); if (title) return title;
+  const list = await dvdTitles(src);
+  return list.length ? list.reduce((a, b) => b.duration > a.duration ? b : a).title : 1;
+}
+const DVD_TITLE = new Map();                                       // src → title, filled by probe()
 // ffmpeg input arguments for a source, with optional input seek (works the same for DVDs and normal files)
 function inArgs(src, ss) {
   const seek = ss ? ['-ss', String(ss)] : [];
-  return DVD_RE.test(src) ? ['-f', 'dvdvideo', '-title', String(DVD_TITLE.get(src) || 1), ...seek, '-i', dvdInput(src)] : [...seek, '-i', src];
+  return DVD_RE.test(src) ? ['-f', 'dvdvideo', '-title', String(dvdSplit(src).title || DVD_TITLE.get(src) || 1), ...seek, '-i', dvdInput(src)] : [...seek, '-i', src];
 }
 const SUB_EXT = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 const MIME = { mp4:'video/mp4', m4v:'video/mp4', mov:'video/mp4', webm:'video/webm', mkv:'video/webm', ogv:'video/ogg',
@@ -240,7 +253,7 @@ async function probe(src) {
       return { duration: m.duration, format: 'wav', vcodec: null, pix: null, width: 0, height: 0, audio: [{ i: 0, codec: 'pcm_s16le', label: 'MIDI', ch: 2 }], subs: [], cover: false, album: '', artist: '' };
     } catch { return null; }
   }
-  if (DVD_RE.test(src)) await dvdTitle(src);
+  if (DVD_RE.test(src)) DVD_TITLE.set(src, await dvdTitle(src));
   const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', ...inArgs(src)]);
   const head = /Input #0, (.+?), from /.exec(txt);
   if (!head) return null;
@@ -287,7 +300,7 @@ async function keyframe(src, ss) {
 const thumbDir =() => { const d = path.join(app.getPath('userData'), 'thumbs'); fs.mkdirSync(d, { recursive: true }); return d; };
 async function thumbnail(src, at) {
   if (MIDI_RE.test(src)) return null;
-  let key = src; try { key += fs.statSync(src).mtimeMs; } catch {}
+  let key = src; try { key += fs.statSync(realPath(src)).mtimeMs; } catch {}
   const file = path.join(thumbDir(), crypto.createHash('md5').update(key).digest('hex') + '.jpg');
   if (fs.existsSync(file)) return 'data:image/jpeg;base64,' + fs.readFileSync(file).toString('base64');
   const buf = await frameJpeg(src, at, 320, 5);
@@ -374,7 +387,9 @@ ipcMain.handle('open-subtitle', async (_e, src) => {
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('expand', (_e, paths) => expand(paths));
-ipcMain.handle('exists', (_e, paths) => paths.filter(p => /^https?:/i.test(p) || fs.existsSync(p)));
+ipcMain.handle('exists', (_e, paths) => paths.filter(p => /^https?:/i.test(p) || fs.existsSync(realPath(p))));
+// Titles of a DVD worth playing (at least 1 s; shorter ones are menu stills and logos)
+ipcMain.handle('dvd-titles', async (_e, src) => (await dvdTitles(src)).filter(t => t.duration >= 1));
 ipcMain.handle('probe', (_e, src) => probe(src));
 ipcMain.handle('keyframe', (_e, src, ss) => keyframe(src, ss));
 // One video frame at time `at` for the timeline hover preview (formats the hidden <video> can't decode).
@@ -485,7 +500,7 @@ ipcMain.handle('snapshot', (_e, dataUrl, name, dir) => {
   fs.writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
   return file;
 });
-ipcMain.handle('reveal', (_e, p) => shell.showItemInFolder(p));
+ipcMain.handle('reveal', (_e, p) => shell.showItemInFolder(realPath(p)));
 ipcMain.handle('open-path', (_e, p) => { fs.mkdirSync(p, { recursive: true }); return shell.openPath(p); });
 ipcMain.handle('paths', () => ({
   videos: app.getPath('videos'), music: app.getPath('music'), pictures: app.getPath('pictures'),
