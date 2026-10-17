@@ -190,7 +190,7 @@ body.hide-ui #body{grid-template-columns:1fr}
 #seekHandle{position:absolute;top:-1px;width:6px;height:20px;border-radius:3px;background:var(--accent);transform:translateX(-50%)}
 #seekTip{position:absolute;bottom:28px;transform:translateX(-50%);background:#000;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;display:none;white-space:nowrap}
 #seek:hover #seekTip{display:block}
-#seek.pv #seekTip{display:none!important}
+#seek.pv #seekTip,#seek.cardmode #seekTip{display:none!important}
 #seekPreview{position:absolute;bottom:34px;left:0;width:236px;padding:10px 10px 4px;background:#191919;border-radius:18px;box-shadow:0 14px 40px #000a;display:none;pointer-events:none;z-index:9;transform:translateX(-50%)}
 #seekPreview.show{display:block;animation:pvIn .12s ease-out}
 @keyframes pvIn{from{opacity:0;transform:translate(-50%,6px)}}

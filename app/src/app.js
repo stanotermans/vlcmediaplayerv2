@@ -695,7 +695,10 @@ function pvSeekNext() {
 function preview(e, f) {
   const it = curItem(), d = curDur();
   // music has no picture (#27): a text-only card with the lyric line or chapter, otherwise just the time tooltip (#41)
-  if (!S.get('seekPreview') || !it || !d || (isAudio(it) && !LYR.hover && !markTimes(it).length)) return hidePreview();
+  const card = !!(S.get('seekPreview') && it && d && !(isAudio(it) && !LYR.hover && !markTimes(it).length));
+  // with a card coming, the small time tooltip stays hidden: otherwise both pop up one after the other (#43)
+  seek.classList.toggle('cardmode', card);
+  if (!card) return hidePreview();
   clearTimeout(pvHideT); pvHideT = null;
   pvLast = { x: e.clientX, f };
   if (!pvBox.classList.contains('show')) {                    // wait until the pointer rests briefly before showing
