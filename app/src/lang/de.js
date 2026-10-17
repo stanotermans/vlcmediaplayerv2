@@ -574,3 +574,10 @@ I18N.add('de', {
  "Search online": "Online suchen",
  "Search online…": "Online suchen…"
 });
+
+// v1.10: OpenSubtitles downloads need an account
+I18N.add('de', {
+ "Downloading subtitles needs a free OpenSubtitles.com account (20 downloads per day). Searching works without one. Your password is not stored.": "Zum Herunterladen von Untertiteln brauchst du ein kostenloses OpenSubtitles.com-Konto (20 Downloads pro Tag). Suchen geht auch ohne. Dein Passwort wird nicht gespeichert.",
+ "Log in with a free OpenSubtitles.com account to download subtitles.": "Melde dich mit einem kostenlosen OpenSubtitles.com-Konto an, um Untertitel herunterzuladen.",
+ "Download limit reached for today. It resets at midnight (UTC).": "Download-Limit für heute erreicht. Es wird um Mitternacht (UTC) zurückgesetzt."
+});

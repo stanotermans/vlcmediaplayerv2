@@ -574,3 +574,10 @@ I18N.add('pt', {
  "Search online": "Pesquisar online",
  "Search online…": "Pesquisar online…"
 });
+
+// v1.10: OpenSubtitles downloads need an account
+I18N.add('pt', {
+ "Downloading subtitles needs a free OpenSubtitles.com account (20 downloads per day). Searching works without one. Your password is not stored.": "Para transferir legendas é preciso uma conta gratuita do OpenSubtitles.com (20 transferências por dia). A pesquisa funciona sem conta. A palavra-passe não é guardada.",
+ "Log in with a free OpenSubtitles.com account to download subtitles.": "Inicie sessão com uma conta gratuita do OpenSubtitles.com para transferir legendas.",
+ "Download limit reached for today. It resets at midnight (UTC).": "Limite de transferências atingido por hoje. É reposto à meia-noite (UTC)."
+});

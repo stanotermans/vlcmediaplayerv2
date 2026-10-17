@@ -574,3 +574,10 @@ I18N.add('nl', {
  "Search online": "Online zoeken",
  "Search online…": "Online zoeken…"
 });
+
+// v1.10: OpenSubtitles downloads need an account
+I18N.add('nl', {
+ "Downloading subtitles needs a free OpenSubtitles.com account (20 downloads per day). Searching works without one. Your password is not stored.": "Ondertitels downloaden kan met een gratis OpenSubtitles.com-account (20 downloads per dag). Zoeken lukt ook zonder. Je wachtwoord wordt niet bewaard.",
+ "Log in with a free OpenSubtitles.com account to download subtitles.": "Log in met een gratis OpenSubtitles.com-account om ondertitels te downloaden.",
+ "Download limit reached for today. It resets at midnight (UTC).": "Downloadlimiet voor vandaag bereikt. Die wordt om middernacht (UTC) gereset."
+});

@@ -351,7 +351,7 @@ function osHash(file) {
     return { hash: h.toString(16).padStart(16, '0'), size };
   } catch { return null; }
 }
-const osErr = e => ({ error: e.message === 'nokey' ? 'nokey' : e.status === 401 ? 'auth' : e.status === 406 ? 'limit' : e.status === 429 ? 'busy' : 'network', message: e.message, reset: e.data && (e.data.reset_time_utc || e.data.reset_time) });
+const osErr = e => ({ error: e.message === 'nokey' ? 'nokey' : e.status === 401 ? (/token/i.test(e.message) ? 'login' : 'auth') : e.status === 406 ? 'limit' : e.status === 429 ? 'busy' : 'network', message: e.message, reset: e.data && (e.data.reset_time_utc || e.data.reset_time) });
 ipcMain.handle('os-status', () => ({ available: !!OS_KEY, user: OS.token ? OS.user : null }));
 ipcMain.handle('os-search', async (_e, { query, langs, src }) => {
   try {
@@ -365,11 +365,12 @@ ipcMain.handle('os-search', async (_e, { query, langs, src }) => {
     return { results: (r.data || []).filter(d => d.attributes && d.attributes.files && d.attributes.files.length).slice(0, 60).map(d => {
       const a = d.attributes, f = a.files[0];
       return { fileId: f.file_id, name: a.release || f.file_name || '', file: f.file_name || '', lang: a.language || '', downloads: a.download_count || 0,
-        hi: !!a.hearing_impaired, match: !!a.moviehash_match, title: (a.feature_details && (a.feature_details.movie_name || a.feature_details.title)) || '', year: a.feature_details && a.feature_details.year };
+        hi: !!a.hearing_impaired, match: !!a.moviehash_match, title: (a.feature_details && (a.feature_details.title || a.feature_details.movie_name)) || '', year: a.feature_details && a.feature_details.year };
     }) };
   } catch (e) { return osErr(e); }
 });
 ipcMain.handle('os-download', async (_e, { fileId, src, lang }) => {
+  if (!OS.token) return { error: 'login' };                       // OpenSubtitles only allows downloads with a (free) account
   try {
     const r = await osApi('POST', '/download', { file_id: +fileId });
     if (!r || !r.link) return { error: 'network', message: r && r.message };

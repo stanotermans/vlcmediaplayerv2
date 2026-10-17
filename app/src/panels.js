@@ -495,7 +495,8 @@ function shortcuts() {
 const OS_ERRORS = {
   nokey: 'Online subtitle search is not available in this build.',
   auth: 'OpenSubtitles did not accept the login. Check your username and password.',
-  limit: 'Download limit reached for today. Log in with an OpenSubtitles account for more downloads.',
+  limit: 'Download limit reached for today. It resets at midnight (UTC).',
+  login: 'Log in with a free OpenSubtitles.com account to download subtitles.',
   busy: 'OpenSubtitles is busy right now. Try again in a moment.',
   network: 'Could not reach OpenSubtitles. Check your internet connection.',
   write: 'Could not save the subtitle file.',
@@ -516,7 +517,8 @@ async function searchSubtitles(App) {
   const query = el('input.txt.wide', { value: subtitleQuery(it.name), placeholder: t('Title, e.g. The Show S01E05') });
   const langs = el('input.txt', { value: S.get('subLang') || I18N.lang(), placeholder: 'en, nl', style: { width: '110px' } });
   const status = el('p.hint'), list = el('div.osresults');
-  const quota = el('p.note', {}, st.user ? t('Logged in to OpenSubtitles as {name}.', { name: st.user.name }) : t('Without an account OpenSubtitles allows 5 downloads per day; log in under Settings → Subtitles for 20 per day.'));
+  // downloading needs an OpenSubtitles account: without one, the login form sits right in this dialog
+  const quota = el('div.formcol', {}, osAccountBlock(() => status.textContent = ''));
   let closeDlg = null;
   const run = async () => {
     status.textContent = t('Searching…'); list.replaceChildren();
@@ -527,7 +529,7 @@ async function searchSubtitles(App) {
       const btn = button('Download', async () => {
         btn.disabled = true; btn.textContent = t('Downloading…');
         const d = await api.osDownload({ fileId: s.fileId, src: it.src, lang: s.lang });
-        if (d.error) { btn.disabled = false; btn.textContent = t('Download'); status.textContent = osError(d); return; }
+        if (d.error) { btn.disabled = false; btn.textContent = t('Download'); status.textContent = osError(d); if (d.error === 'login') quota.querySelector('input')?.focus(); return; }
         if (S.get('subLang') !== langs.value.trim()) S.set('subLang', langs.value.trim());
         closeDlg && closeDlg(null);
         await App.addSubFile(d.file, true);
@@ -548,18 +550,18 @@ async function searchSubtitles(App) {
   dialog({ title: 'Search subtitles online', body, width: 720, buttons: [{ label: 'Close', value: null }], onOpen: (_b, close) => { closeDlg = close; run(); } });
 }
 // Settings → Subtitles: optional OpenSubtitles login (more downloads per day). Only the session token is stored.
-function osAccountBlock() {
+function osAccountBlock(onChange) {
   const box = el('div.formcol');
   const draw = async () => {
     const st = await api.osStatus();
     if (!st.available) return box.replaceChildren(el('p.note', {}, t(OS_ERRORS.nokey)));
     if (st.user) return box.replaceChildren(el('p.note', {}, t('Logged in to OpenSubtitles as {name}.', { name: st.user.name })),
-      el('div.btnrow', {}, button('Log out', async () => { await api.osLogout(); draw(); }, 'ghost')));
+      el('div.btnrow', {}, button('Log out', async () => { await api.osLogout(); draw(); onChange && onChange(); }, 'ghost')));
     const user = el('input.txt', { placeholder: t('Username'), autocomplete: 'off' }), pass = el('input.txt', { type: 'password', placeholder: t('Password') });
     const msg = el('p.hint');
-    const login = async () => { msg.textContent = t('Logging in…'); const r = await api.osLogin({ username: user.value.trim(), password: pass.value }); pass.value = ''; if (r.error) msg.textContent = osError(r); else draw(); };
+    const login = async () => { msg.textContent = t('Logging in…'); const r = await api.osLogin({ username: user.value.trim(), password: pass.value }); pass.value = ''; if (r.error) msg.textContent = osError(r); else { draw(); onChange && onChange(); } };
     pass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-    box.replaceChildren(el('p.note', {}, t('Optional: log in with a free OpenSubtitles.com account for 20 instead of 5 downloads per day. Your password is not stored.')),
+    box.replaceChildren(el('p.note', {}, t('Downloading subtitles needs a free OpenSubtitles.com account (20 downloads per day). Searching works without one. Your password is not stored.')),
       el('div.osbar', {}, user, pass, button('Log in', login, 'primary')), msg);
   };
   draw();
