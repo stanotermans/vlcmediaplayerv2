@@ -55,7 +55,7 @@ case "$TARGET" in
     ARCH=${TARGET#mac-}; [ "$ARCH" = x64 ] && ARCH=x86_64
     export CC="clang -arch $ARCH"
     X264_HOST=(--host=$ARCH-apple-darwin)
-    AC_HOST=(--host=$ARCH-apple-darwin)
+    AC_HOST=(--host=${ARCH/arm64/aarch64}-apple-darwin)        # libdvdread/libdvdnav's config.sub only knows "aarch64"
     FF_CROSS=(--enable-cross-compile --target-os=darwin --arch=$ARCH --cc="clang -arch $ARCH")
     FF_TLS=(--enable-securetransport)
     ;;
