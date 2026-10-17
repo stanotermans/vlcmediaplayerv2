@@ -1,7 +1,7 @@
 {
   "name": "vlc-redesign",
   "productName": "VLC Redesign",
-  "version": "1.13.1",
+  "version": "1.13.2",
   "description": "VLC Redesign – unofficial fan-made media player (not affiliated with VideoLAN)",
   "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
   "main": "main.js",
@@ -303,13 +303,17 @@
         "libuuid1",
         "libsecret-1-0"
       ],
-      "afterInstall": "build/linux/after-install.tpl"
+      "afterInstall": "build/linux/after-install.tpl",
+      "afterRemove": "build/linux/after-remove.tpl"
     },
     "rpm": {
       "fpm": [
-        "--rpm-rpmbuild-define=_build_id_links none"
+        "--rpm-rpmbuild-define=_build_id_links none",
+        "--rpm-posttrans",
+        "build/linux/compat-link.sh"
       ],
-      "afterInstall": "build/linux/after-install.tpl"
+      "afterInstall": "build/linux/after-install.tpl",
+      "afterRemove": "build/linux/after-remove.tpl"
     },
     "mac": {
       "target": [
@@ -360,7 +364,8 @@
       "pt-PT"
     ],
     "pacman": {
-      "afterInstall": "build/linux/after-install.tpl"
+      "afterInstall": "build/linux/after-install.tpl",
+      "afterRemove": "build/linux/after-remove.tpl"
     }
   },
   "dependencies": {
