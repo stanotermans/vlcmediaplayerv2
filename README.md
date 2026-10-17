@@ -76,6 +76,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 
 - **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more, plus old game and cutscene formats like TGV, Bink and Smacker. Files you open yourself are always tried, whatever the extension. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
 - **DVDs:** open a DVD `.iso` image or a DVD folder (`VIDEO_TS`) and the main title plays. Copy-protected (CSS-encrypted) retail DVDs are not supported.
+- **MIDI:** `.mid`, `.midi`, `.kar` and `.rmi` files play with a built-in General MIDI SoundFont (FluidR3 Mono), with no extra download. Pick your own `.sf2`/`.sf3` SoundFont under *Settings → Audio → MIDI*.
 - **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
 - **Instant seek preview.** Hover the timeline to see a thumbnail; a storyboard of frames is generated in the background so the preview follows your mouse without delay.
 - **7 languages:** English, Nederlands, Deutsch, Français, Español, Italiano and Português, switchable instantly without restarting.
@@ -151,9 +152,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.11.1"
-git tag v1.11.1
-git push origin v1.11.1
+# first set the version in app/package.json, e.g. "version": "1.12.0"
+git tag v1.12.0
+git push origin v1.12.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
@@ -179,6 +180,8 @@ To use your own FFmpeg, set `VLCX_FFMPEG=/path/to/ffmpeg`.
 ```
 app/
   main.js          Electron main process: window, local media server, FFmpeg transcoding, file dialogs
+  midi-render.mjs  Renders MIDI files to audio with a SoundFont (runs in a separate process)
+  assets/          Built-in SoundFont (FluidR3 Mono) and its license
   preload.js       Secure bridge between the main process and the UI
   src/
     index.html     UI layout
@@ -213,4 +216,5 @@ The app runs on [Electron](https://www.electronjs.org), which only supports Wind
 - **Code:** [MIT](LICENSE) © Stan Otermans
 - **Design:** © [Juxtopposed](https://www.youtube.com/@juxtopposed), used with attribution based on the publicly shared Figma community file.
 - Includes [FFmpeg](https://ffmpeg.org) with [x264](https://www.videolan.org/developers/x264.html), licensed under the GPL. Release builds use the slim build from [`app/build/ffmpeg/build.sh`](app/build/ffmpeg/build.sh) (source: the FFmpeg and x264 versions pinned there); development uses [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static).
+- MIDI playback uses [SpessaSynth](https://github.com/spessasus/spessasynth_core) (Apache-2.0) and the [FluidR3 Mono](https://github.com/musescore/MuseScore/tree/master/share/sound) General MIDI SoundFont (MIT, see [`app/assets/FluidR3Mono_License.md`](app/assets/FluidR3Mono_License.md)).
 - "VLC" and the cone logo are trademarks of [VideoLAN](https://www.videolan.org). This project is not affiliated with VideoLAN.

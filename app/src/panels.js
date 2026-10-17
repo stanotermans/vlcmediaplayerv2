@@ -357,6 +357,14 @@ function pages(App) {
         row('Spatial audio', toggle('reverbOn'), { info: 'Adds reverb, as if you are in a room.' }), collapse(reverbBlock()),
         row('Stereo widening', toggle('widenOn')), collapse(widenBlock())),
       sec('Volume', slider({ label: 'Volume boost', min: 0, max: 200, binding: 'gain', fmt: v => v + '%', ticks: 2 })),
+      sec('MIDI', ...(() => {
+        const inp = el('input.txt.path', { readonly: true });
+        const draw = () => inp.value = S.get('soundfont') || t('Built-in (FluidR3 Mono)');
+        S.on(k => k === 'soundfont' && draw()); draw();
+        return [row('SoundFont', el('div.pathrow', {}, inp), { info: 'The instrument sounds used to play MIDI files (.sf2 or .sf3).' }),
+          el('div.btnrow', {}, button('Choose SoundFont', async () => { const f = await api.chooseSoundfont(); if (f) S.set('soundfont', f); }, 'ghost'),
+            button('Use built-in', () => S.set('soundfont', ''), 'ghost'))];
+      })()),
     ],
     subtitles: () => [
       sec('Tracks and languages',
@@ -447,7 +455,8 @@ function pages(App) {
           row('Design', el('span.about-val', {}, 'Juxtopposed – “I Redesigned VLC After 25 Years”')),
           el('div.btnrow', {}, link('Watch the video', 'https://www.youtube.com/watch?v=ERFeOgqk324', 'play'), link('Figma file', 'https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-')),
           row('Code', el('span.about-val', {}, '© 2026 Stan Otermans · ' + t('MIT license'))),
-          row('Built with', el('span.about-val', {}, `Electron ${info.electron || ''} · Chromium ${info.chrome || ''} · FFmpeg (LGPL/GPL)`))),
+          row('Built with', el('span.about-val', {}, `Electron ${info.electron || ''} · Chromium ${info.chrome || ''} · FFmpeg (LGPL/GPL)`)),
+          row('MIDI', el('span.about-val', {}, 'SpessaSynth (Apache-2.0) · FluidR3 Mono SoundFont (MIT)'))),
         sec('Links', el('div.btnrow', {},
           link('GitHub', 'https://github.com/stanotermans/vlcmediaplayerv2', 'github'),
           link('Website', 'https://stanotermans.github.io/vlcmediaplayerv2/'),

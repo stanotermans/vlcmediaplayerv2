@@ -1,7 +1,7 @@
 {
   "name": "vlc-redesign",
   "productName": "VLC Redesign",
-  "version": "1.11.1",
+  "version": "1.12.0",
   "description": "VLC Redesign – unofficial fan-made media player (not affiliated with VideoLAN)",
   "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
   "main": "main.js",
@@ -27,10 +27,18 @@
       "keys.json",
       "src/**/*",
       "build/icon.png",
-      "node_modules/ffmpeg-static/**/*"
+      "node_modules/ffmpeg-static/**/*",
+      "midi-render.mjs",
+      "assets/**/*",
+      "node_modules/spessasynth_core/**/*",
+      "node_modules/stb-vorbis/**/*"
     ],
     "asarUnpack": [
-      "node_modules/ffmpeg-static/**/*"
+      "node_modules/ffmpeg-static/**/*",
+      "midi-render.mjs",
+      "assets/**/*",
+      "node_modules/spessasynth_core/**/*",
+      "node_modules/stb-vorbis/**/*"
     ],
     "fileAssociations": [
       {
@@ -170,6 +178,17 @@
         "name": "AC3-audio",
         "role": "Viewer",
         "mimeType": "audio/ac3"
+      },
+      {
+        "ext": [
+          "mid",
+          "midi",
+          "kar",
+          "rmi"
+        ],
+        "name": "MIDI-audio",
+        "role": "Viewer",
+        "mimeType": "audio/midi"
       }
     ],
     "win": {
@@ -327,7 +346,8 @@
     ]
   },
   "dependencies": {
-    "ffmpeg-static": "^5.2.0"
+    "ffmpeg-static": "^5.2.0",
+    "spessasynth_core": "4.3.22"
   },
   "devDependencies": {
     "electron": "^38.2.0",

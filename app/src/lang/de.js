@@ -622,5 +622,9 @@ I18N.add('de', {
  "Press a key…": "Taste drücken…",
  "No key": "Keine Taste",
  "Reset to defaults": "Standard wiederherstellen",
- "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Klicke auf Ändern und drücke die neue Taste. Esc bricht ab, Rücktaste entfernt die Taste. Eine Taste gehört zu genau einer Aktion."
+ "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Klicke auf Ändern und drücke die neue Taste. Esc bricht ab, Rücktaste entfernt die Taste. Eine Taste gehört zu genau einer Aktion.",
+ "Built-in (FluidR3 Mono)": "Integriert (FluidR3 Mono)",
+ "The instrument sounds used to play MIDI files (.sf2 or .sf3).": "Die Instrumentenklänge zum Abspielen von MIDI-Dateien (.sf2 oder .sf3).",
+ "Choose SoundFont": "SoundFont wählen",
+ "Use built-in": "Integrierten verwenden"
 });

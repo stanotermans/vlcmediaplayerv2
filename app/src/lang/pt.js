@@ -622,5 +622,9 @@ I18N.add('pt', {
  "Press a key…": "Prima uma tecla…",
  "No key": "Sem tecla",
  "Reset to defaults": "Repor predefinições",
- "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Clique em Alterar e prima a nova tecla. Esc cancela, Backspace remove a tecla. Cada tecla pertence a uma só ação."
+ "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Clique em Alterar e prima a nova tecla. Esc cancela, Backspace remove a tecla. Cada tecla pertence a uma só ação.",
+ "Built-in (FluidR3 Mono)": "Integrada (FluidR3 Mono)",
+ "The instrument sounds used to play MIDI files (.sf2 or .sf3).": "Os sons de instrumentos usados para reproduzir ficheiros MIDI (.sf2 ou .sf3).",
+ "Choose SoundFont": "Escolher SoundFont",
+ "Use built-in": "Usar a integrada"
 });

@@ -4,7 +4,9 @@ const video = $('#video');
 const api = window.api;
 const { port, token } = await api.info();
 const PATHS = await api.paths();
-const fileUrl = p => `http://127.0.0.1:${port}/file?t=${token}&src=${encodeURIComponent(p)}`;
+const MIDI_RE = /\.(mid|midi|kar|rmi|smf)$/i;
+// MIDI is rendered with the chosen SoundFont: a different SoundFont is a different URL (no cached old audio)
+const fileUrl = p => `http://127.0.0.1:${port}/file?t=${token}&src=${encodeURIComponent(p)}` + (MIDI_RE.test(p) ? '&sf=' + encodeURIComponent(S.get('soundfont') || '') : '');
 const streamUrl = (src, ss, a, vcopy) => `http://127.0.0.1:${port}/stream?t=${token}&src=${encodeURIComponent(src)}&ss=${ss.toFixed(2)}&a=${a}&vcopy=${vcopy ? 1 : 0}&q=${S.get('txQuality')}&maxw=${S.get('txMaxW')}`;
 FX.attach(video);
 
@@ -55,7 +57,7 @@ const savePlaylists = () => store.set('playlists3', state.playlists);
 const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.recent.slice(0, 50) : []);
 
 const isAudio = it => it.type === 'audio';
-const AUDIO_RE = /\.(mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc)$/i;
+const AUDIO_RE = /\.(mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc|mid|midi|kar|rmi|smf)$/i;
 // A DVD folder is opened through its VIDEO_TS.IFO; show the folder's name instead ("My DVD", not "VIDEO_TS.IFO").
 const itemName = src => /[\\/]VIDEO_TS[\\/]VIDEO_TS\.IFO$/i.test(src) ? (src.split(/[\\/]/).slice(-3, -2)[0] || 'DVD') : baseName(src);
 const SUB_RE = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
@@ -369,6 +371,8 @@ function curDur() { const it = curItem(), d = video.duration; if (P.tx) return (
 const OK_V = ['h264', 'vp8', 'vp9', 'av1', 'hevc', 'theora'];
 const OK_A = ['aac', 'mp3', 'opus', 'vorbis', 'flac', 'pcm_s16le', 'pcm_s24le', 'pcm_f32le', 'pcm_u8'];
 const OK_F = /mov|mp4|matroska|webm|ogg|mp3|flac|wav|aac/;
+api.setSoundfont(S.get('soundfont') || '');
+S.on(async k => { if (k !== 'soundfont') return; await api.setSoundfont(S.get('soundfont') || ''); const it = curItem(); if (it && MIDI_RE.test(it.src)) reloadSource(); });
 const needsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.extra;
 function canDirect(info) {
   if (!info) return true;

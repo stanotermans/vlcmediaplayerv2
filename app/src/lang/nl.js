@@ -622,5 +622,9 @@ I18N.add('nl', {
  "Press a key…": "Druk op een toets…",
  "No key": "Geen toets",
  "Reset to defaults": "Standaard herstellen",
- "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Klik op Wijzigen en druk op de nieuwe toets. Esc annuleert, Backspace verwijdert de toets. Een toets hoort bij één actie."
+ "Click Change and press the new key. Esc cancels, Backspace removes the key. A key can belong to one action only.": "Klik op Wijzigen en druk op de nieuwe toets. Esc annuleert, Backspace verwijdert de toets. Een toets hoort bij één actie.",
+ "Built-in (FluidR3 Mono)": "Ingebouwd (FluidR3 Mono)",
+ "The instrument sounds used to play MIDI files (.sf2 or .sf3).": "De instrumentgeluiden waarmee MIDI-bestanden worden afgespeeld (.sf2 of .sf3).",
+ "Choose SoundFont": "SoundFont kiezen",
+ "Use built-in": "Ingebouwde gebruiken"
 });

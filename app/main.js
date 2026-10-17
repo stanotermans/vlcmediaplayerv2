@@ -1,5 +1,5 @@
 // VLC Redesign (unofficial VLC-style media player) – Electron main process
-const { app, BrowserWindow, ipcMain, dialog, shell, net, screen, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, net, screen, safeStorage, utilityProcess } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -19,7 +19,35 @@ const NOT_MEDIA = /\.d\.[cm]?ts$|[\\/]node_modules[\\/]|\.(spec|test|config|modu
 const PLAYLIST_EXT = /\.(m3u8?|xspf|pls)$/i;
 // Extensions picked up when scanning folders. Files you open or drop yourself are always tried, whatever the
 // extension: ffmpeg decides (#35). Old game/cutscene formats (TGV, Bink, Smacker, RoQ, VQA …) are included.
-const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|qt|avi|wmv|asf|flv|f4v|mpg|mpeg|m2v|m2p|ts|m2ts|mts|tod|mod|3gp|3g2|ogv|ogm|vob|divx|xvid|mxf|nut|rm|rmvb|dv|amv|y4m|ivf|evo|wtv|tgv|bik|bk2|smk|roq|vqa|thp|mve|xmv|iso|mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc)$/i;
+const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|qt|avi|wmv|asf|flv|f4v|mpg|mpeg|m2v|m2p|ts|m2ts|mts|tod|mod|3gp|3g2|ogv|ogm|vob|divx|xvid|mxf|nut|rm|rmvb|dv|amv|y4m|ivf|evo|wtv|tgv|bik|bk2|smk|roq|vqa|thp|mve|xmv|iso|mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc|mid|midi|kar|rmi)$/i;
+// MIDI (#36): rendered to a WAV with a SoundFont in a utility process (midi-render.mjs, SpessaSynth), then played
+// like any other audio file. The built-in SoundFont is FluidR3 Mono (MIT); Settings → Audio can pick another one.
+const MIDI_RE = /\.(mid|midi|kar|rmi|smf)$/i;
+const DEFAULT_SF = path.join(__dirname, 'assets', 'FluidR3Mono_GM.sf3');
+let soundfont = '', midiProc = null, midiSeq = 0;
+const midiWait = new Map(), MIDI_WAV = new Map();
+const sfPath = () => soundfont && fs.existsSync(soundfont) ? soundfont : DEFAULT_SF;
+function midiCall(msg) {
+  if (!midiProc) {
+    midiProc = utilityProcess.fork(unpacked(path.join(__dirname, 'midi-render.mjs')), [], { serviceName: 'MIDI renderer' });
+    midiProc.on('message', m => { const w = midiWait.get(m.id); if (w) { midiWait.delete(m.id); m.ok ? w.res(m) : w.rej(new Error(m.error)); } });
+    midiProc.on('exit', () => { midiProc = null; for (const w of midiWait.values()) w.rej(new Error('MIDI renderer stopped')); midiWait.clear(); });
+  }
+  return new Promise((res, rej) => { const id = ++midiSeq; midiWait.set(id, { res, rej }); midiProc.postMessage({ ...msg, id }); });
+}
+const midiDir = () => { const d = path.join(app.getPath('temp'), 'vlc-redesign-midi'); fs.mkdirSync(d, { recursive: true }); return d; };
+// WAV for a MIDI file (cached per file + SoundFont; the folder is emptied when the app quits)
+function midiWav(src) {
+  const sf = sfPath();
+  let key = src + '|' + sf; try { key += fs.statSync(src).mtimeMs; } catch {}
+  if (!MIDI_WAV.has(key)) {
+    const out = path.join(midiDir(), crypto.createHash('md5').update(key).digest('hex') + '.wav');
+    const job = fs.existsSync(out) ? Promise.resolve(out) : midiCall({ type: 'render', midi: src, soundfont: unpacked(sf), out }).then(r => r.file);
+    MIDI_WAV.set(key, job); job.catch(() => MIDI_WAV.delete(key));
+  }
+  return MIDI_WAV.get(key);
+}
+app.on('will-quit', () => { try { midiProc && midiProc.kill(); fs.rmSync(path.join(app.getPath('temp'), 'vlc-redesign-midi'), { recursive: true, force: true }); } catch {} });
 // DVDs: an .iso image or a VIDEO_TS folder (represented by its VIDEO_TS.IFO). Played with ffmpeg's dvdvideo demuxer
 // (libdvdread/libdvdnav, no decryption: copy-protected retail DVDs do not play).
 const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)$/i;
@@ -111,8 +139,9 @@ function startServer() {
       resp.setHeader('Access-Control-Allow-Origin', '*');
       if (u.searchParams.get('t') !== TOKEN) { resp.writeHead(403); return resp.end(); }
       const src = u.searchParams.get('src');
-      if (u.pathname === '/file') return serveFile(src, req, resp);
-      if (u.pathname === '/stream') return serveStream(src, u.searchParams, req, resp);
+      const serve = (fn, ...a) => MIDI_RE.test(src || '') ? midiWav(src).then(w => fn(w, ...a), () => { resp.writeHead(500); resp.end(); }) : fn(src, ...a);
+      if (u.pathname === '/file') return serve(serveFile, req, resp);
+      if (u.pathname === '/stream') return serve(serveStream, u.searchParams, req, resp);
       resp.writeHead(404); resp.end();
     });
     srv.listen(0, '127.0.0.1', () => { PORT = srv.address().port; res(); });
@@ -203,6 +232,11 @@ function runErr(bin, args, timeout = 20000) {
 const CHANNELS = { mono: 1, stereo: 2, '2.1': 3, '3.0': 3, quad: 4, '4.0': 4, '4.1': 5, '5.0': 5, '5.1': 6, '6.0': 6, '6.1': 7, '7.0': 7, '7.1': 8 };
 // Media info parsed from `ffmpeg -i` (same shape the renderer used to get from ffprobe)
 async function probe(src) {
+  if (MIDI_RE.test(src)) {
+    try { const m = await midiCall({ type: 'probe', midi: src });
+      return { duration: m.duration, format: 'wav', vcodec: null, pix: null, width: 0, height: 0, audio: [{ i: 0, codec: 'pcm_s16le', label: 'MIDI', ch: 2 }], subs: [], cover: false, album: '', artist: '' };
+    } catch { return null; }
+  }
   if (DVD_RE.test(src)) await dvdTitle(src);
   const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', ...inArgs(src)]);
   const head = /Input #0, (.+?), from /.exec(txt);
@@ -249,6 +283,7 @@ async function keyframe(src, ss) {
 
 const thumbDir =() => { const d = path.join(app.getPath('userData'), 'thumbs'); fs.mkdirSync(d, { recursive: true }); return d; };
 async function thumbnail(src, at) {
+  if (MIDI_RE.test(src)) return null;
   let key = src; try { key += fs.statSync(src).mtimeMs; } catch {}
   const file = path.join(thumbDir(), crypto.createHash('md5').update(key).digest('hex') + '.jpg');
   if (fs.existsSync(file)) return 'data:image/jpeg;base64,' + fs.readFileSync(file).toString('base64');
@@ -320,7 +355,7 @@ function siblingSubs(file) {
 ipcMain.handle('info', () => ({ port: PORT, token: TOKEN }));
 ipcMain.handle('open-files', async () => {
   const r = await dialog.showOpenDialog(win, { title: mt('Open media'), buttonLabel: mt('Open'), properties: ['openFile', 'multiSelections'], filters: [
-    { name: mt('Media'), extensions: ['iso', 'ifo', 'tgv', 'bik', 'bk2', 'smk', 'roq', 'vqa', 'mxf', 'rm', 'rmvb', 'asf', 'f4v', 'ogm', 'm2v', 'nut', 'dv', 'amv', 'wv', 'tta', 'mpc', 'amr', 'caf', 'dsf', 'mp2', 'm3u', 'm3u8', 'xspf', 'pls', 'mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
+    { name: mt('Media'), extensions: ['iso', 'ifo', 'mid', 'midi', 'kar', 'rmi', 'tgv', 'bik', 'bk2', 'smk', 'roq', 'vqa', 'mxf', 'rm', 'rmvb', 'asf', 'f4v', 'ogm', 'm2v', 'nut', 'dv', 'amv', 'wv', 'tta', 'mpc', 'amr', 'caf', 'dsf', 'mp2', 'm3u', 'm3u8', 'xspf', 'pls', 'mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
     { name: mt('All files'), extensions: ['*'] }] });
   return r.canceled ? [] : expand(r.filePaths);
 });
@@ -605,6 +640,11 @@ ipcMain.on('ready', () => { if (pendingPaths.length) { win.webContents.send('ope
 const winPrefsFile = () => path.join(app.getPath('userData'), 'window.json');
 const winPrefs = () => { try { return JSON.parse(fs.readFileSync(winPrefsFile(), 'utf8')); } catch { return {}; } };
 let ROUNDED = false;                                             // rounded corners are active in the running window
+ipcMain.handle('set-soundfont', (_e, file) => { soundfont = file || ''; return sfPath() !== DEFAULT_SF; });
+ipcMain.handle('choose-soundfont', async () => {
+  const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'SoundFont', extensions: ['sf2', 'sf3', 'dls'] }] });
+  return r.canceled ? null : r.filePaths[0];
+});
 ipcMain.handle('set-window-pref', (_e, key, value) => {
   if (!['roundedCorners', 'hwAccel'].includes(key)) return false;
   const p = winPrefs(); p[key] = !!value; if (key === 'hwAccel') delete p.hwAuto;
