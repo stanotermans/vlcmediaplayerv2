@@ -595,3 +595,8 @@ I18N.add('fr', {
  "Turned off automatically because the graphics card could not draw the window. Takes effect after restarting the app.": "Désactivée automatiquement car la carte graphique ne pouvait pas afficher la fenêtre. Prend effet après le redémarrage de l’application.",
  "Uses the graphics card for drawing. Turn off if the window stays empty or the app does not open. Takes effect after restarting the app.": "Utilise la carte graphique pour l’affichage. Désactivez-la si la fenêtre reste vide ou si l’application ne s’ouvre pas. Prend effet après le redémarrage."
 });
+
+// v1.11: unplayable files
+I18N.add('fr', {
+ "Cannot play this file: {name}": "Impossible de lire ce fichier : {name}"
+});

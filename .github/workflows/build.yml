@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: app/build/ffmpeg/out/${{ matrix.target }}
-          key: ffmpeg-${{ matrix.target }}-${{ hashFiles('app/build/ffmpeg/*.sh') }}
+          key: ffmpeg-${{ matrix.target }}-${{ hashFiles('app/build/ffmpeg/*.sh', 'app/build/ffmpeg/patches/**') }}
       - name: Build in Docker
         if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
         run: bash app/build/ffmpeg/docker.sh ${{ matrix.target }}

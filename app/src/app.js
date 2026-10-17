@@ -55,7 +55,9 @@ const savePlaylists = () => store.set('playlists3', state.playlists);
 const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.recent.slice(0, 50) : []);
 
 const isAudio = it => it.type === 'audio';
-const AUDIO_RE = /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
+const AUDIO_RE = /\.(mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc)$/i;
+// A DVD folder is opened through its VIDEO_TS.IFO; show the folder's name instead ("My DVD", not "VIDEO_TS.IFO").
+const itemName = src => /[\\/]VIDEO_TS[\\/]VIDEO_TS\.IFO$/i.test(src) ? (src.split(/[\\/]/).slice(-3, -2)[0] || 'DVD') : baseName(src);
 const SUB_RE = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 // TypeScript & co. share .ts with MPEG-TS video; never treat these as media (same rule as main.js)
 const NOT_MEDIA_RE = /\.d\.[cm]?ts$|[\\/]node_modules[\\/]|\.(spec|test|config|module|service|component|types?)\.ts$/i;
@@ -80,7 +82,7 @@ async function addSources(srcs, { play = true, silent = false, added, manual = t
     let it = bySrc(src);
     if (!it) {
       const remote = /^[a-z]+:\/\//i.test(src);
-      it = { id: ++uid, src, name: baseName(src), remote, type: AUDIO_RE.test(src) ? 'audio' : 'video', thumb: null, duration: 0,
+      it = { id: ++uid, src, name: itemName(src), remote, type: AUDIO_RE.test(src) ? 'audio' : 'video', thumb: null, duration: 0,
              progress: positions[src] || 0, added: (added && added[src]) || Date.now(), info: null, manual };
       it.ready = enrich(it);
       state.items.push(it); newOnes.push(it);
@@ -127,9 +129,18 @@ function enrich(it) {
       it.info = info; it.duration = info.duration;
       it.type = info.vcodec ? 'video' : 'audio';
       if (S.get('thumbs') && (info.vcodec || info.cover)) it.thumb = await api.thumb(it.src, info.vcodec ? Math.min(info.duration * 0.2, 120) : 0);
-    }
+    } else if (!it.remote) return dropUnplayable(it);
     updateCard(it); renderLater();
   });
+}
+// ffmpeg could not open it (not media, or an unsupported/encrypted format): take it out of the library again.
+// Files you opened yourself get a message; files found while scanning a folder disappear quietly.
+function dropUnplayable(it) {
+  const i = idxOf(it); if (i < 0) return;
+  if (it.manual) osd(t('Cannot play this file: {name}', { name: it.name }));
+  if (state.current === i) stopPlayback();
+  const cur = curItem(); state.items.splice(i, 1); state.current = cur ? idxOf(cur) : -1;
+  saveLibrary(); renderLater();
 }
 let rs; function renderSoon() { clearTimeout(rs); rs = setTimeout(render, 80); }
 // While a big folder is being read, redraw the whole page at most every 1.5 s; single tiles update right away.

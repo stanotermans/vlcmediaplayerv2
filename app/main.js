@@ -17,7 +17,30 @@ const REPO = 'stanotermans/vlcmediaplayerv2';
 // Programmer files that share an extension with media (.ts = MPEG-TS video, but also TypeScript): never media.
 const NOT_MEDIA = /\.d\.[cm]?ts$|[\\/]node_modules[\\/]|\.(spec|test|config|module|service|component|types?)\.ts$/i;
 const PLAYLIST_EXT = /\.(m3u8?|xspf|pls)$/i;
-const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|avi|wmv|flv|mpg|mpeg|ts|m2ts|mts|3gp|ogv|vob|divx|mp3|m4a|aac|flac|wav|ogg|oga|opus|wma|ac3|dts|mka|ape|aiff?)$/i;
+// Extensions picked up when scanning folders. Files you open or drop yourself are always tried, whatever the
+// extension: ffmpeg decides (#35). Old game/cutscene formats (TGV, Bink, Smacker, RoQ, VQA …) are included.
+const MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|qt|avi|wmv|asf|flv|f4v|mpg|mpeg|m2v|m2p|ts|m2ts|mts|tod|mod|3gp|3g2|ogv|ogm|vob|divx|xvid|mxf|nut|rm|rmvb|dv|amv|y4m|ivf|evo|wtv|tgv|bik|bk2|smk|roq|vqa|thp|mve|xmv|iso|mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc)$/i;
+// DVDs: an .iso image or a VIDEO_TS folder (represented by its VIDEO_TS.IFO). Played with ffmpeg's dvdvideo demuxer
+// (libdvdread/libdvdnav, no decryption: copy-protected retail DVDs do not play).
+const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)$/i;
+const dvdInput = src => /\.iso$/i.test(src) ? src : path.dirname(src);   // the .iso file or the VIDEO_TS folder
+const DVD_TITLE = new Map();                                       // src → main title (the longest one)
+async function dvdTitle(src) {
+  if (DVD_TITLE.has(src)) return DVD_TITLE.get(src);
+  let best = 1, bestDur = -1;
+  for (let t = 1; t <= 60; t++) {                                  // titles are numbered 1…n; stop at the first missing one
+    const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-f', 'dvdvideo', '-title', String(t), '-i', dvdInput(src)], 15000);
+    if (!/Input #0/.test(txt)) break;
+    const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt), d = m ? (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]) : 0;
+    if (d > bestDur) { best = t; bestDur = d; }
+  }
+  DVD_TITLE.set(src, best); return best;
+}
+// ffmpeg input arguments for a source, with optional input seek (works the same for DVDs and normal files)
+function inArgs(src, ss) {
+  const seek = ss ? ['-ss', String(ss)] : [];
+  return DVD_RE.test(src) ? ['-f', 'dvdvideo', '-title', String(DVD_TITLE.get(src) || 1), ...seek, '-i', dvdInput(src)] : [...seek, '-i', src];
+}
 const SUB_EXT = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 const MIME = { mp4:'video/mp4', m4v:'video/mp4', mov:'video/mp4', webm:'video/webm', mkv:'video/webm', ogv:'video/ogg',
   mp3:'audio/mpeg', m4a:'audio/mp4', aac:'audio/aac', flac:'audio/flac', wav:'audio/wav', ogg:'audio/ogg', oga:'audio/ogg', opus:'audio/ogg' };
@@ -124,10 +147,9 @@ function serveStream(src, q, req, resp) {
   const maxw = Math.max(640, Math.min(3840, +q.get('maxw') || 1920));
   const args = ['-hide_banner', '-loglevel', 'error', '-nostdin'];
   if (/^https?:/i.test(src)) args.push('-reconnect', '1', '-reconnect_streamed', '1');
-  if (ss) args.push('-ss', String(ss));
   // a second input whose audio replaces the main audio (VLC's "play another media synchronously")
   const extra = q.get('extra'), useExtra = !!extra && (/^https?:/i.test(extra) || fs.existsSync(extra));
-  args.push('-i', src);
+  args.push(...inArgs(src, ss));
   if (useExtra) { if (ss) args.push('-ss', String(ss)); args.push('-i', extra); }
   args.push('-map', '0:V:0?', '-map', useExtra ? '1:a:0?' : `0:a:${a}?`);
   if (vcopy) args.push('-c:v', 'copy');
@@ -162,10 +184,14 @@ function expand(paths, depth = 0) {
   const out = [];
   for (const p of paths) {
     let st; try { st = fs.statSync(p); } catch { continue; }
+    if (st.isDirectory()) {
+      const ifo = ['VIDEO_TS.IFO', 'video_ts.ifo'].map(f => /^video_ts$/i.test(path.basename(p)) ? path.join(p, f) : path.join(p, 'VIDEO_TS', f)).find(f => fs.existsSync(f));
+      if (ifo) { out.push(ifo); continue; }                         // a DVD folder: one item instead of loose VOB files
+    }
     if (st.isDirectory() && depth < 6) {
       let entries = []; try { entries = fs.readdirSync(p); } catch {}
       out.push(...expand(entries.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(e => path.join(p, e)), depth + 1));
-    } else if (st.isFile() && !NOT_MEDIA.test(p) && (MEDIA_EXT.test(p) || (depth === 0 && (SUB_EXT.test(p) || PLAYLIST_EXT.test(p))))) out.push(p);
+    } else if (st.isFile() && !NOT_MEDIA.test(p) && (MEDIA_EXT.test(p) || depth === 0)) out.push(p);   // depth 0 = opened/dropped by you
   }
   return out;
 }
@@ -177,7 +203,8 @@ function runErr(bin, args, timeout = 20000) {
 const CHANNELS = { mono: 1, stereo: 2, '2.1': 3, '3.0': 3, quad: 4, '4.0': 4, '4.1': 5, '5.0': 5, '5.1': 6, '6.0': 6, '6.1': 7, '7.0': 7, '7.1': 8 };
 // Media info parsed from `ffmpeg -i` (same shape the renderer used to get from ffprobe)
 async function probe(src) {
-  const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-i', src]);
+  if (DVD_RE.test(src)) await dvdTitle(src);
+  const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', ...inArgs(src)]);
   const head = /Input #0, (.+?), from /.exec(txt);
   if (!head) return null;
   const dm = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt);
@@ -214,7 +241,7 @@ async function probe(src) {
 // Decodes only keyframes (-skip_frame nokey) in the 20 s before `ss` and reads their timestamps from showinfo.
 async function keyframe(src, ss) {
   const start = Math.max(0, ss - 20);
-  const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-skip_frame', 'nokey', '-ss', String(start), '-t', String(ss - start + 0.1), '-copyts', '-i', src,
+  const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-skip_frame', 'nokey', '-t', String(ss - start + 0.1), '-copyts', ...inArgs(src, start),
     '-map', '0:v:0', '-vf', 'showinfo', '-an', '-sn', '-f', 'null', '-'], 15000);
   const times = [...txt.matchAll(/pts_time:\s*([\d.]+)/g)].map(m => parseFloat(m[1])).filter(t => isFinite(t) && t <= ss + 0.05);
   return times.length ? Math.max(...times) : null;
@@ -233,7 +260,7 @@ async function thumbnail(src, at) {
 // One JPEG frame. at <= 0 means the cover art of a music file: seeking (-ss) there drops the
 // attached picture in e.g. MP3, so read the first video stream from the start instead.
 async function frameJpeg(src, at, w, q) {
-  const input = at > 0 ? ['-ss', String(at), '-i', src] : ['-i', src, '-map', '0:v:0'];
+  const input = at > 0 ? inArgs(src, at) : [...inArgs(src), '-map', '0:v:0'];
   const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...input, '-frames:v', '1',
     '-vf', `scale='min(${w},iw)':-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', String(q), 'pipe:1'], { encoding: 'buffer', timeout: 20000 });
   return buf && buf.length ? buf : null;
@@ -275,7 +302,7 @@ function readLyrics(file) {
 
 // Any text subtitle (srt/ass/vtt or an embedded stream) → WebVTT text
 async function subtitles(src, streamIndex) {
-  const args = ['-hide_banner', '-loglevel', 'error', '-i', src];
+  const args = ['-hide_banner', '-loglevel', 'error', ...inArgs(src)];
   if (streamIndex != null) args.push('-map', `0:s:${streamIndex}`);
   args.push('-f', 'webvtt', 'pipe:1');
   if (/\.vtt$/i.test(src) && streamIndex == null) { try { return fs.readFileSync(src, 'utf8'); } catch {} }
@@ -293,7 +320,7 @@ function siblingSubs(file) {
 ipcMain.handle('info', () => ({ port: PORT, token: TOKEN }));
 ipcMain.handle('open-files', async () => {
   const r = await dialog.showOpenDialog(win, { title: mt('Open media'), buttonLabel: mt('Open'), properties: ['openFile', 'multiSelections'], filters: [
-    { name: mt('Media'), extensions: ['m3u', 'm3u8', 'xspf', 'pls', 'mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
+    { name: mt('Media'), extensions: ['iso', 'ifo', 'tgv', 'bik', 'bk2', 'smk', 'roq', 'vqa', 'mxf', 'rm', 'rmvb', 'asf', 'f4v', 'ogm', 'm2v', 'nut', 'dv', 'amv', 'wv', 'tta', 'mpc', 'amr', 'caf', 'dsf', 'mp2', 'm3u', 'm3u8', 'xspf', 'pls', 'mp4','m4v','mkv','webm','mov','avi','wmv','flv','mpg','mpeg','ts','m2ts','mts','3gp','ogv','vob','mp3','m4a','aac','flac','wav','ogg','opus','wma','ac3','mka'] },
     { name: mt('All files'), extensions: ['*'] }] });
   return r.canceled ? [] : expand(r.filePaths);
 });
@@ -314,7 +341,7 @@ ipcMain.handle('probe', (_e, src) => probe(src));
 ipcMain.handle('keyframe', (_e, src, ss) => keyframe(src, ss));
 // One video frame at time `at` for the timeline hover preview (formats the hidden <video> can't decode).
 ipcMain.handle('frame', async (_e, src, at, w) => {
-  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-ss', String(Math.max(0, at)), '-i', src, '-frames:v', '1',
+  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...inArgs(src, Math.max(0, at)), '-frames:v', '1',
     '-vf', `scale=${Math.round(w) || 320}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '6', 'pipe:1'], { encoding: 'buffer', timeout: 8000 });
   return buf && buf.length ? 'data:image/jpeg;base64,' + buf.toString('base64') : null;
 });

@@ -74,7 +74,8 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 
 ## ✨ Features
 
-- **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
+- **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more, plus old game and cutscene formats like TGV, Bink and Smacker. Files you open yourself are always tried, whatever the extension. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
+- **DVDs:** open a DVD `.iso` image or a DVD folder (`VIDEO_TS`) and the main title plays. Copy-protected (CSS-encrypted) retail DVDs are not supported.
 - **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
 - **Instant seek preview.** Hover the timeline to see a thumbnail; a storyboard of frames is generated in the background so the preview follows your mouse without delay.
 - **7 languages:** English, Nederlands, Deutsch, Français, Español, Italiano and Português, switchable instantly without restarting.
@@ -135,7 +136,7 @@ npm run dist:linux      # Linux: AppImage, deb, rpm, pacman, tar.gz (on Linux)
 
 ### Slim FFmpeg
 
-Like VLC, the release builds don't ship a general-purpose FFmpeg. [`app/build/ffmpeg/build.sh`](app/build/ffmpeg/build.sh) compiles FFmpeg from source with `--disable-everything`, then switches on all decoders, demuxers and parsers (so it still plays almost anything) but only the few encoders, muxers and filters the app uses (H.264/AAC for live conversion, JPEG thumbnails, WebVTT subtitles). That brings the FFmpeg binary from ±80 MB down to a fraction of that. The release workflow builds it automatically; to build it yourself:
+Like VLC, the release builds don't ship a general-purpose FFmpeg. [`app/build/ffmpeg/build.sh`](app/build/ffmpeg/build.sh) compiles FFmpeg (with libdvdread/libdvdnav for DVDs) from source with `--disable-everything`, then switches on all decoders, demuxers and parsers (so it still plays almost anything) but only the few encoders, muxers and filters the app uses (H.264/AAC for live conversion, JPEG thumbnails, WebVTT subtitles). That brings the FFmpeg binary from ±80 MB down to a fraction of that. The release workflow builds it automatically; to build it yourself:
 
 ```bash
 bash app/build/ffmpeg/docker.sh win-x64      # or linux-x64 (needs Docker)
@@ -149,9 +150,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.10.3"
-git tag v1.10.3
-git push origin v1.10.3
+# first set the version in app/package.json, e.g. "version": "1.11.0"
+git tag v1.11.0
+git push origin v1.11.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
