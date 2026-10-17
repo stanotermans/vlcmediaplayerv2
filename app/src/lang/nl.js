@@ -587,3 +587,11 @@ I18N.add('nl', {
  "Unknown language. Use two-letter codes like en or nl.": "Onbekende taal. Gebruik tweeletterige codes zoals en of nl.",
  "Languages as two-letter codes (en, nl, de …) or names (English, Dutch), separated by commas.": "Talen als tweeletterige codes (en, nl, de …) of namen (Engels, Nederlands), gescheiden door komma’s."
 });
+
+// v1.10.3: hardware acceleration
+I18N.add('nl', {
+ "Graphics": "Weergave",
+ "Hardware acceleration": "Hardwareversnelling",
+ "Turned off automatically because the graphics card could not draw the window. Takes effect after restarting the app.": "Automatisch uitgezet omdat de videokaart het venster niet kon tekenen. Werkt na het herstarten van de app.",
+ "Uses the graphics card for drawing. Turn off if the window stays empty or the app does not open. Takes effect after restarting the app.": "Gebruikt de videokaart om te tekenen. Zet uit als het venster leeg blijft of de app niet opent. Werkt na het herstarten van de app."
+});

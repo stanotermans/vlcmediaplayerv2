@@ -704,7 +704,10 @@ function fsZones(y) {
   document.body.classList.toggle('fs-bottom', dragging || vdrag || (y != null && y >= innerHeight - FS_BOTTOM));
   if (!document.body.classList.contains('fs-bottom')) hidePreview();
 }
-let hideT; document.addEventListener('mousemove', e => {
+// Only real movement counts: Chromium also fires mousemove when styles under a resting pointer change, which
+// would otherwise show the cursor again right after hiding it.
+let hideT, lastXY = ''; document.addEventListener('mousemove', e => {
+  const xy = e.screenX + ',' + e.screenY; if (xy === lastXY) return; lastXY = xy;
   fsZones(e.clientY);
   document.body.classList.remove('hidecursor'); clearTimeout(hideT);
   hideT = setTimeout(() => {

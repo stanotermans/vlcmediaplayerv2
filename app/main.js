@@ -55,12 +55,19 @@ if (process.env.VLCX_USER_DATA) app.setPath('userData', process.env.VLCX_USER_DA
 else {
   // keep using the settings/library folder of versions released as "VLC Media Player"
   const legacy = path.join(app.getPath('appData'), 'VLC Media Player');
-  if (fs.existsSync(legacy)) app.setPath('userData', legacy);
+  // Fixed folder name: the Linux packages use the internal name "vlc-redesign" (no space in /opt), which would
+  // otherwise move the settings to ~/.config/vlc-redesign.
+  app.setPath('userData', fs.existsSync(legacy) ? legacy : path.join(app.getPath('appData'), 'VLC Redesign'));
 }
 // Start in the language chosen in the app (saved by 'set-lang'), so built-in browser texts and, on Linux,
 // the GTK file dialogs follow it instead of the system language. Windows' own file dialogs always use the
 // Windows display language; there only the title and the confirm button can be set (see the dialogs below).
-const BOOT_LANG = (() => { try { return JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'window.json'), 'utf8')).lang || ''; } catch { return ''; } })();
+const BOOT_PREFS = (() => { try { return JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'window.json'), 'utf8')) || {}; } catch { return {}; } })();
+const BOOT_LANG = BOOT_PREFS.lang || '';
+// Hardware acceleration can be switched off (Settings → Performance), and is switched off automatically on Linux when
+// the GPU can't draw the window (e.g. a VM without 3D: the first frame never arrives or the GPU process crashes).
+const HW_ACCEL = BOOT_PREFS.hwAccel !== false;
+if (!HW_ACCEL) app.disableHardwareAcceleration();
 if (/^(en|nl|de|fr|es|it|pt)$/.test(BOOT_LANG)) {
   LANG = BOOT_LANG;
   app.commandLine.appendSwitch('lang', { en: 'en-US', pt: 'pt-PT' }[BOOT_LANG] || BOOT_LANG);
@@ -69,7 +76,7 @@ if (/^(en|nl|de|fr|es|it|pt)$/.test(BOOT_LANG)) {
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 app.on('second-instance', (_e, argv) => {
   const p = argPaths(argv);
-  if (win) { if (win.isMinimized()) win.restore(); win.focus(); if (p.length) win.webContents.send('open-paths', expand(p)); }
+  if (win) { if (win.isMinimized()) win.restore(); if (!win.isVisible()) win.show(); win.focus(); if (p.length) win.webContents.send('open-paths', expand(p)); }
 });
 
 /* ---------------- local media server (127.0.0.1 + token) ---------------- */
@@ -450,7 +457,7 @@ const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
 ipcMain.handle('app-info', () => ({
   version: app.getVersion(), platform: process.platform, arch: process.arch, portable: isPortable(), appImage: !!process.env.APPIMAGE,
   electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node,
-  roundedCorners: winPrefs().roundedCorners === true, drawsRoundedCorners: ROUNDED && process.platform === 'linux',
+  roundedCorners: winPrefs().roundedCorners === true, hwAccel: HW_ACCEL, hwAuto: winPrefs().hwAuto || '', drawsRoundedCorners: ROUNDED && process.platform === 'linux',
 }));
 const cmpVer = (a, b) => { const x = String(a).replace(/^v/, '').split('.').map(n => parseInt(n) || 0), y = String(b).replace(/^v/, '').split('.').map(n => parseInt(n) || 0);
   for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) ? 1 : -1; } return 0; };
@@ -572,16 +579,32 @@ const winPrefsFile = () => path.join(app.getPath('userData'), 'window.json');
 const winPrefs = () => { try { return JSON.parse(fs.readFileSync(winPrefsFile(), 'utf8')); } catch { return {}; } };
 let ROUNDED = false;                                             // rounded corners are active in the running window
 ipcMain.handle('set-window-pref', (_e, key, value) => {
-  if (!['roundedCorners'].includes(key)) return false;
-  const p = winPrefs(); p[key] = !!value;
+  if (!['roundedCorners', 'hwAccel'].includes(key)) return false;
+  const p = winPrefs(); p[key] = !!value; if (key === 'hwAccel') delete p.hwAuto;
   try { fs.writeFileSync(winPrefsFile(), JSON.stringify(p)); } catch {}
-  return process.platform !== 'win32' && ROUNDED !== !!value;      // true → restart needed to apply
+  if (key === 'hwAccel') return HW_ACCEL !== !!value;              // true → restart needed to apply
+  return process.platform !== 'win32' && ROUNDED !== !!value;
+});
+function restartWithoutGpu(why) {
+  const p = winPrefs(); if (p.hwAccel === false) return;
+  p.hwAccel = false; p.hwAuto = why; try { fs.writeFileSync(winPrefsFile(), JSON.stringify(p)); } catch {}
+  log('error', 'restarting without hardware acceleration: ' + why);
+  // an AppImage must be started again from the .AppImage file, not from its temporary mount
+  app.relaunch(process.env.APPIMAGE ? { execPath: process.env.APPIMAGE, args: process.argv.slice(1) } : undefined);
+  app.exit(0);
+}
+app.on('child-process-gone', (_e, d) => {
+  if (d.type === 'GPU' && process.platform === 'linux' && HW_ACCEL && !['clean-exit', 'killed'].includes(d.reason)) restartWithoutGpu('GPU process ' + d.reason);
 });
 function createWindow() {
   const rounded = winPrefs().roundedCorners === true;
   ROUNDED = rounded && process.platform !== 'win32';               // Windows 11 always rounds; nothing to switch
+  // Remember size, position and maximized state between starts (#34); only reuse a position that is still on a screen.
+  const saved = winPrefs().window || {}, sb = saved.bounds;
+  const onScreen = sb && screen.getAllDisplays().some(d => { const a = d.workArea; return sb.x < a.x + a.width - 80 && sb.x + sb.width > a.x + 80 && sb.y >= a.y - 20 && sb.y < a.y + a.height - 80; });
+  const place = sb && sb.width >= 360 && sb.height >= 320 ? { width: sb.width, height: sb.height, ...(onScreen ? { x: sb.x, y: sb.y } : {}) } : { width: 1280, height: 800 };
   win = new BrowserWindow({
-    width: 1280, height: 800, minWidth: 360, minHeight: 320,       // small enough for vertical videos
+    ...place, minWidth: 360, minHeight: 320,                       // small enough for vertical videos
     frame: false, show: false,
     ...(ROUNDED && process.platform === 'linux' ? { transparent: true, backgroundColor: '#00000000' } : { backgroundColor: '#141414' }),
     ...(process.platform === 'darwin' ? { roundedCorners: rounded } : {}),
@@ -589,7 +612,20 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, backgroundThrottling: false },
   });
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
-  win.once('ready-to-show', () => win.show());
+  let shown = false;
+  if (saved.maximized) win.maximize();
+  win.once('ready-to-show', () => { shown = true; win.show(); });
+  win.on('close', () => {                                         // normal (not maximized/fullscreen) bounds + state
+    try { const p = winPrefs(); p.window = { bounds: win.getNormalBounds(), maximized: win.isMaximized() || (win.isFullScreen() && !!(p.window && p.window.maximized)) }; fs.writeFileSync(winPrefsFile(), JSON.stringify(p)); } catch {}
+  });
+  // No first frame after 7 s: on Linux with hardware acceleration that is the GPU (e.g. a VM without 3D) → restart
+  // once without it; otherwise just show the window anyway instead of leaving an invisible app running.
+  setTimeout(() => {
+    if (shown || !win || win.isDestroyed()) return;
+    log('error', 'window: no first frame after 7 s' + (HW_ACCEL ? ' (hardware acceleration on)' : ''));
+    if (process.platform === 'linux' && HW_ACCEL) return restartWithoutGpu('no first frame');
+    win.show();
+  }, 7000);
   win.on('maximize', () => win.webContents.send('maximized', true));
   win.on('unmaximize', () => win.webContents.send('maximized', false));
   // Snapped/tiled windows (e.g. GNOME split screen) are not "maximized", yet should get square corners (#18).

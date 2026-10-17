@@ -427,7 +427,10 @@ kbd.cap{min-width:34px;height:32px;padding:0 10px;display:inline-grid;place-item
 .fullscreen.in-player #titlebar{top:0;transform:translateY(-100%);-webkit-app-region:no-drag}
 .fullscreen.in-player #controls{bottom:0;height:52px;transform:translateY(100%)}
 .fullscreen.in-player.fs-top #titlebar,.fullscreen.in-player.fs-bottom #controls{opacity:1;pointer-events:auto;transform:none}
-.fullscreen.in-player.hidecursor{cursor:none}
+/* explicit arrow while the mouse moves: going from cursor:none back to 'auto' over the video does not always show the
+   cursor again on Windows; elements with their own cursor (buttons) keep it (#33) */
+.fullscreen.in-player #player,.fullscreen.in-player #player video,.fullscreen.in-player #lyrics{cursor:default}
+.fullscreen.in-player.hidecursor,.fullscreen.in-player.hidecursor #player,.fullscreen.in-player.hidecursor #player video,.fullscreen.in-player.hidecursor #lyrics{cursor:none}
 @media (max-width:820px){
   #side{position:absolute;left:52px;top:0;bottom:0;z-index:6}
   #body{grid-template-columns:auto 0 1fr}

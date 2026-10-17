@@ -587,3 +587,11 @@ I18N.add('it', {
  "Unknown language. Use two-letter codes like en or nl.": "Lingua sconosciuta. Usa codici di due lettere come en o it.",
  "Languages as two-letter codes (en, nl, de …) or names (English, Dutch), separated by commas.": "Lingue come codici di due lettere (en, nl, de …) o nomi (inglese, italiano), separate da virgole."
 });
+
+// v1.10.3: hardware acceleration
+I18N.add('it', {
+ "Graphics": "Grafica",
+ "Hardware acceleration": "Accelerazione hardware",
+ "Turned off automatically because the graphics card could not draw the window. Takes effect after restarting the app.": "Disattivata automaticamente perché la scheda video non riusciva a disegnare la finestra. Ha effetto dopo il riavvio dell’app.",
+ "Uses the graphics card for drawing. Turn off if the window stays empty or the app does not open. Takes effect after restarting the app.": "Usa la scheda video per disegnare. Disattivala se la finestra resta vuota o l’app non si apre. Ha effetto dopo il riavvio."
+});

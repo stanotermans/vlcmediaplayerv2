@@ -353,6 +353,11 @@ function pages(App) {
         row('Quality', select([['fast', 'Fast (less CPU)'], ['balanced', 'Balanced'], ['quality', 'High quality']], 'txQuality', () => App.reloadSource()), { info: 'Only for files the app needs to convert (such as .avi or AC3 audio).' }),
         row('Maximum resolution', select([[1280, '720p'], [1920, '1080p'], [2560, '1440p'], [3840, '4K']], 'txMaxW', () => App.reloadSource()))),
       sec('Library', row('Generate thumbnails', toggle('thumbs'))),
+      sec('Graphics', (() => {                                    // stored by the main process: applies at the next start
+        const info = App.appInfo || {}; let on = info.hwAccel !== false;
+        return row('Hardware acceleration', toggle({ get: () => on, set: async v => { on = v; info.hwAccel = v; if (await api.setWindowPref('hwAccel', v)) App.osd('Restart the app to apply this'); }, path: '_hwaccel' }),
+          { info: info.hwAuto ? 'Turned off automatically because the graphics card could not draw the window. Takes effect after restarting the app.' : 'Uses the graphics card for drawing. Turn off if the window stays empty or the app does not open. Takes effect after restarting the app.' });
+      })()),
     ],
     recording: () => [
       sec('Recording',

@@ -169,9 +169,11 @@ jobs:
       - name: Linux (AppImage, deb, rpm, pacman, tar.gz)
         if: runner.os == 'Linux'
         run: |
-          npx electron-builder --linux deb rpm pacman tar.gz --publish never
+          # productName without a space: the packages install to /opt/<productName>, and Chromium's fallback
+          # sandbox (used where user namespaces are blocked, e.g. Ubuntu 24.04) cuts paths at spaces
+          npx electron-builder --linux deb rpm pacman tar.gz -c.productName=vlc-redesign --publish never
           # AppImage with gzip instead of xz: AppImageHub and older AppImage runtimes cannot mount xz
-          npx electron-builder --linux AppImage -c.compression=normal --publish never
+          npx electron-builder --linux AppImage -c.compression=normal -c.productName=vlc-redesign --publish never
 
       - uses: actions/upload-artifact@v4
         with:
