@@ -454,7 +454,7 @@ async function playItem(idx, autoplay = true) {
   if (resumeAt) osd(t('Resuming from {time}', { time: shortFmt(resumeAt) }));
   setIdle(it);
   if (S.get('rememberRecent')) { state.recent = [it.src, ...state.recent.filter(s => s !== it.src)]; saveRecent(); }
-  setupSubs(it);
+  setupSubs(it); renderMarks();
   buildStoryboard(it);
   updateMediaSession(it);
   if (isAudio(it) && it.info && it.info.cover && !it.cover) api.cover(it.src).then(c => { if (!c) return; it.cover = c; if (curItem() === it) { setIdle(it); renderLyrics(); updateMediaSession(it); } });
@@ -503,7 +503,7 @@ video.addEventListener('ended', () => {
 });
 video.addEventListener('timeupdate', updateTime);
 video.addEventListener('progress', updateTime);
-video.addEventListener('durationchange', updateTime);
+video.addEventListener('durationchange', () => { updateTime(); renderMarks(); });
 video.addEventListener('ratechange', () => { if (Math.abs(video.playbackRate - S.get('speed')) > 1e-6) S.set('speed', +video.playbackRate.toFixed(2)); });
 setInterval(() => { if (!video.paused) savePos(); }, 5000);
 
@@ -562,14 +562,70 @@ function updateTime() {
 }
 function setSeekUI(f) { f = Math.min(1, Math.max(0, f || 0)); $('#seekFill').style.width = f * 100 + '%'; $('#seekHandle').style.left = f * 100 + '%'; }
 
+/* ---------- chapters (embedded) and bookmarks (your own), #40 ---------- */
+// Bookmarks are kept per file: { src: [{ t, name }] }, sorted by time.
+const bookmarks = store.get('bookmarks', {});
+const chaptersOf = it => (it && it.info && it.info.chapters) || [];
+const bookmarksOf = it => (it && bookmarks[it.src]) || [];
+function setBookmarks(it, list) {
+  list = list.filter(b => isFinite(b.t) && b.t >= 0).map(b => ({ t: Math.round(b.t * 1000) / 1000, name: String(b.name || '').trim() })).sort((a, b) => a.t - b.t);
+  if (list.length) bookmarks[it.src] = list; else delete bookmarks[it.src];
+  store.set('bookmarks', bookmarks); renderMarks();
+}
+function addBookmark(at = curTime(), name) {
+  const it = curItem(); if (!it) return;
+  const list = bookmarksOf(it);
+  if (list.some(b => Math.abs(b.t - at) < 0.5)) return osd('There is already a bookmark here');
+  setBookmarks(it, [...list, { t: at, name: name || t('Bookmark {n}', { n: list.length + 1 }) }]);
+  osd(t('Bookmark added at {time}', { time: fmt(at) }));
+}
+// Chapter starts and bookmarks as one sorted list of jump points
+const markTimes = it => [...new Set([...chaptersOf(it).map(c => c.start), ...bookmarksOf(it).map(b => b.t)].map(x => Math.round(x * 10) / 10))].sort((a, b) => a - b);
+function jumpMark(dir) {
+  const it = curItem(); if (!it) return;
+  const now = curTime(), times = markTimes(it);
+  // "previous" within 2 s after a mark goes to the mark before it, like ⏮ on a CD player
+  const target = dir > 0 ? times.find(x => x > now + 0.5) : [...times].reverse().find(x => x < now - 2);
+  if (target == null) { if (dir < 0) seekTo(0); return osd(dir > 0 ? 'No next chapter' : 'Start'); }
+  seekTo(target);
+  const label = markLabel(it, target + 0.01);
+  osd(label ? `${label} · ${fmt(target)}` : fmt(target));
+}
+// The name for a moment: a bookmark close to it (within 1% of the length), otherwise the chapter it lies in
+function markLabel(it, at) {
+  const d = curDur() || it.duration || 0, near = Math.max(1, d * 0.01);
+  const b = bookmarksOf(it).find(x => Math.abs(x.t - at) <= near);
+  if (b) return b.name;
+  const ch = chaptersOf(it); let c = null;
+  for (const x of ch) if (x.start <= at + 0.001) c = x;
+  return c ? (c.title || t('Chapter {n}', { n: ch.indexOf(c) + 1 })) : '';
+}
+function renderMarks() {
+  const box = $('#seekMarks'), it = curItem(), d = curDur();
+  if (!it || !d) return box.replaceChildren();
+  const pct = x => Math.min(100, Math.max(0, x / d * 100)) + '%';
+  const mk = (cls, left, title) => { const n = document.createElement('i'); n.className = cls; n.style.left = left; if (title) n.title = title; return n; };
+  box.replaceChildren(
+    ...chaptersOf(it).filter(c => c.start > 0.5 && c.start < d - 0.5).map(c => mk('chap', pct(c.start))),
+    ...bookmarksOf(it).map(b => mk('bmark', pct(b.t), `${b.name} · ${fmt(b.t)}`)));
+}
+// Preview label: long names scroll slowly back and forth instead of being cut off
+function setPvTitle(text) {
+  const box = $('#seekPreview .pv-title'), span = box.firstChild;
+  box.hidden = !text; span.textContent = text || ''; box.classList.remove('roll');
+  if (!text) return;
+  const over = span.scrollWidth - box.clientWidth;
+  if (over > 4) { box.style.setProperty('--roll', -over + 'px'); box.style.setProperty('--roll-time', Math.max(4, over / 25) + 's'); box.classList.add('roll'); }
+}
+
 const seek = $('#seek');
 const frac = (e, elm) => { const r = elm.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
 seek.addEventListener('pointerdown', e => { if (!curDur()) return; dragging = true; seek.setPointerCapture(e.pointerId); setSeekUI(frac(e, seek)); });
-seek.addEventListener('pointermove', e => { const f = frac(e, seek); const tip = $('#seekTip'); tip.style.left = f * 100 + '%'; tip.textContent = fmt(f * curDur()); if (dragging) setSeekUI(f); preview(e, f); });
+seek.addEventListener('pointermove', e => { const f = frac(e, seek); const tip = $('#seekTip'); tip.style.left = f * 100 + '%'; const lb = curItem() && markLabel(curItem(), f * curDur()); tip.textContent = lb ? `${lb} · ${fmt(f * curDur())}` : fmt(f * curDur()); if (dragging) setSeekUI(f); preview(e, f); });
 seek.addEventListener('pointerleave', () => { if (!dragging) schedulePreviewHide(); });
 
 /* ---------- timeline hover preview (design: frame card with the time above the seek bar) ---------- */
-const pvBox = $('#seekPreview'), pvCanvas = $('#seekPreview canvas'), pvCtx = pvCanvas.getContext('2d'), pvTime = $('#seekPreview span');
+const pvBox = $('#seekPreview'), pvCanvas = $('#seekPreview canvas'), pvCtx = pvCanvas.getContext('2d'), pvTime = $('#seekPreview > span');
 const pvVideo = document.createElement('video');            // hidden second decoder for direct-playable files
 pvVideo.muted = true; pvVideo.preload = 'auto'; pvVideo.crossOrigin = 'anonymous';
 const catImg = new Image(); catImg.src = 'data:image/svg+xml,' + encodeURIComponent(catSVG());
@@ -651,6 +707,8 @@ function showPreview() {
   const x = Math.min(innerWidth - half - 8, Math.max(half + 8, cx));   // keep the card inside the window
   pvBox.style.left = (x - r.left) + 'px';
   pvTime.textContent = fmt(at);
+  const label = markLabel(it, at);                            // chapter or bookmark name above the picture (#40)
+  if (label !== (pvBox.dataset.label || '')) { pvBox.dataset.label = label; setPvTitle(label); }
   if (isAudio(it) || it.remote) return pvStage();
   // instant: nearest storyboard frame; then the exact frame once the pointer slows down
   const stepLen = Math.max(0.5, d / 300), step = Math.round(at / stepLen);
@@ -1150,6 +1208,11 @@ function playerMenu(x, y) {
       { sep: true },
       { label: t('{n} s forward', { n: S.get('jump') }), kbd: '→', action: () => seekTo(curTime() + S.get('jump')) },
       { label: t('{n} s back', { n: S.get('jump') }), kbd: '←', action: () => seekTo(curTime() - S.get('jump')) },
+      { sep: true },
+      { label: 'Add bookmark', icon: 'bookmark', kbd: 'Ctrl + B', action: () => addBookmark(), disabled: !it },
+      { label: 'Next chapter / bookmark', kbd: 'Shift + N', action: () => jumpMark(1), disabled: !it || !markTimes(it).length },
+      { label: 'Previous chapter / bookmark', kbd: 'Shift + P', action: () => jumpMark(-1), disabled: !it || !markTimes(it).length },
+      { label: 'Chapters and bookmarks…', kbd: 'Ctrl + Shift + B', action: () => Panels.bookmarks(App), disabled: !it },
     ] },
     { label: 'Video', icon: 'video', sub: () => [
       { label: 'Fullscreen', icon: 'fullscreen', kbd: 'F', action: toggleFs },
@@ -1287,6 +1350,10 @@ const KEY_ACTIONS = [
   ['normalSpeed', 'Normal speed', ['='], () => { video.playbackRate = 1; osd(t('Speed {v}×', { v: 1 })); }],
   ['frameNext', 'Next frame', ['.'], () => frameStep(1)],
   ['framePrev', 'Previous frame', [','], () => frameStep(-1)],
+  ['nextChapter', 'Next chapter / bookmark', ['N'], () => jumpMark(1)],
+  ['prevChapter', 'Previous chapter / bookmark', ['P'], () => jumpMark(-1)],
+  ['bookmark', 'Add bookmark', ['Ctrl+b'], () => addBookmark()],
+  ['bookmarks', 'Chapters and bookmarks', ['Ctrl+B'], () => Panels.bookmarks(App)],
 ];
 function frameStep(dir) { if (!curItem()) return; video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }
 const keyOf = e => {
@@ -1416,7 +1483,8 @@ function renderUpdateBanner() {
 
 /* ---------- App API for panels / onboarding ---------- */
 const App = {
-  video, paths: PATHS, osd, addSources, createPlaylist, addFolder, removeFolder,
+  video, paths: PATHS, osd, addSources,
+  marks: { chapters: () => chaptersOf(curItem()), bookmarks: () => bookmarksOf(curItem()), set: list => curItem() && setBookmarks(curItem(), list), add: addBookmark, time: () => curTime(), seek: x => seekTo(x), dur: () => curDur(), label: x => curItem() ? markLabel(curItem(), x) : '' }, createPlaylist, addFolder, removeFolder,
   rescan: async () => { osd('Scanning library…'); await scanFolders(); osd('Library updated'); },
   clearRecent: () => { state.recent = []; saveRecent(); render(); App.osd('Recent cleared'); },
   clearPositions: () => { for (const k in positions) delete positions[k]; store.set('pos', positions); watched = new Set(); saveWatched(); state.items.forEach(i => i.progress = 0); render(); App.osd('Playback positions cleared'); },

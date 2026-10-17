@@ -634,5 +634,87 @@ function osAccountBlock(onChange) {
   draw();
   return box;
 }
-window.Panels = { quickPanel, openSettings, openNetwork, newPlaylist, shortcuts, SHORTCUTS, keycaps, searchSubtitles };
+/* ---------- chapters and bookmarks (#40) ---------- */
+const hms = s => { s = Math.max(0, s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${x.toFixed(3).padStart(6, '0')}`; };
+const short = s => { s = Math.floor(Math.max(0, s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+const secs = str => { const p = String(str).trim().split(':').map(Number); return p.some(isNaN) ? NaN : p.reduce((a, v) => a * 60 + v, 0); };
+// Exported as an OGM chapter file, which MKVToolNix, MPC and other players can read.
+const toChapterFile = list => list.map((b, i) => { const n = String(i + 1).padStart(2, '0'); return `CHAPTER${n}=${hms(b.t)}\nCHAPTER${n}NAME=${b.name}`; }).join('\n') + '\n';
+// Reads OGM chapter files, FFmpeg metadata, Matroska chapter XML, CUE sheets and plain "1:23 Title" lists
+// (like the timestamps in a YouTube description).
+function parseChapters(text) {
+  const out = [];
+  if (/^CHAPTER\d+=/m.test(text)) {
+    const names = {};
+    for (const m of text.matchAll(/^CHAPTER(\d+)NAME=(.*)$/gm)) names[m[1]] = m[2].trim();
+    for (const m of text.matchAll(/^CHAPTER(\d+)=([\d:.]+)\s*$/gm)) out.push({ t: secs(m[2]), name: names[m[1]] || '' });
+  } else if (/^\[CHAPTER\]/m.test(text)) {
+    for (const blk of text.split(/^\[CHAPTER\]/m).slice(1)) {
+      const tb = /^TIMEBASE=(\d+)\/(\d+)/m.exec(blk), st = /^START=(\d+)/m.exec(blk), ti = /^title=(.*)$/m.exec(blk);
+      if (st) out.push({ t: +st[1] * (tb ? +tb[1] / +tb[2] : 1e-9), name: ti ? ti[1].trim() : '' });
+    }
+  } else if (/<ChapterAtom/i.test(text)) {
+    for (const blk of text.split(/<ChapterAtom/i).slice(1)) {
+      const st = /<ChapterTimeStart>([\d:.]+)</i.exec(blk), ti = /<ChapterString>([^<]*)</i.exec(blk);
+      if (st) out.push({ t: secs(st[1]), name: ti ? ti[1].trim() : '' });
+    }
+  } else if (/^\s*TRACK\s+\d+/mi.test(text)) {
+    for (const blk of text.split(/^\s*TRACK\s+\d+.*$/mi).slice(1)) {
+      const ti = /^\s*TITLE\s+"?(.*?)"?\s*$/mi.exec(blk), ix = /^\s*INDEX\s+01\s+(\d+):(\d+):(\d+)/mi.exec(blk);
+      if (ix) out.push({ t: +ix[1] * 60 + +ix[2] + +ix[3] / 75, name: ti ? ti[1] : '' });
+    }
+  } else {
+    const TS = '[\\[(]?((?:\\d+:)?\\d{1,2}:\\d{2}(?:\\.\\d+)?)[\\])]?';
+    const lead = new RegExp(`^\\s*${TS}\\s*[-–—:|.]?\\s*(.*)$`), trail = new RegExp(`^(.*?)\\s*[-–—:|]?\\s*${TS}\\s*$`);
+    for (const line of text.split(/\r?\n/)) {
+      let m = lead.exec(line);
+      if (m) { out.push({ t: secs(m[1]), name: m[2].trim() }); continue; }
+      m = trail.exec(line);
+      if (m) out.push({ t: secs(m[2]), name: m[1].trim() });
+    }
+  }
+  return out.filter(b => isFinite(b.t));
+}
+function bookmarks(App) {
+  const it = App.current && App.current();
+  if (!it) return App.osd('Play something first');
+  const M = App.marks, body = el('div.formcol');
+  const draw = () => {
+    const chapters = M.chapters(), marks = M.bookmarks(), d = M.dur();
+    const jump = t0 => () => M.seek(t0);
+    const chapList = chapters.length ? el('div.bmlist', {}, ...chapters.map((c, i) => el('div.bmrow', {},
+      el('button.bmtime', { type: 'button', onclick: jump(c.start), title: t('Jump to') }, short(c.start)),
+      el('span.bmname', { onclick: jump(c.start) }, c.title || t('Chapter {n}', { n: i + 1 }))))) : el('p.hint', {}, t('This file has no chapters.'));
+    const bmList = marks.length ? el('div.bmlist', {}, ...marks.map((b, i) => {
+      const name = el('input.txt.bmname', { value: b.name, 'aria-label': t('Name') });
+      name.addEventListener('change', () => { const l = M.bookmarks().slice(); l[i] = { ...l[i], name: name.value }; M.set(l); });
+      return el('div.bmrow', {},
+        el('button.bmtime', { type: 'button', onclick: jump(b.t), title: t('Jump to') }, short(b.t)), name,
+        el('button.ibtn', { type: 'button', html: icon('x'), title: t('Remove'), onclick: () => { M.set(M.bookmarks().filter((_, j) => j !== i)); draw(); } }));
+    })) : el('p.hint', {}, t('No bookmarks yet. Press Ctrl+B while playing to add one.'));
+    body.replaceChildren(
+      el('h4.bmhead', {}, t('Chapters')), chapList,
+      el('h4.bmhead', {}, t('Bookmarks')), bmList,
+      el('div.btnrow', {},
+        button('Add bookmark here', () => { M.add(M.time()); draw(); }, 'primary'),
+        button('Import…', async () => {
+          const f = await api.openText({ title: t('Import bookmarks') }); if (!f) return;
+          const list = parseChapters(f.text).filter(b => !d || b.t <= d + 1);
+          if (!list.length) return App.osd('No chapters or bookmarks found in this file');
+          let n = 0; const cur = M.bookmarks().slice();
+          for (const b of list) if (!cur.some(x => Math.abs(x.t - b.t) < 0.5)) { cur.push({ t: b.t, name: b.name || t('Bookmark {n}', { n: cur.length + 1 }) }); n++; }
+          M.set(cur); App.osd(t('{n} bookmarks imported', { n })); draw();
+        }, 'ghost'),
+        button('Export…', async () => {
+          const list = M.bookmarks().length ? M.bookmarks() : chapters.map((c, i) => ({ t: c.start, name: c.title || t('Chapter {n}', { n: i + 1 }) }));
+          if (!list.length) return App.osd('Nothing to export');
+          if (await api.saveText({ title: t('Export bookmarks'), name: it.name.replace(/\.[^.]+$/, '') + '.chapters.txt', text: toChapterFile(list) })) App.osd('Bookmarks exported');
+        }, 'ghost')),
+      el('p.note', {}, t('Shift+N and Shift+P jump to the next and previous chapter or bookmark. Export saves your bookmarks (or the chapters if you have none) as a chapter file that other players and MKVToolNix can read.')));
+  };
+  draw();
+  dialog({ title: 'Chapters and bookmarks', body, buttons: [], width: 520 });
+}
+
+window.Panels = { quickPanel, openSettings, openNetwork, newPlaylist, shortcuts, SHORTCUTS, keycaps, searchSubtitles, bookmarks, parseChapters, toChapterFile };
 })();

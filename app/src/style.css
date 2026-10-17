@@ -195,9 +195,9 @@ body.hide-ui #body{grid-template-columns:1fr}
 #seekPreview.show{display:block;animation:pvIn .12s ease-out}
 @keyframes pvIn{from{opacity:0;transform:translate(-50%,6px)}}
 #seekPreview canvas{display:block;width:216px;height:122px;border-radius:9px;background:#2a2928}
-#seekPreview span{display:block;text-align:center;color:#a0a0a0;font-size:16px;font-variant-numeric:tabular-nums;padding:6px 0 4px}
+#seekPreview > span{display:block;text-align:center;color:#a0a0a0;font-size:16px;font-variant-numeric:tabular-nums;padding:6px 0 4px}
 :root[data-theme="light"] #seekPreview{background:#f4f4f4;box-shadow:0 14px 40px #0003}
-:root[data-theme="light"] #seekPreview span{color:#555}
+:root[data-theme="light"] #seekPreview > span{color:#555}
 #vol{width:90px;height:18px;background:var(--track);border-radius:4px;position:relative;cursor:pointer;overflow:hidden}
 #volFill{position:absolute;left:0;top:0;bottom:0;border-radius:4px 0 0 4px;background:linear-gradient(90deg,var(--vol1),var(--vol2))}
 .sep{width:1px;height:18px;background:var(--line);margin:0 4px}
@@ -579,3 +579,21 @@ body.rounded-win.snapped #app{border-radius:0;border:0}
 .kbnone{color:var(--muted);font-style:italic}
 @keyframes kbpulse{from{opacity:.55}to{opacity:1}}
 .kbtable.kbedit{grid-template-columns:1fr;gap:2px}
+
+/* chapters and bookmarks on the timeline (#40) */
+#seekMarks{position:absolute;inset:0;pointer-events:none}
+#seekMarks .chap{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--bg)}
+#seekMarks .bmark{position:absolute;top:-6px;width:8px;height:8px;margin-left:-4px;background:var(--accent);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 0 1.5px #0008}
+#seekPreview .pv-title{overflow:hidden;white-space:nowrap;color:#e8e8e8;font-size:14px;font-weight:600;padding:0 2px 7px;text-align:center}
+#seekPreview .pv-title span{display:inline-block}
+#seekPreview .pv-title.roll{text-align:left}
+#seekPreview .pv-title.roll span{animation:pvRoll var(--roll-time,6s) ease-in-out infinite alternate}
+@keyframes pvRoll{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--roll))}}
+:root[data-theme="light"] #seekPreview .pv-title{color:#222}
+.bmhead{margin:6px 0 2px;font-size:13px;color:var(--muted);font-weight:600}
+.bmlist{display:flex;flex-direction:column;gap:2px;max-height:min(30vh,260px);overflow:auto}
+.bmrow{display:flex;align-items:center;gap:10px;padding:3px 6px;border-radius:6px}
+.bmrow:hover{background:var(--panel2)}
+.bmtime{min-width:64px;text-align:left;color:var(--accent);font-variant-numeric:tabular-nums;padding:4px 0}
+span.bmname{flex:1;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input.bmname{flex:1;min-width:0}

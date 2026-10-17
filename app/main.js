@@ -90,6 +90,7 @@ let win = null;
 // The few strings the main process shows itself (file-dialog filters, default track names), per UI language.
 let LANG = 'en';
 const MT = {
+  'Chapters': { nl: 'Hoofdstukken', de: 'Kapitel', fr: 'Chapitres', es: 'Capítulos', it: 'Capitoli', pt: 'Capítulos' },
   'All files': { nl: 'Alle bestanden', de: 'Alle Dateien', fr: 'Tous les fichiers', es: 'Todos los archivos', it: 'Tutti i file', pt: 'Todos os ficheiros' },
   'Subtitles': { nl: 'Ondertitels', de: 'Untertitel', fr: 'Sous-titres', es: 'Subtítulos', it: 'Sottotitoli', pt: 'Legendas' },
   'Track': { nl: 'Spoor', de: 'Spur', fr: 'Piste', es: 'Pista', it: 'Traccia', pt: 'Faixa' },
@@ -258,14 +259,17 @@ async function probe(src) {
   const head = /Input #0, (.+?), from /.exec(txt);
   if (!head) return null;
   const dm = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt);
-  const streams = [], tags = {}; let cur = null, inStreams = false;
+  const streams = [], tags = {}, chapters = []; let cur = null, inStreams = false;
   for (const line of txt.split(/\r?\n/)) {
     const tg = !inStreams && /^\s{4}(album|artist|album_artist)\s*:\s*(.+)$/i.exec(line);
     if (tg && !tags[tg[1].toLowerCase()]) tags[tg[1].toLowerCase()] = tg[2].trim();
     if (/^\s*Stream #/.test(line)) inStreams = true;
     const m = /^\s*Stream #0:\d+(?:\[[^\]]*\])?(?:\(([^)]*)\))?: (Video|Audio|Subtitle|Data|Attachment): ([^\s,]+)(.*)$/.exec(line);
     if (m) { cur = { type: m[2].toLowerCase(), lang: m[1] && m[1] !== 'und' ? m[1] : undefined, codec: m[3].toLowerCase(), rest: m[4], title: '' }; streams.push(cur); continue; }
-    if (/^\s*(Chapter|Input|Output) #/.test(line)) { cur = null; continue; }
+    // embedded chapters (#40): "Chapter #0:1: start 6.000000, end 13.000000" followed by an optional "title : …"
+    const ch = /^\s*Chapter #\d+:\d+: start (-?[\d.]+), end (-?[\d.]+)/.exec(line);
+    if (ch) { cur = { start: Math.max(0, +ch[1]), end: +ch[2], title: '' }; chapters.push(cur); continue; }
+    if (/^\s*(Input|Output) #/.test(line)) { cur = null; continue; }
     const t = cur && /^\s+title\s*:\s*(.+)$/.exec(line);
     if (t && !cur.title) cur.title = t[1].trim();
   }
@@ -284,6 +288,7 @@ async function probe(src) {
     subs: sub.map((s, i) => ({ i, codec: s.codec, label: label(s) || `${mt('Subtitle')} ${i + 1}`, lang: s.lang })),
     cover: streams.some(s => s.type === 'video' && isCover(s)),
     album: tags.album || '', artist: tags.artist || tags.album_artist || '',
+    chapters: chapters.length > 1 || (chapters[0] && chapters[0].title) ? chapters.map(c => ({ start: c.start, end: c.end, title: c.title })) : [],
   };
 }
 
@@ -499,6 +504,17 @@ ipcMain.handle('snapshot', (_e, dataUrl, name, dir) => {
   const file = path.join(dir, name);
   fs.writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
   return file;
+});
+// Bookmarks export/import (#40): a plain text file
+ipcMain.handle('save-text', async (_e, { title, name, text }) => {
+  const r = await dialog.showSaveDialog(win, { title, buttonLabel: mt('Save'), defaultPath: name, filters: [{ name: mt('Chapters'), extensions: ['txt'] }] });
+  if (r.canceled || !r.filePath) return false;
+  fs.writeFileSync(r.filePath, text, 'utf8'); return true;
+});
+ipcMain.handle('open-text', async (_e, { title }) => {
+  const r = await dialog.showOpenDialog(win, { title, buttonLabel: mt('Open'), properties: ['openFile'], filters: [{ name: mt('Chapters'), extensions: ['txt', 'xml', 'ffmeta', 'cue'] }, { name: mt('All files'), extensions: ['*'] }] });
+  if (r.canceled || !r.filePaths[0]) return null;
+  return { name: path.basename(r.filePaths[0]), text: fs.readFileSync(r.filePaths[0], 'utf8') };
 });
 ipcMain.handle('reveal', (_e, p) => shell.showItemInFolder(realPath(p)));
 ipcMain.handle('open-path', (_e, p) => { fs.mkdirSync(p, { recursive: true }); return shell.openPath(p); });

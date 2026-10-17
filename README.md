@@ -85,6 +85,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Playlists:** import `.m3u`, `.m3u8`, `.xspf` and `.pls` files (open, drag or *Playlists → Import playlist…*), an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
 - **Player** with a timeline preview (hover the seek bar to see that moment), mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.
 - **Made for watching:** while a video plays, the sidebar tucks away so the video gets the full width, and the window resizes to the video's shape (up to 70% of the screen, like VLC). Both can be turned off in *Settings → Interface*. There you can also hide individual player controls (e.g. keep only the timeline) and turn on rounded window corners.
+- **Chapters and bookmarks:** chapters embedded in a file (MKV, MP4, DVD) show as marks on the timeline, with the chapter name above the preview. Add your own bookmarks with Ctrl+B, jump between chapters and bookmarks with Shift+N / Shift+P, and manage, import or export them (OGM chapter files, FFmpeg metadata, Matroska XML, CUE and "1:23 Title" lists) via Ctrl+Shift+B.
 - **Subtitles:** embedded and external `.srt`/`.ass`/`.vtt` files load automatically. You can set the delay, speed, duration, font, color, outline and background.
 - **Subtitle fonts:** pick any font installed on your computer, or add your own `.ttf`/`.otf`/`.woff` files in *Settings → Subtitles*.
 - **Online subtitles:** search and download subtitles from [OpenSubtitles.com](https://www.opensubtitles.com) without leaving the player (right-click → *Subtitle → Search online…*). Results that fit your exact file are marked. Searching works right away; downloading needs a free OpenSubtitles.com account (20 downloads per day), which you can log in with inside the app.
@@ -111,6 +112,8 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 | `[` `]` `=` | Slower / faster / normal | `G` `H` | Subtitle delay |
 | `Ctrl+O` | Open files | `Ctrl+N` | Network stream |
 | `Ctrl+P` | Settings | `Ctrl+\` | Hide interface |
+| `Shift+N` `Shift+P` | Next / previous chapter or bookmark | `Ctrl+B` | Add bookmark |
+| `Ctrl+Shift+B` | Chapters and bookmarks | | |
 | `F1` | All shortcuts | `Ctrl+Q` | Quit |
 </details>
 
@@ -152,9 +155,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.12.3"
-git tag v1.12.3
-git push origin v1.12.3
+# first set the version in app/package.json, e.g. "version": "1.13.0"
+git tag v1.13.0
+git push origin v1.13.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

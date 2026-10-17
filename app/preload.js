@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('api', {
   keyframe: (src, ss) => inv('keyframe', src, ss),
   thumb: (src, at) => inv('thumb', src, at),
   dvdTitles: src => inv('dvd-titles', src),
+  saveText: o => inv('save-text', o),
+  openText: o => inv('open-text', o),
   setSoundfont: file => inv('set-soundfont', file),
   chooseSoundfont: () => inv('choose-soundfont'),
   frame: (src, at, w) => inv('frame', src, at, w),
