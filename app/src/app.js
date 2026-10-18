@@ -156,7 +156,11 @@ function enrich(it) {
     if (info) {
       it.info = info; it.duration = info.duration;
       it.type = info.vcodec ? 'video' : 'audio';
-      if (S.get('thumbs') && (info.vcodec || info.cover)) it.thumb = await api.thumb(it.src, info.vcodec ? Math.min(info.duration * 0.2, 120) : 0);
+      if (S.get('thumbs') && (info.vcodec || info.cover)) {
+        const th = api.thumb(it.src, info.vcodec ? Math.min(info.duration * 0.2, 120) : 0);
+        if (it.remote) th.then(t => { if (t) { it.thumb = t; updateCard(it); } });   // a network stream doesn't wait for its thumbnail
+        else it.thumb = await th;
+      }
     } else if (!it.remote) return dropUnplayable(it);
     updateCard(it); renderLater();
   }, it);

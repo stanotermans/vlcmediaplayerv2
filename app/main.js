@@ -118,11 +118,44 @@ async function dvdTitle(src) {
   return list.length ? list.reduce((a, b) => b.duration > a.duration ? b : a).title : 1;
 }
 const DVD_TITLE = new Map();                                       // src → title, filled by probe()
+// HLS master playlists with several variants: ffmpeg's hls demuxer opens every variant and alternate audio rendition
+// and reads from all of them before it outputs anything. Apple's example streams (24 variants, 3 audio groups) took
+// 15–40 s that way, past the probe timeout, so they never started. Like a browser, pick one variant ourselves,
+// plus its separate audio renditions (each an extra ffmpeg input, offered as audio tracks).
+const HLS = new Map(), HLS_PICK = new Map();                      // master URL → promise / resolved { video, audio, muxed }
+const HLS_RE = /^https?:\/\/[^?#]+\.m3u8?(?:[?#]|$)/i;
+function hlsPick(src) {
+  if (!HLS_RE.test(src || '')) return Promise.resolve(null);
+  if (!HLS.has(src)) HLS.set(src, hlsMaster(src).catch(() => null).then(h => { if (h) HLS_PICK.set(src, h); return h; }));
+  return HLS.get(src);
+}
+async function hlsMaster(url) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (!r.ok) return null;
+  const text = await r.text();
+  if (!/#EXT-X-STREAM-INF/.test(text)) return null;                  // a media playlist: ffmpeg plays that as it is
+  const attrs = s => Object.fromEntries([...s.matchAll(/([A-Z0-9-]+)=("[^"]*"|[^,]*)/g)].map(m => [m[1], m[2].replace(/^"|"$/g, '')]));
+  const abs = u => new URL(u, r.url || url).href;
+  const lines = text.split(/\r?\n/).map(l => l.trim()), variants = [], renditions = [];
+  lines.forEach((l, i) => {
+    if (l.startsWith('#EXT-X-STREAM-INF:')) { const uri = lines.slice(i + 1).find(x => x && !x.startsWith('#')); if (uri) variants.push({ ...attrs(l.slice(18)), uri: abs(uri) }); }
+    else if (l.startsWith('#EXT-X-MEDIA:')) { const a = attrs(l.slice(13)); if (a.TYPE === 'AUDIO' && a.URI) renditions.push({ ...a, uri: abs(a.URI) }); }
+  });
+  if (!variants.length) return null;
+  // the first listed variant is the one players start with (and what ffmpeg's 0:V:0 was); H.264 if there is one, so it can be copied
+  const best = variants.find(v => !v.CODECS || /avc1/i.test(v.CODECS)) || variants[0];
+  const groups = new Set(variants.filter(v => v.uri === best.uri && v.AUDIO).map(v => v.AUDIO));
+  const audio = [...new Map(renditions.filter(m => groups.has(m['GROUP-ID'])).map(m => [m.uri, { uri: m.uri, name: m.NAME || '', lang: m.LANGUAGE }])).values()];
+  return { video: best.uri, audio, muxed: 0 };
+}
 // ffmpeg input arguments for a source, with optional input seek (works the same for DVDs and normal files)
 function inArgs(src, ss) {
   const seek = ss ? ['-ss', String(ss)] : [];
-  return DVD_RE.test(src) ? ['-f', 'dvdvideo', '-title', String(dvdSplit(src).title || DVD_TITLE.get(src) || 1), ...seek, '-i', dvdInput(src)] : [...seek, '-i', src];
+  if (DVD_RE.test(src)) return ['-f', 'dvdvideo', '-title', String(dvdSplit(src).title || DVD_TITLE.get(src) || 1), ...seek, '-i', dvdInput(src)];
+  const hls = HLS_PICK.get(src);
+  return [...netArgs(src), ...seek, '-i', hls ? hls.video : src];
 }
+const netArgs = src => /^https?:/i.test(src) ? ['-reconnect', '1', '-reconnect_streamed', '1'] : [];
 const SUB_EXT = /\.(srt|vtt|ass|ssa|sub|lrc)$/i;
 const MIME = { mp4:'video/mp4', m4v:'video/mp4', mov:'video/mp4', webm:'video/webm', mkv:'video/webm', ogv:'video/ogg',
   mp3:'audio/mpeg', m4a:'audio/mp4', aac:'audio/aac', flac:'audio/flac', wav:'audio/wav', ogg:'audio/ogg', oga:'audio/ogg', opus:'audio/ogg' };
@@ -205,7 +238,7 @@ function startServer() {
         if (u.pathname === '/stream') return job.done.then(w => serveStream(w, u.searchParams, req, resp), fail);
       }
       if (u.pathname === '/file') return serveFile(src, req, resp);
-      if (u.pathname === '/stream') return serveStream(src, u.searchParams, req, resp);
+      if (u.pathname === '/stream') return hlsPick(src).then(() => serveStream(src, u.searchParams, req, resp), fail);
       resp.writeHead(404); resp.end();
     });
     srv.listen(0, '127.0.0.1', () => { PORT = srv.address().port; res(); });
@@ -240,11 +273,13 @@ function serveStream(src, q, req, resp) {
   const [preset, crf] = QUALITY[q.get('q')] || QUALITY.balanced;
   const maxw = Math.max(640, Math.min(3840, +q.get('maxw') || 1920));
   const args = ['-hide_banner', '-loglevel', 'error', '-nostdin'];
-  if (/^https?:/i.test(src)) args.push('-reconnect', '1', '-reconnect_streamed', '1');
-  // a second input whose audio replaces the main audio (VLC's "play another media synchronously")
-  const extra = q.get('extra'), useExtra = !!extra && (/^https?:/i.test(extra) || fs.existsSync(extra));
+  // a second input whose audio replaces the main audio (VLC's "play another media synchronously"),
+  // or the separate audio rendition of an HLS stream (audio tracks after the ones muxed into the video variant)
+  const hls = HLS_PICK.get(src);
+  let extra = q.get('extra'), useExtra = !!extra && (/^https?:/i.test(extra) || fs.existsSync(extra));
+  if (!useExtra && hls && a >= hls.muxed && hls.audio[a - hls.muxed]) { extra = hls.audio[a - hls.muxed].uri; useExtra = true; }
   args.push(...inArgs(src, ss));
-  if (useExtra) { if (ss) args.push('-ss', String(ss)); args.push('-i', extra); }
+  if (useExtra) { args.push(...netArgs(extra)); if (ss) args.push('-ss', String(ss)); args.push('-i', extra); }
   args.push('-map', '0:V:0?', '-map', useExtra ? '1:a:0?' : `0:a:${a}?`);
   if (vcopy) args.push('-c:v', 'copy');
   else args.push('-c:v', 'libx264', '-preset', preset, '-tune', 'zerolatency', '-crf', crf, '-g', '48', '-pix_fmt', 'yuv420p',
@@ -308,7 +343,11 @@ async function probe(src) {
     } catch { return null; }
   }
   if (DVD_RE.test(src)) DVD_TITLE.set(src, await dvdTitle(src));
-  const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', ...inArgs(src)]);
+  // separate HLS audio renditions are probed at the same time (ffmpeg would open its inputs one by one) and read as inputs #1, #2, …
+  const hls = await hlsPick(src);
+  const txt = (await Promise.all([runErr(FFMPEG, ['-hide_banner', '-nostdin', ...inArgs(src)]),
+    ...(hls ? hls.audio.map(r => runErr(FFMPEG, ['-hide_banner', '-nostdin', ...netArgs(r.uri), '-i', r.uri])) : [])]))
+    .map((t, k) => k ? t.replace(/^(\s*)(Input|Stream) #0([:,])/gm, `$1$2 #${k}$3`) : t).join('\n');
   const head = /Input #0, (.+?), from /.exec(txt);
   if (!head) return null;
   const dm = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt);
@@ -317,8 +356,13 @@ async function probe(src) {
     const tg = !inStreams && /^\s{4}(album|artist|album_artist)\s*:\s*(.+)$/i.exec(line);
     if (tg && !tags[tg[1].toLowerCase()]) tags[tg[1].toLowerCase()] = tg[2].trim();
     if (/^\s*Stream #/.test(line)) inStreams = true;
-    const m = /^\s*Stream #0:\d+(?:\[[^\]]*\])?(?:\(([^)]*)\))?: (Video|Audio|Subtitle|Data|Attachment): ([^\s,]+)(.*)$/.exec(line);
-    if (m) { cur = { type: m[2].toLowerCase(), lang: m[1] && m[1] !== 'und' ? m[1] : undefined, codec: m[3].toLowerCase(), rest: m[4], title: '' }; streams.push(cur); continue; }
+    const m = /^\s*Stream #(\d+):\d+(?:\[[^\]]*\])?(?:\(([^)]*)\))?: (Video|Audio|Subtitle|Data|Attachment): ([^\s,]+)(.*)$/.exec(line);
+    if (m) {
+      const input = +m[1], r = input > 0 && hls && hls.audio[input - 1];
+      cur = { input, type: m[3].toLowerCase(), lang: m[2] && m[2] !== 'und' ? m[2] : undefined, codec: m[4].toLowerCase(), rest: m[5], title: r ? r.name : '' };
+      if (input === 0 || (r && cur.type === 'audio')) streams.push(cur);
+      continue;
+    }
     // embedded chapters (#40): "Chapter #0:1: start 6.000000, end 13.000000" followed by an optional "title : …"
     const ch = /^\s*Chapter #\d+:\d+: start (-?[\d.]+), end (-?[\d.]+)/.exec(line);
     if (ch) { cur = { start: Math.max(0, +ch[1]), end: +ch[2], title: '' }; chapters.push(cur); continue; }
@@ -326,6 +370,7 @@ async function probe(src) {
     const t = cur && /^\s+title\s*:\s*(.+)$/.exec(line);
     if (t && !cur.title) cur.title = t[1].trim();
   }
+  if (hls) hls.muxed = streams.filter(s => s.type === 'audio' && s.input === 0).length;
   const isCover = s => /attached pic/.test(s.rest);
   const v = streams.find(s => s.type === 'video' && !isCover(s));
   const size = v && /(\d{2,5})x(\d{2,5})/.exec(v.rest);
@@ -348,6 +393,7 @@ async function probe(src) {
 // Last video keyframe at or before `ss` – stream copy can only start on a keyframe.
 // Decodes only keyframes (-skip_frame nokey) in the 20 s before `ss` and reads their timestamps from showinfo.
 async function keyframe(src, ss) {
+  await hlsPick(src);
   const start = Math.max(0, ss - 20);
   const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-skip_frame', 'nokey', '-t', String(ss - start + 0.1), '-copyts', ...inArgs(src, start),
     '-map', '0:v:0', '-vf', 'showinfo', '-an', '-sn', '-f', 'null', '-'], 15000);
@@ -368,8 +414,11 @@ async function thumbnail(src, at) {
 }
 // One JPEG frame. at <= 0 means the cover art of a music file: seeking (-ss) there drops the
 // attached picture in e.g. MP3, so read the first video stream from the start instead.
+// HLS masters: seeking the input (-ss before -i) in fMP4 variants reads the whole stream and yields nothing with
+// ffmpeg 6, so decode from the start and take a frame at most 10 s in.
 async function frameJpeg(src, at, w, q) {
-  const input = at > 0 ? inArgs(src, at) : [...inArgs(src), '-map', '0:v:0'];
+  const hls = await hlsPick(src);
+  const input = hls && at > 0 ? [...inArgs(src), '-ss', String(Math.min(at, 10))] : at > 0 ? inArgs(src, at) : [...inArgs(src), '-map', '0:v:0'];
   const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...input, '-frames:v', '1',
     '-vf', `scale='min(${w},iw)':-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', String(q), 'pipe:1'], { encoding: 'buffer', timeout: 20000 });
   return buf && buf.length ? buf : null;
@@ -411,6 +460,7 @@ function readLyrics(file) {
 
 // Any text subtitle (srt/ass/vtt or an embedded stream) → WebVTT text
 async function subtitles(src, streamIndex) {
+  await hlsPick(src);
   const args = ['-hide_banner', '-loglevel', 'error', ...inArgs(src)];
   if (streamIndex != null) args.push('-map', `0:s:${streamIndex}`);
   args.push('-f', 'webvtt', 'pipe:1');
@@ -452,6 +502,7 @@ ipcMain.handle('probe', (_e, src) => probe(src));
 ipcMain.handle('keyframe', (_e, src, ss) => keyframe(src, ss));
 // One video frame at time `at` for the timeline hover preview (formats the hidden <video> can't decode).
 ipcMain.handle('frame', async (_e, src, at, w) => {
+  await hlsPick(src);
   const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...inArgs(src, Math.max(0, at)), '-frames:v', '1',
     '-vf', `scale=${Math.round(w) || 320}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '6', 'pipe:1'], { encoding: 'buffer', timeout: 8000 });
   return buf && buf.length ? 'data:image/jpeg;base64,' + buf.toString('base64') : null;
