@@ -357,6 +357,7 @@ function pages(App) {
         row('Compressor', toggle('compOn'), { info: 'Evens out quiet and loud passages.' }), collapse(compBlock()),
         row('Spatial audio', toggle('reverbOn'), { info: 'Adds reverb, as if you are in a room.' }), collapse(reverbBlock()),
         row('Stereo widening', toggle('widenOn')), collapse(widenBlock())),
+      sec('Speakers', row('Surround sound (5.1 / 7.1)', toggle('surround'), { info: 'Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.' })),
       sec('Volume', slider({ label: 'Volume boost', min: 0, max: 200, binding: 'gain', fmt: v => v + '%', ticks: 2 })),
       sec('MIDI', ...(() => {
         const inp = el('input.txt.path', { readonly: true });

@@ -26,6 +26,9 @@ const EQ_PRESETS = {
 const dB = v => Math.pow(10, v / 20);
 
 let video, ctx, src, nodes;
+// Channels of what is playing (2 = stereo, 6 = 5.1, 8 = 7.1, #44). The output keeps them when surround is on;
+// the compressor, widener and reverb of Web Audio only work in stereo, so in surround they are wrapped below.
+let chans = 2, wrap = [];
 function attach(v) { video = v; applyVideo(); if (needsGraph()) ensure(); }
 
 function ensure() {
@@ -66,18 +69,50 @@ function needsGraph() {
   const s = S.all();
   return s.eqOn || s.compOn || s.reverbOn || s.widenOn || s.gain !== 100;
 }
+// Surround through a stereo-only effect: front left/right go through it, the other channels pass by unchanged.
+function frontOnly(tail, inNode, outNode, nch) {
+  const sp = ctx.createChannelSplitter(nch), mg = ctx.createChannelMerger(nch), in2 = ctx.createChannelMerger(2), out2 = ctx.createChannelSplitter(2);
+  tail.connect(sp); sp.connect(in2, 0, 0); sp.connect(in2, 1, 1); in2.connect(inNode);
+  outNode.connect(out2); out2.connect(mg, 0, 0); out2.connect(mg, 1, 1);
+  for (let c = 2; c < nch; c++) sp.connect(mg, c, c);
+  wrap.push(sp, mg, in2, out2);
+  return mg;
+}
+// Surround compressor: one compressor per channel pair (front, centre + LFE, sides, backs) with the same settings
+function pairComp(tail, nch) {
+  const sp = ctx.createChannelSplitter(nch), mg = ctx.createChannelMerger(nch);
+  tail.connect(sp); wrap.push(sp, mg);
+  for (let c = 0; c < nch; c += 2) {
+    const in2 = ctx.createChannelMerger(2), comp = ctx.createDynamicsCompressor(), out2 = ctx.createChannelSplitter(2);
+    sp.connect(in2, c, 0); if (c + 1 < nch) sp.connect(in2, c + 1, 1);
+    in2.connect(comp); comp.connect(out2); out2.connect(mg, 0, c); if (c + 1 < nch) out2.connect(mg, 1, c + 1);
+    wrap.push(in2, comp, out2); nodes.comps.push(comp);
+  }
+  return mg;
+}
 function rewire() {
   if (!ctx) return;
-  const n = nodes, s = S.all();
-  src.disconnect(); n.pre.disconnect(); n.eq[n.eq.length - 1].disconnect(); n.makeup.disconnect(); n.wOut.disconnect(); n.rOut.disconnect(); n.boost.disconnect();
+  const n = nodes, s = S.all(), nch = S.get('surround') === false ? 2 : chans;
+  src.disconnect(); n.pre.disconnect(); n.eq[n.eq.length - 1].disconnect(); n.makeup.disconnect(); n.wOut.disconnect(); n.rOut.disconnect(); n.boost.disconnect(); n.comp.disconnect();
+  for (const w of wrap) w.disconnect(); wrap = []; n.comps = [n.comp];
+  n.comp.connect(n.makeup);
+  ctx.destination.channelCount = Math.max(2, Math.min(nch, ctx.destination.maxChannelCount || 2));   // fewer speakers: mixed down here ctx.destination.channelInterpretation = 'speakers';
   let tail = src;
   const to = node => { tail.connect(node); tail = node; };
   if (s.eqOn) { to(n.pre); tail.connect(n.eq[0]); tail = n.eq[n.eq.length - 1]; }
-  if (s.compOn) { tail.connect(n.comp); tail = n.makeup; }
-  if (s.widenOn) { tail.connect(n.wIn); tail = n.wOut; }
-  if (s.reverbOn) { tail.connect(n.rIn); tail = n.rOut; }
+  if (s.compOn) { if (nch > 2) { tail = pairComp(tail, nch); to(n.makeup); } else { tail.connect(n.comp); tail = n.makeup; } }
+  if (s.widenOn) { if (nch > 2) tail = frontOnly(tail, n.wIn, n.wOut, nch); else { tail.connect(n.wIn); tail = n.wOut; } }
+  if (s.reverbOn) { if (nch > 2) tail = frontOnly(tail, n.rIn, n.rOut, nch); else { tail.connect(n.rIn); tail = n.rOut; } }
   to(n.boost);
   n.boost.connect(ctx.destination);
+  applyAudio();
+}
+// Called for every file / audio track with its channel count
+// srcChans: channels in the file. With surround off, a surround file that plays without conversion goes through
+// the audio graph as well, so that it really comes out as stereo.
+function setChannels(c, srcChans) {
+  if (S.get('surround') === false && srcChans > 2 && !ctx) ensure();
+  c = Math.max(1, Math.min(8, c || 2)); if (c === chans) return; chans = c; rewire();
 }
 let irKey = '';
 function impulse(size, damp, width) {
@@ -101,8 +136,8 @@ function applyAudio() {
   n.pre.gain.setTargetAtTime(dB(s.eq[0] - 12), t, 0.02);
   n.eq.forEach((b, i) => b.gain.setTargetAtTime(s.eq[i + 1], t, 0.02));
   const c = s.comp;
-  n.comp.threshold.value = c.threshold; n.comp.knee.value = c.knee; n.comp.ratio.value = c.ratio;
-  n.comp.attack.value = c.attack / 1000; n.comp.release.value = c.release / 1000; n.makeup.gain.value = dB(c.makeup);
+  for (const k of n.comps || [n.comp]) { k.threshold.value = c.threshold; k.knee.value = c.knee; k.ratio.value = c.ratio; k.attack.value = c.attack / 1000; k.release.value = c.release / 1000; }
+  n.makeup.gain.value = dB(c.makeup);
   const w = s.widen;
   n.dl.delayTime.value = 0; n.dr.delayTime.value = w.delay / 1000;
   n.fbl.gain.value = 0; n.fbr.gain.value = Math.min(0.9, w.feedback);
@@ -113,6 +148,7 @@ function applyAudio() {
   n.boost.gain.setTargetAtTime(s.gain / 100, t, 0.02);
 }
 S.on(path => {
+  if (path === 'surround' && ctx) rewire();
   if (/^(eq|comp|reverb|widen|gain|eqOn|compOn|reverbOn|widenOn)/.test(path)) {
     if (!ctx && needsGraph()) ensure();
     if (ctx) { if (/On$/.test(path)) rewire(); applyAudio(); }
@@ -178,5 +214,5 @@ function applyVideo() {
 }
 function resetVideo() { S.set('vf', JSON.parse(JSON.stringify(S.DEFAULTS.vf))); }
 
-window.FX = { attach, ensure, applyAudio, applyVideo, filterString, setPreset, resetVideo, BANDS, BAND_LABELS, EQ_PRESETS };
+window.FX = { attach, ensure, setChannels, get ctx() { return ctx; }, get out() { return nodes && nodes.boost; }, applyAudio, applyVideo, filterString, setPreset, resetVideo, BANDS, BAND_LABELS, EQ_PRESETS };
 })();

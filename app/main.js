@@ -199,7 +199,10 @@ function serveStream(src, q, req, resp) {
   if (vcopy) args.push('-c:v', 'copy');
   else args.push('-c:v', 'libx264', '-preset', preset, '-tune', 'zerolatency', '-crf', crf, '-g', '48', '-pix_fmt', 'yuv420p',
     '-vf', `scale=w='min(${maxw},iw)':h=-2`);
-  args.push('-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-sn', '-dn',
+  // surround (#44) when the player asks for it (ch=6/8), otherwise stereo as before. 5.1 as AAC; 7.1 as FLAC,
+  // because Chromium does not reliably decode 7.1 AAC (the back channels came out as copies of the sides).
+  const ch = [6, 8].includes(+q.get('ch')) ? +q.get('ch') : 2;
+  args.push(...(ch === 8 ? ['-c:a', 'flac', '-strict', '-2'] : ['-c:a', 'aac', '-b:a', ch === 6 ? '384k' : '192k']), '-ac', String(ch), '-sn', '-dn',
     '-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', 'pipe:1');
   const ff = spawn(FFMPEG, args, { windowsHide: true });
   active.add(ff);

@@ -91,6 +91,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Subtitle fonts:** pick any font installed on your computer, or add your own `.ttf`/`.otf`/`.woff` files in *Settings → Subtitles*.
 - **Online subtitles:** search and download subtitles from [OpenSubtitles.com](https://www.opensubtitles.com) without leaving the player (right-click → *Subtitle → Search online…*). Results that fit your exact file are marked. Searching works right away; downloading needs a free OpenSubtitles.com account (20 downloads per day), which you can log in with inside the app.
 - **Music with lyrics:** album covers in the player and as square tiles in the library. A `.lrc` file next to a song is loaded automatically and shown full-screen, scrolling along with the song (click a line to jump there); for videos `.lrc` files work as subtitles. The music player background can be a blurred cover, a gradient from the cover's colors or black, with adjustable dimming and cover size; press Y to switch between cover and lyrics. Hovering the timeline shows the lyric line at that moment.
+- **Surround sound:** 5.1 and 7.1 audio (Dolby Digital, DTS, TrueHD/Atmos core, AAC, FLAC …) keeps its channels, also when the file is converted and with the audio effects on (*Settings → Audio → Speakers*). Bitstream passthrough to a receiver is not possible in Chromium; the audio is decoded and sent as multichannel PCM.
 - **Audio:** multiple audio tracks, a 10-band equalizer with 18 presets, compressor, spatial audio (reverb), stereo widener and volume boost up to 200%.
 - **Video:** brightness, contrast, saturation, hue, gamma, sharpen, film grain, negative, posterize, grayscale, sepia, pixel cropping, rotate, zoom and mirror.
 - **Themes:** light, dark, AMOLED black or system, with 9 accent colors, and an interface size from 75% to 150% (*Settings → General*, or Ctrl + / Ctrl − / Ctrl 0).
@@ -156,9 +157,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.13.2"
-git tag v1.13.2
-git push origin v1.13.2
+# first set the version in app/package.json, e.g. "version": "1.14.0"
+git tag v1.14.0
+git push origin v1.14.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

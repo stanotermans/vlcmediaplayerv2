@@ -7,7 +7,7 @@ const PATHS = await api.paths();
 const MIDI_RE = /\.(mid|midi|kar|rmi|smf)$/i;
 // MIDI is rendered with the chosen SoundFont: a different SoundFont is a different URL (no cached old audio)
 const fileUrl = p => `http://127.0.0.1:${port}/file?t=${token}&src=${encodeURIComponent(p)}` + (MIDI_RE.test(p) ? '&sf=' + encodeURIComponent(S.get('soundfont') || '') : '');
-const streamUrl = (src, ss, a, vcopy) => `http://127.0.0.1:${port}/stream?t=${token}&src=${encodeURIComponent(src)}&ss=${ss.toFixed(2)}&a=${a}&vcopy=${vcopy ? 1 : 0}&q=${S.get('txQuality')}&maxw=${S.get('txMaxW')}`;
+const streamUrl = (src, ss, a, vcopy, ch = 2) => `http://127.0.0.1:${port}/stream?t=${token}&src=${encodeURIComponent(src)}&ss=${ss.toFixed(2)}&a=${a}&vcopy=${vcopy ? 1 : 0}&q=${S.get('txQuality')}&maxw=${S.get('txMaxW')}&ch=${ch}`;
 FX.attach(video);
 
 /* ---------- pixel cat (idle screen) ---------- */
@@ -420,15 +420,21 @@ async function loadSource(at, autoplay) {
       if (kf != null) at = kf;
     }
     P.seekTarget = null; P.offset = at; P.pendingSeek = 0;
-    video.src = streamUrl(it.src, at, P.audio, P.vcopy) + (it.extra ? '&extra=' + encodeURIComponent(it.extra) : '');
+    video.src = streamUrl(it.src, at, P.audio, P.vcopy, it.extra ? 2 : outChannels(it)) + (it.extra ? '&extra=' + encodeURIComponent(it.extra) : '');
   } else {
     P.seekTarget = null; P.offset = 0; P.pendingSeek = at;
     video.src = it.remote ? it.src : fileUrl(it.src);
   }
+  FX.setChannels(P.tx && it.extra ? 2 : outChannels(it), srcChannels(it));
   video.playbackRate = S.get('speed') || 1;
   setBadge(); setSpinner(true);
   if (autoplay) video.play().catch(() => {});
 }
+// Surround (#44): the channels of the audio track, as 5.1 (6) or 7.1 (8) when there are more than two and the
+// setting is on; Chromium mixes that down itself if the speakers have fewer channels.
+const srcChannels = it => { const a = it && it.info && (it.info.audio[P.audio] || it.info.audio[0]); return (a && a.ch) || 2; };
+function outChannels(it) { const c = srcChannels(it); return S.get('surround') === false || c <= 2 ? 2 : c > 6 ? 8 : 6; }
+S.on(k => { if (k === 'surround' && curItem()) { if (P.tx) reloadSource(); else FX.setChannels(outChannels(curItem()), srcChannels(curItem())); } });
 function reloadSource() { const it = curItem(); if (!it) return; P.tx = needsTx(it) || P.audio > 0; loadSource(curTime(), !video.paused); }
 
 function setIdle(it) {

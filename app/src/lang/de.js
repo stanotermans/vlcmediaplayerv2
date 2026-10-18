@@ -666,5 +666,8 @@ I18N.add('de', {
  "Set point A ({time})": "Punkt A setzen ({time})",
  "Set point A": "Punkt A setzen",
  "Set point B ({time})": "Punkt B setzen ({time})",
- "Set point B": "Punkt B setzen"
+ "Set point B": "Punkt B setzen",
+ "Speakers": "Lautsprecher",
+ "Surround sound (5.1 / 7.1)": "Surround-Sound (5.1 / 7.1)",
+ "Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.": "Behält die Surround-Kanäle von Filmen und Musik, auch wenn die Datei umgewandelt wird. Ausschalten, um immer Stereo zu erhalten. Lautsprecher oder Receiver müssen in den Soundeinstellungen des Systems auf 5.1 oder 7.1 stehen."
 });
