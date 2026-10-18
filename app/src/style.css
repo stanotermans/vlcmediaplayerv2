@@ -626,3 +626,8 @@ input.bmname{flex:1;min-width:0}
 .cat-heart{position:absolute;left:var(--x);top:20%;color:#f6b8c4;font-size:clamp(14px,2vw,24px);opacity:0;animation:catHeart 1.2s ease-out var(--d) forwards;pointer-events:none}
 @keyframes catHeart{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translateY(-120%) scale(1.1)}}
 @media (prefers-reduced-motion:reduce){.catbox[data-trick] *{animation-duration:.01s!important}}
+/* #33: in fullscreen Chromium may hand a video with nothing on top of it to the graphics card as a separate layer,
+   and on some laptops the mouse cursor is not drawn over that layer. While the cursor should be visible, this
+   barely-there layer (1% dark) covers the video so it stays part of the normal picture; it goes away with the cursor. */
+#vshield{position:absolute;inset:0;pointer-events:none;display:none;background:rgba(0,0,0,.01)}
+.fullscreen.in-player:not(.hidecursor) #player.playing-video #vshield{display:block}

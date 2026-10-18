@@ -176,7 +176,7 @@ if (!HW_ACCEL) app.disableHardwareAcceleration();
 // Video overlays (Windows): the graphics card shows video on its own layer. With some drivers the mouse cursor
 // disappears over that layer in fullscreen (#33); this setting puts video back in the normal picture.
 const VIDEO_OVERLAYS = BOOT_PREFS.videoOverlays !== false;
-if (!VIDEO_OVERLAYS) app.commandLine.appendSwitch('disable-features', 'DirectCompositionVideoOverlays');
+if (!VIDEO_OVERLAYS) { app.commandLine.appendSwitch('disable-direct-composition-video-overlays'); app.commandLine.appendSwitch('disable-features', 'DirectCompositionVideoOverlays,DirectCompositionLetterboxVideoOptimization'); }
 if (/^(en|nl|de|fr|es|it|pt)$/.test(BOOT_LANG)) {
   LANG = BOOT_LANG;
   app.commandLine.appendSwitch('lang', { en: 'en-US', pt: 'pt-PT' }[BOOT_LANG] || BOOT_LANG);
