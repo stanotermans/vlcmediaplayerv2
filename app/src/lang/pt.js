@@ -669,5 +669,11 @@ I18N.add('pt', {
  "Set point B": "Definir ponto B",
  "Speakers": "Altifalantes",
  "Surround sound (5.1 / 7.1)": "Som surround (5.1 / 7.1)",
- "Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.": "Mantém os canais surround de filmes e música, também quando o ficheiro é convertido. Desligue para obter sempre estéreo. Os altifalantes ou o recetor têm de estar configurados para 5.1 ou 7.1 nas definições de som do sistema."
+ "Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.": "Mantém os canais surround de filmes e música, também quando o ficheiro é convertido. Desligue para obter sempre estéreo. Os altifalantes ou o recetor têm de estar configurados para 5.1 ou 7.1 nas definições de som do sistema.",
+ "Meow!": "Miau!",
+ "Hold for 2× speed": "Manter premido para velocidade 2×",
+ "Lyrics text size": "Tamanho do texto das letras",
+ "Separate from the subtitle size above. Lyrics shown as subtitles use the subtitle size.": "Separado do tamanho das legendas acima. Letras mostradas como legendas usam o tamanho das legendas.",
+ "Video overlays": "Sobreposições de vídeo",
+ "Lets the graphics card show video on its own layer (saves power). Turn off if the mouse cursor disappears over videos in fullscreen. Takes effect after restarting the app.": "Deixa a placa gráfica mostrar o vídeo numa camada própria (poupa energia). Desligue se o cursor desaparecer sobre vídeos em ecrã inteiro. Aplica-se depois de reiniciar a aplicação."
 });

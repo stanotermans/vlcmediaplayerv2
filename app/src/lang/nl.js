@@ -669,5 +669,11 @@ I18N.add('nl', {
  "Set point B": "Punt B zetten",
  "Speakers": "Luidsprekers",
  "Surround sound (5.1 / 7.1)": "Surround-geluid (5.1 / 7.1)",
- "Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.": "Behoudt de surroundkanalen van films en muziek, ook als het bestand wordt omgezet. Zet dit uit om altijd stereo te krijgen. Je luidsprekers of receiver moeten in de geluidsinstellingen van het systeem op 5.1 of 7.1 staan."
+ "Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.": "Behoudt de surroundkanalen van films en muziek, ook als het bestand wordt omgezet. Zet dit uit om altijd stereo te krijgen. Je luidsprekers of receiver moeten in de geluidsinstellingen van het systeem op 5.1 of 7.1 staan.",
+ "Meow!": "Miauw!",
+ "Hold for 2× speed": "Ingedrukt houden voor 2× snelheid",
+ "Lyrics text size": "Tekstgrootte songteksten",
+ "Separate from the subtitle size above. Lyrics shown as subtitles use the subtitle size.": "Los van de ondertitelgrootte hierboven. Songteksten die als ondertitels worden getoond, gebruiken de ondertitelgrootte.",
+ "Video overlays": "Video-overlays",
+ "Lets the graphics card show video on its own layer (saves power). Turn off if the mouse cursor disappears over videos in fullscreen. Takes effect after restarting the app.": "Laat de videokaart video op een eigen laag tonen (bespaart stroom). Zet dit uit als de muisaanwijzer verdwijnt boven video's in volledig scherm. Werkt na het herstarten van de app."
 });

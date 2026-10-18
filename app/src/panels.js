@@ -381,7 +381,9 @@ function pages(App) {
       sec('Online subtitles (OpenSubtitles)', osAccountBlock()),
       sec('Lyrics',
         row('Load lyrics (.lrc) automatically', toggle('lrcAuto'), { info: 'Loads a .lrc file with the same name as the song, also when subtitles are not loaded automatically.' }),
-        row('Show lyrics full-screen for music', toggle('lyricsView'), { info: 'Shows the lyrics large, following the song. Off: lyrics appear as subtitles. For videos, .lrc files are always shown as subtitles.' })),
+        row('Show lyrics full-screen for music', toggle('lyricsView'), { info: 'Shows the lyrics large, following the song. Off: lyrics appear as subtitles. For videos, .lrc files are always shown as subtitles.' }),
+        slider({ label: 'Lyrics text size', min: 50, max: 300, binding: 'lyricsSize', fmt: v => v + '%' }),
+        el('p.note', {}, t('Separate from the subtitle size above. Lyrics shown as subtitles use the subtitle size.'))),
       sec('Your fonts', customFontList(), el('div.btnrow', {}, button('Add font file…', addFontFiles, 'primary'))),
     ],
     library: () => {
@@ -410,6 +412,10 @@ function pages(App) {
         const info = App.appInfo || {}; let on = info.hwAccel !== false;
         return row('Hardware acceleration', toggle({ get: () => on, set: async v => { on = v; info.hwAccel = v; if (await api.setWindowPref('hwAccel', v)) App.osd('Restart the app to apply this'); }, path: '_hwaccel' }),
           { info: info.hwAuto ? 'Turned off automatically because the graphics card could not draw the window. Takes effect after restarting the app.' : 'Uses the graphics card for drawing. Turn off if the window stays empty or the app does not open. Takes effect after restarting the app.' });
+      })(), (() => {
+        const info = App.appInfo || {}; let on = info.videoOverlays !== false;
+        return row('Video overlays', toggle({ get: () => on, set: async v => { on = v; info.videoOverlays = v; if (await api.setWindowPref('videoOverlays', v)) App.osd('Restart the app to apply this'); }, path: '_overlays' }),
+          { info: 'Lets the graphics card show video on its own layer (saves power). Turn off if the mouse cursor disappears over videos in fullscreen. Takes effect after restarting the app.' });
       })()),
     ],
     recording: () => [

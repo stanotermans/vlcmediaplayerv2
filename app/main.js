@@ -6,6 +6,7 @@ const http = require('http');
 const crypto = require('crypto');
 const { spawn, execFile } = require('child_process');
 const { fileURLToPath } = require('url');
+const { titleCells, uniqueTitles } = require('./dvd-ifo');
 
 const unpacked = p => p && p.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
 // Bundled ffmpeg where available; otherwise (e.g. *BSD, or a distro build) the system's ffmpeg on PATH.
@@ -27,25 +28,62 @@ const DEFAULT_SF = path.join(__dirname, 'assets', 'FluidR3Mono_GM.sf3');
 let soundfont = '', midiProc = null, midiSeq = 0;
 const midiWait = new Map(), MIDI_WAV = new Map();
 const sfPath = () => soundfont && fs.existsSync(soundfont) ? soundfont : DEFAULT_SF;
-function midiCall(msg) {
+function midiCall(msg, onStart) {
   if (!midiProc) {
     midiProc = utilityProcess.fork(unpacked(path.join(__dirname, 'midi-render.mjs')), [], { serviceName: 'MIDI renderer' });
-    midiProc.on('message', m => { const w = midiWait.get(m.id); if (w) { midiWait.delete(m.id); m.ok ? w.res(m) : w.rej(new Error(m.error)); } });
+    midiProc.on('message', m => {
+      const w = midiWait.get(m.id); if (!w) return;
+      if (m.started) return w.onStart && w.onStart(m);
+      midiWait.delete(m.id); m.ok ? w.res(m) : w.rej(new Error(m.error));
+    });
     midiProc.on('exit', () => { midiProc = null; for (const w of midiWait.values()) w.rej(new Error('MIDI renderer stopped')); midiWait.clear(); });
   }
-  return new Promise((res, rej) => { const id = ++midiSeq; midiWait.set(id, { res, rej }); midiProc.postMessage({ ...msg, id }); });
+  return new Promise((res, rej) => { const id = ++midiSeq; midiWait.set(id, { res, rej, onStart }); midiProc.postMessage({ ...msg, id }); });
 }
 const midiDir = () => { const d = path.join(app.getPath('temp'), 'vlc-redesign-midi'); fs.mkdirSync(d, { recursive: true }); return d; };
-// WAV for a MIDI file (cached per file + SoundFont; the folder is emptied when the app quits)
+// WAV for a MIDI file (cached per file + SoundFont; the folder is emptied when the app quits).
+// job.started resolves as soon as the first second is written; job.done when the whole song is (#36).
 function midiWav(src) {
   const sf = sfPath();
   let key = src + '|' + sf; try { key += fs.statSync(src).mtimeMs; } catch {}
   if (!MIDI_WAV.has(key)) {
     const out = path.join(midiDir(), crypto.createHash('md5').update(key).digest('hex') + '.wav');
-    const job = fs.existsSync(out) ? Promise.resolve(out) : midiCall({ type: 'render', midi: src, soundfont: unpacked(sf), out }).then(r => r.file);
-    MIDI_WAV.set(key, job); job.catch(() => MIDI_WAV.delete(key));
+    const job = { out, part: null, total: 0, finished: false, failed: false };
+    if (fs.existsSync(out)) {
+      Object.assign(job, { finished: true, total: fs.statSync(out).size });
+      job.started = Promise.resolve(job); job.done = Promise.resolve(out);
+    } else {
+      let begin, fail; job.started = new Promise((res, rej) => { begin = res; fail = rej; });
+      job.done = midiCall({ type: 'render', midi: src, soundfont: unpacked(sf), out }, m => { job.part = m.part; job.total = m.total; begin(job); })
+        .then(r => { job.finished = true; begin(job); return r.file; },
+              e => { job.failed = true; fail(e); MIDI_WAV.delete(key); throw e; });
+      job.started.catch(() => {}); job.done.catch(() => {});
+    }
+    MIDI_WAV.set(key, job);
   }
   return MIDI_WAV.get(key);
+}
+// Serves a WAV that is still being rendered: the full size is known up front, and bytes that are not written yet
+// are waited for, so the player can start at once and seek anywhere.
+async function serveGrowing(job, req, resp) {
+  const total = job.total, m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+  let pos = m && m[1] ? +m[1] : 0; const end = m && m[2] ? Math.min(+m[2], total - 1) : total - 1;
+  if (pos >= total) { resp.writeHead(416, { 'Content-Range': `bytes */${total}` }); return resp.end(); }
+  resp.writeHead(m ? 206 : 200, { 'Content-Type': 'audio/wav', 'Accept-Ranges': 'bytes', 'Content-Length': end - pos + 1,
+    ...(m ? { 'Content-Range': `bytes ${pos}-${end}/${total}` } : {}) });
+  let closed = false, fd = null; resp.on('close', () => { closed = true; }); resp.on('error', () => {});
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    while (pos <= end && !closed && !job.failed) {
+      if (fd == null) { try { fd = fs.openSync(job.finished ? job.out : job.part, 'r'); } catch { await sleep(50); continue; } }
+      const size = fs.fstatSync(fd).size;     // the renamed (finished) file keeps the same handle
+      if (size <= pos) { await sleep(60); continue; }
+      const chunk = Buffer.alloc(Math.min(256 * 1024, size - pos, end - pos + 1));
+      const n = fs.readSync(fd, chunk, 0, chunk.length, pos); pos += n;
+      if (!resp.write(chunk.subarray(0, n))) await new Promise(r => { resp.once('drain', r); resp.once('close', r); });
+    }
+  } catch {} finally { if (fd != null) try { fs.closeSync(fd); } catch {} }
+  if (job.failed && !closed) resp.destroy(); else if (!closed) resp.end();
 }
 app.on('will-quit', () => { try { midiProc && midiProc.kill(); fs.rmSync(path.join(app.getPath('temp'), 'vlc-redesign-midi'), { recursive: true, force: true }); } catch {} });
 // DVDs: an .iso image or a VIDEO_TS folder (represented by its VIDEO_TS.IFO). Played with ffmpeg's dvdvideo demuxer
@@ -66,7 +104,9 @@ function dvdTitles(src) {
       const m = /Duration: (\d+):(\d+):([\d.]+)/.exec(txt);
       out.push({ title: t, duration: m ? (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]) : 0 });
     }
-    return out;
+    // titles that play the same video (copies, "intro + episode" next to the episode, "play all") count once (#35)
+    let cells = null; try { cells = titleCells(file); } catch (e) { log('error', 'DVD IFO: ' + e.message); }
+    return uniqueTitles(out, cells);
   })());
   return DVD_TITLES.get(file);
 }
@@ -133,6 +173,10 @@ const BOOT_LANG = BOOT_PREFS.lang || '';
 // the GPU can't draw the window (e.g. a VM without 3D: the first frame never arrives or the GPU process crashes).
 const HW_ACCEL = BOOT_PREFS.hwAccel !== false;
 if (!HW_ACCEL) app.disableHardwareAcceleration();
+// Video overlays (Windows): the graphics card shows video on its own layer. With some drivers the mouse cursor
+// disappears over that layer in fullscreen (#33); this setting puts video back in the normal picture.
+const VIDEO_OVERLAYS = BOOT_PREFS.videoOverlays !== false;
+if (!VIDEO_OVERLAYS) app.commandLine.appendSwitch('disable-features', 'DirectCompositionVideoOverlays');
 if (/^(en|nl|de|fr|es|it|pt)$/.test(BOOT_LANG)) {
   LANG = BOOT_LANG;
   app.commandLine.appendSwitch('lang', { en: 'en-US', pt: 'pt-PT' }[BOOT_LANG] || BOOT_LANG);
@@ -153,9 +197,14 @@ function startServer() {
       resp.setHeader('Access-Control-Allow-Origin', '*');
       if (u.searchParams.get('t') !== TOKEN) { resp.writeHead(403); return resp.end(); }
       const src = u.searchParams.get('src');
-      const serve = (fn, ...a) => MIDI_RE.test(src || '') ? midiWav(src).then(w => fn(w, ...a), () => { resp.writeHead(500); resp.end(); }) : fn(src, ...a);
-      if (u.pathname === '/file') return serve(serveFile, req, resp);
-      if (u.pathname === '/stream') return serve(serveStream, u.searchParams, req, resp);
+      const fail = () => { if (!resp.headersSent) resp.writeHead(500); resp.end(); };
+      if (MIDI_RE.test(src || '')) {                            // MIDI: the WAV rendered from it (#36)
+        const job = midiWav(src);
+        if (u.pathname === '/file') return job.started.then(j => j.finished ? serveFile(j.out, req, resp) : serveGrowing(j, req, resp), fail);
+        if (u.pathname === '/stream') return job.done.then(w => serveStream(w, u.searchParams, req, resp), fail);
+      }
+      if (u.pathname === '/file') return serveFile(src, req, resp);
+      if (u.pathname === '/stream') return serveStream(src, u.searchParams, req, resp);
       resp.writeHead(404); resp.end();
     });
     srv.listen(0, '127.0.0.1', () => { PORT = srv.address().port; res(); });
@@ -556,7 +605,7 @@ const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
 ipcMain.handle('app-info', () => ({
   version: app.getVersion(), platform: process.platform, arch: process.arch, portable: isPortable(), appImage: !!process.env.APPIMAGE,
   electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node,
-  roundedCorners: winPrefs().roundedCorners === true, hwAccel: HW_ACCEL, hwAuto: winPrefs().hwAuto || '', drawsRoundedCorners: ROUNDED && process.platform === 'linux',
+  roundedCorners: winPrefs().roundedCorners === true, hwAccel: HW_ACCEL, videoOverlays: VIDEO_OVERLAYS, hwAuto: winPrefs().hwAuto || '', drawsRoundedCorners: ROUNDED && process.platform === 'linux',
 }));
 const cmpVer = (a, b) => { const x = String(a).replace(/^v/, '').split('.').map(n => parseInt(n) || 0), y = String(b).replace(/^v/, '').split('.').map(n => parseInt(n) || 0);
   for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) ? 1 : -1; } return 0; };
@@ -683,10 +732,11 @@ ipcMain.handle('choose-soundfont', async () => {
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle('set-window-pref', (_e, key, value) => {
-  if (!['roundedCorners', 'hwAccel'].includes(key)) return false;
+  if (!['roundedCorners', 'hwAccel', 'videoOverlays'].includes(key)) return false;
   const p = winPrefs(); p[key] = !!value; if (key === 'hwAccel') delete p.hwAuto;
   try { fs.writeFileSync(winPrefsFile(), JSON.stringify(p)); } catch {}
   if (key === 'hwAccel') return HW_ACCEL !== !!value;              // true → restart needed to apply
+  if (key === 'videoOverlays') return VIDEO_OVERLAYS !== !!value;
   return process.platform !== 'win32' && ROUNDED !== !!value;
 });
 function restartWithoutGpu(why) {

@@ -17,11 +17,13 @@ const CAT = [
 "....WWWWWWWWW.....", "....WWWWWWWWW..W..", "....WGWWWWWWW...W.", "....WGWWWWWWWW..W.", "....WGWWWGWWWW.WW.",
 "....WGWWWGWWWWWW..", "....W.W.W.W.WW....",
 ];
+// The pixels are grouped (eyes, mouth, tail, the rest) so the cat can be animated when clicked (#48).
+const catPart = (x, y) => y === 7 && (x === 6 || x === 9) ? 'eyes' : y === 8 && x >= 7 && x <= 9 ? 'mouth' : (x >= 15 && y >= 11) || (y === 15 && x === 14) ? 'tail' : 'body';
 function catSVG(cls = '') {
-  const C = { W: '#ececec', K: '#111', P: '#f6b8c4', G: '#a8a8a8' };
-  let r = '';
-  CAT.forEach((row, y) => [...row].forEach((c, x) => { if (C[c]) r += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${C[c]}"/>`; }));
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 18 17" shape-rendering="crispEdges">${r}</svg>`;
+  const C = { W: '#ececec', K: '#111', P: '#f6b8c4', G: '#a8a8a8' }, parts = { body: '', eyes: '', mouth: '', tail: '' };
+  CAT.forEach((row, y) => [...row].forEach((c, x) => { if (C[c]) parts[catPart(x, y)] += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${C[c]}"/>`; }));
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 18 17" shape-rendering="crispEdges">` +
+    Object.entries(parts).map(([k, r]) => `<g class="c-${k}">${r}</g>`).join('') + '</svg>';
 }
 $('#miniCanvasWrap').insertAdjacentHTML('beforeend', catSVG('cat'));
 
@@ -93,8 +95,8 @@ function osd(text) { const o = $('#osd'); o.textContent = t(text); o.classList.a
 const isWatched = it => watched.has(it.src);
 
 /* ---------- adding media ---------- */
-async function addSources(srcs, { play = true, silent = false, added, manual = true, extra = null } = {}) {
-  const imp = await importPlaylists(srcs.filter(s => !NOT_MEDIA_RE.test(s))); srcs = imp.srcs;
+async function addSources(srcs, { play = true, silent = false, added, manual = true, extra = null, keepLists = false } = {}) {
+  const imp = await importPlaylists(srcs.filter(s => !NOT_MEDIA_RE.test(s)), keepLists); srcs = imp.srcs;
   if (!added && srcs.some(s => DVD_RE.test(s))) { const dvd = await expandDvds(srcs); srcs = dvd.srcs; imp.queue = imp.queue || dvd.queue; }
   const subs = srcs.filter(s => SUB_RE.test(s));
   const media = srcs.filter(s => !SUB_RE.test(s));
@@ -121,8 +123,9 @@ async function addSources(srcs, { play = true, silent = false, added, manual = t
   else if (!silent && newOnes.length) osd(t('{n} item(s) added', { n: newOnes.length }));
   return newOnes;
 }
-// Playlist files (.m3u/.m3u8/.xspf/.pls) become a saved playlist; their entries are added like opened files.
-async function importPlaylists(srcs) {
+// Playlist files (.m3u/.m3u8/.xspf/.pls): their entries are added like opened files and play in the list's order.
+// Only "Import playlist…" saves the list under Playlists; opening or dropping one just plays it (#47).
+async function importPlaylists(srcs, keep) {
   const out = []; let queue = null;
   for (const s of srcs) {
     if (!PLAYLIST_RE.test(s) || /^[a-z]+:\/\//i.test(s)) { out.push(s); continue; }
@@ -130,7 +133,7 @@ async function importPlaylists(srcs) {
     if (!pl) { osd(t('Could not read playlist: {name}', { name: baseName(s) })); continue; }
     if (pl.hls) { out.push(s); continue; }                       // a local HLS stream, not a list
     if (!pl.srcs.length) { osd(t('No playable files in {name}', { name: baseName(s) })); continue; }
-    if (!state.playlists.some(p => p.name === pl.name && p.srcs.join('\n') === pl.srcs.join('\n'))) {
+    if (keep && !state.playlists.some(p => p.name === pl.name && p.srcs.join('\n') === pl.srcs.join('\n'))) {
       state.playlists.push({ name: pl.name, srcs: pl.srcs, cover: null }); savePlaylists();
       osd(t('Playlist "{name}" imported', { name: pl.name }));
     }
@@ -443,7 +446,7 @@ function setIdle(it) {
   if (showVideo) { idle.innerHTML = ''; return; }
   const art = it && isAudio(it) && (it.cover || it.thumb);
   renderAudioBg(it);
-  idle.innerHTML = art ? `<div class="np-cover" style="background-image:url('${art}')"></div>` : catSVG();
+  idle.innerHTML = art ? `<div class="np-cover" style="background-image:url('${art}')"></div>` : `<div class="catbox">${catSVG('pixcat')}</div>`;
 }
 async function playItem(idx, autoplay = true) {
   const it = state.items[idx]; if (!it) return;
@@ -818,8 +821,26 @@ function toggleLibrary() { mode === 'player' ? showBrowser() : showPlayer(); }
 // A single click waits briefly: if it turns out to be a double click (fullscreen), it must not also pause and
 // resume the video (#32).
 let clickT = null;
-function clickToggle() { clearTimeout(clickT); clickT = setTimeout(() => { clickT = null; togglePlay(); }, 230); }
+function clickToggle() { if (FAST.skipClick) { FAST.skipClick = false; return; } clearTimeout(clickT); clickT = setTimeout(() => { clickT = null; togglePlay(); }, 230); }
 video.addEventListener('click', clickToggle);
+/* ---------- hold for 2× speed (#46): while Shift+Space or the mouse button on the video is held ---------- */
+const FAST = { on: false, rate: 1, key: null, holdT: null, skipClick: false };
+function fastStart(key) {
+  if (FAST.on || !curItem() || video.paused) return;
+  Object.assign(FAST, { on: true, key, rate: video.playbackRate }); video.playbackRate = Math.max(2, FAST.rate);
+  $('#fastBadge').classList.add('show');
+}
+function fastEnd() {
+  if (!FAST.on) return;
+  FAST.on = false; video.playbackRate = FAST.rate; $('#fastBadge').classList.remove('show');
+}
+video.addEventListener('pointerdown', e => {                 // like on a phone: press and hold the picture
+  if (e.button !== 0) return;
+  clearTimeout(FAST.holdT); FAST.holdT = setTimeout(() => { fastStart('mouse'); if (FAST.on) FAST.skipClick = true; }, 450);
+});
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) video.addEventListener(ev, () => { clearTimeout(FAST.holdT); if (FAST.key === 'mouse') fastEnd(); });
+document.addEventListener('keyup', e => { if (FAST.on && FAST.key === e.code) fastEnd(); });
+window.addEventListener('blur', fastEnd);
 $('#player').addEventListener('dblclick', e => { clearTimeout(clickT); clickT = null; if ((S.get('dblclick') || 'fullscreen') === 'fullscreen') toggleFs(); else togglePlay(); });
 $('#fsBtn2').onclick = toggleFs;
 $('#minBtn').onclick = () => api.win('min');
@@ -858,6 +879,36 @@ let hideT, lastXY = ''; document.addEventListener('mousemove', e => {
 });
 document.documentElement.addEventListener('mouseleave', () => fsZones(null));
 S.on(k => { if (k === 'hideCursor' && !S.get('hideCursor')) document.body.classList.remove('hidecursor'); });
+/* ---------- the pixel cat does something when you click it (#48) ---------- */
+let catCtx = null, lastTrick = '';
+function meow() {                                              // a short synthesized meow, at the player's volume
+  if (video.muted || !video.volume) return;
+  try {
+    catCtx = catCtx || new AudioContext(); const c = catCtx, t0 = c.currentTime + 0.02;
+    const osc = c.createOscillator(), f1 = c.createBiquadFilter(), f2 = c.createBiquadFilter(), g = c.createGain(), out = c.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(420, t0); osc.frequency.linearRampToValueAtTime(720, t0 + 0.16); osc.frequency.linearRampToValueAtTime(480, t0 + 0.5);
+    f1.type = 'bandpass'; f1.Q.value = 6; f1.frequency.setValueAtTime(1800, t0); f1.frequency.exponentialRampToValueAtTime(800, t0 + 0.5);
+    f2.type = 'bandpass'; f2.Q.value = 8; f2.frequency.setValueAtTime(3000, t0); f2.frequency.exponentialRampToValueAtTime(1500, t0 + 0.5);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(1, t0 + 0.06); g.gain.setValueAtTime(1, t0 + 0.32); g.gain.linearRampToValueAtTime(0, t0 + 0.55);
+    out.gain.value = 0.5 * video.volume;
+    osc.connect(f1); osc.connect(f2); f1.connect(g); f2.connect(g); g.connect(out); out.connect(c.destination);
+    osc.start(t0); osc.stop(t0 + 0.6);
+  } catch {}
+}
+const CAT_TRICKS = {
+  meow: box => { meow(); box.insertAdjacentHTML('beforeend', `<span class="cat-say">${esc(t('Meow!'))}</span>`); },
+  blink: () => {}, wag: () => {}, jump: () => {}, spin: () => {},
+  hearts: box => { for (let i = 0; i < 5; i++) box.insertAdjacentHTML('beforeend', `<span class="cat-heart" style="--x:${(Math.random() * 70 + 15).toFixed(0)}%;--d:${(i * 0.12).toFixed(2)}s">♥</span>`); },
+};
+$('#idle').addEventListener('click', e => {
+  const box = e.target.closest('.catbox'); if (!box || box.dataset.trick) return;
+  e.stopPropagation();
+  const names = Object.keys(CAT_TRICKS).filter(n => n !== lastTrick), name = names[Math.floor(Math.random() * names.length)];
+  lastTrick = name; box.dataset.trick = name; CAT_TRICKS[name](box);
+  setTimeout(() => { delete box.dataset.trick; box.querySelectorAll('.cat-say,.cat-heart').forEach(n => n.remove()); }, 1400);
+});
+$('#idle').addEventListener('dblclick', e => { if (e.target.closest('.catbox')) e.stopPropagation(); });
 function toggleHideUI() { const on = document.body.classList.toggle('hide-ui'); if (on) showPlayer(); osd(on ? 'Interface hidden – press Ctrl+\\ to show it again' : 'Interface visible'); }
 
 /* ---------- per-frame: mini preview + subtitles ---------- */
@@ -1048,10 +1099,12 @@ function toggleLyrics() { if (!LYR.lines) return osd('No lyrics'); LYR.hidden = 
 function cycleSubs() { if (!SUB.tracks.length) return osd('No subtitles'); const n = SUB.active + 1 >= SUB.tracks.length ? -1 : SUB.active + 1; selectSub(n); }
 function applySubStyle() {
   const r = document.documentElement.style;
-  r.setProperty('--subsize', S.get('subSize') / 100); r.setProperty('--subcolor', S.get('subColor')); r.setProperty('--subout', S.get('subOutline'));
+  r.setProperty('--subsize', S.get('subSize') / 100); r.setProperty('--lyrsize', S.get('lyricsSize') / 100); r.setProperty('--subcolor', S.get('subColor')); r.setProperty('--subout', S.get('subOutline'));
   r.setProperty('--subbg', `rgba(0,0,0,${S.get('subBg') / 100})`); r.setProperty('--subfont', `"${S.get('subFont')}", "Segoe UI", sans-serif`);
   $('#subs').style.fontFamily = `"${S.get('subFont')}", "Segoe UI", sans-serif`;
 }
+// Lyrics got their own size in 1.15 (#45); until then they followed the subtitle size, so start from that.
+if (!store.get('lyricsSizeSplit')) { store.set('lyricsSizeSplit', true); if (S.get('subSize') !== 100) S.set('lyricsSize', S.get('subSize')); }
 applySubStyle();
 
 /* ---------- audio tracks ---------- */
@@ -1334,7 +1387,7 @@ async function doAct(a) {
   else if (a === 'addfolder') { const f = await api.chooseFolder(t('Add media folder')); if (f) addFolder(f); }
   else if (a === 'url') Panels.openNetwork(App);
   else if (a === 'newpl') Panels.newPlaylist(App);
-  else if (a === 'importpl') { const f = await api.openPlaylist(); if (f.length) { const before = state.playlists.length; await addSources(f, { play: false }); const p = state.playlists[before]; if (p) navigate({ view: 'playlists', activePlaylist: p }); } }
+  else if (a === 'importpl') { const f = await api.openPlaylist(); if (f.length) { const before = state.playlists.length; await addSources(f, { play: false, keepLists: true }); const p = state.playlists[before]; if (p) navigate({ view: 'playlists', activePlaylist: p }); } }
   else if (a === 'addpl') { const it = curItem(); if (!it) return osd('Nothing is playing'); addToPlaylist(it); }
   else if (a === 'pip') { if (document.pictureInPictureElement) document.exitPictureInPicture(); else video.requestPictureInPicture().catch(() => osd('Picture-in-picture not available')); }
   else if (a === 'mediainfo') { const it = curItem(); if (it) mediaInfo(it); else osd('Nothing is playing'); }
@@ -1379,6 +1432,7 @@ const KEY_ACTIONS = [
   ['stop', 'Stop', ['s', 'MediaStop'], () => { if (curItem()) { stopPlayback(); osd('Stopped'); } }],
   ['next', 'Next', ['n', '>', 'MediaTrackNext'], () => step(1)],
   ['prev', 'Previous', ['p', '<', 'MediaTrackPrevious'], () => prev()],
+  ['fastHold', 'Hold for 2× speed', ['Shift+Space'], () => {}],
   ['seekFwd', 'Seek forward', ['ArrowRight'], () => jumpBy(S.get('jump'), '+' + S.get('jump') + ' s')],
   ['seekBack', 'Seek backward', ['ArrowLeft'], () => jumpBy(-S.get('jump'), '−' + S.get('jump') + ' s')],
   ['seekFwdShort', 'Seek 3 s forward', ['Shift+ArrowRight'], () => jumpBy(3, '+3 s')],
@@ -1410,7 +1464,7 @@ const KEY_ACTIONS = [
 function frameStep(dir) { if (!curItem()) return; video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }
 const keyOf = e => {
   const mods = (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '');
-  if (e.key === ' ') return mods + 'Space';
+  if (e.key === ' ') return mods + (e.shiftKey ? 'Shift+' : '') + 'Space';
   return mods + (e.key.length === 1 ? e.key : (e.shiftKey ? 'Shift+' : '') + e.key);
 };
 const keysFor = id => { const c = S.get('keys') || {}; const a = KEY_ACTIONS.find(x => x[0] === id); return c[id] || (a ? a[2] : []); };
@@ -1462,6 +1516,7 @@ document.addEventListener('keydown', e => {
   if (e.metaKey) return;
   // your keys (or the defaults) for the actions above
   const act = keyLookup().get(keyOf(e));
+  if (act === 'fastHold') { e.preventDefault(); if (!e.repeat) fastStart(e.code); return; }   // held: see FAST above
   if (act) { e.preventDefault(); return runAction(act, /^Media/.test(e.key)); }
   if (e.altKey) return;
   switch (k) {
@@ -1481,7 +1536,7 @@ function applyControls() { for (const [k, on] of Object.entries(S.get('ctl'))) d
 applyControls();
 function applyLog() { api.setLog({ on: S.get('logOn'), file: S.get('logFile') || PATHS.log, level: S.get('logLevel') }); }
 S.on(path => {
-  if (/^sub(Size|Color|Outline|Bg|Font)$/.test(path)) applySubStyle();
+  if (/^(sub(Size|Color|Outline|Bg|Font)|lyricsSize)$/.test(path)) applySubStyle();
   if (path === 'autoHideSide') updateFocus();
   if (path === 'lyricsView') renderLyrics();
   if (/^(audioBg|audioBgDim|coverSize)$/.test(path)) renderAudioBg();

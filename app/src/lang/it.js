@@ -669,5 +669,11 @@ I18N.add('it', {
  "Set point B": "Imposta punto B",
  "Speakers": "Altoparlanti",
  "Surround sound (5.1 / 7.1)": "Audio surround (5.1 / 7.1)",
- "Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.": "Mantiene i canali surround di film e musica, anche quando il file viene convertito. Disattiva per avere sempre lo stereo. Altoparlanti o ricevitore devono essere impostati su 5.1 o 7.1 nelle impostazioni audio del sistema."
+ "Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.": "Mantiene i canali surround di film e musica, anche quando il file viene convertito. Disattiva per avere sempre lo stereo. Altoparlanti o ricevitore devono essere impostati su 5.1 o 7.1 nelle impostazioni audio del sistema.",
+ "Meow!": "Miao!",
+ "Hold for 2× speed": "Tieni premuto per velocità 2×",
+ "Lyrics text size": "Dimensione testo dei testi",
+ "Separate from the subtitle size above. Lyrics shown as subtitles use the subtitle size.": "Separata dalla dimensione dei sottotitoli qui sopra. I testi mostrati come sottotitoli usano la dimensione dei sottotitoli.",
+ "Video overlays": "Sovrapposizioni video",
+ "Lets the graphics card show video on its own layer (saves power). Turn off if the mouse cursor disappears over videos in fullscreen. Takes effect after restarting the app.": "Lascia che la scheda grafica mostri il video su un livello proprio (risparmia energia). Disattiva se il cursore scompare sopra i video a schermo intero. Effettivo dopo il riavvio dell’app."
 });

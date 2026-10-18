@@ -75,22 +75,23 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 ## ✨ Features
 
 - **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more, plus old game and cutscene formats like TGV, Bink and Smacker. Files you open yourself are always tried, whatever the extension. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
-- **DVDs:** open a DVD `.iso` image or a DVD folder (`VIDEO_TS`). A disc with several titles (episodes, extras) is added as *Title 1, Title 2, …* in disc order and plays them one after another; DVD menus themselves are not shown. Copy-protected (CSS-encrypted) retail DVDs are not supported.
-- **MIDI:** `.mid`, `.midi`, `.kar` and `.rmi` files play with a built-in General MIDI SoundFont (FluidR3 Mono), with no extra download. Pick your own `.sf2`/`.sf3` SoundFont under *Settings → Audio → MIDI*.
+- **DVDs:** open a DVD `.iso` image or a DVD folder (`VIDEO_TS`). A disc with several titles (episodes, extras) is added as *Title 1, Title 2, …* in disc order and plays them one after another (titles that repeat the same video, like "episode with intro" next to "episode" or a "play all" title, are listed once); DVD menus themselves are not shown. Copy-protected (CSS-encrypted) retail DVDs are not supported.
+- **MIDI:** `.mid`, `.midi`, `.kar` and `.rmi` files play with a built-in General MIDI SoundFont (FluidR3 Mono), with no extra download, and start right away while the rest is rendered. Pick your own `.sf2`/`.sf3` SoundFont under *Settings → Audio → MIDI*.
 - **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
 - **Instant seek preview.** Hover the timeline to see a thumbnail; a storyboard of frames is generated in the background so the preview follows your mouse without delay.
 - **7 languages:** English, Nederlands, Deutsch, Français, Español, Italiano and Português, switchable instantly without restarting.
 - **Onboarding** on first launch: choose your language, pick a media folder, choose a theme and accent color (with live preview), and learn the key shortcuts.
 - **Library** with videos, music, network streams, playlists and recently played. Browse folders with breadcrumbs (Videos ▸ Shows ▸ The Wand ▸ S01), "continue watching", and watched items dimmed.
-- **Playlists:** import `.m3u`, `.m3u8`, `.xspf` and `.pls` files (open, drag or *Playlists → Import playlist…*), an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
+- **Playlists:** play `.m3u`, `.m3u8`, `.xspf` and `.pls` files by opening or dragging them, or keep them with *Playlists → Import playlist…*, an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
 - **Player** with a timeline preview (hover the seek bar to see that moment), mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.
 - **Made for watching:** while a video plays, the sidebar tucks away so the video gets the full width, and the window resizes to the video's shape (up to 70% of the screen, like VLC). Both can be turned off in *Settings → Interface*. There you can also hide individual player controls (e.g. keep only the timeline) and turn on rounded window corners.
+- **Hold for 2× speed:** hold Shift+Space, or hold the mouse button on the video, to play at double speed until you let go.
 - **A-B repeat:** press A to set the start, A again to set the end and loop that part, and A once more to stop (also in the right-click menu under *Playback*). The looped part is shown on the timeline.
 - **Chapters and bookmarks:** chapters embedded in a file (MKV, MP4, DVD) show as marks on the timeline, with the chapter name above the preview. Add your own bookmarks with Ctrl+B, jump between chapters and bookmarks with Shift+N / Shift+P, and manage, import or export them (OGM chapter files, FFmpeg metadata, Matroska XML, CUE and "1:23 Title" lists) via Ctrl+Shift+B.
 - **Subtitles:** embedded and external `.srt`/`.ass`/`.vtt` files load automatically. You can set the delay, speed, duration, font, color, outline and background.
 - **Subtitle fonts:** pick any font installed on your computer, or add your own `.ttf`/`.otf`/`.woff` files in *Settings → Subtitles*.
 - **Online subtitles:** search and download subtitles from [OpenSubtitles.com](https://www.opensubtitles.com) without leaving the player (right-click → *Subtitle → Search online…*). Results that fit your exact file are marked. Searching works right away; downloading needs a free OpenSubtitles.com account (20 downloads per day), which you can log in with inside the app.
-- **Music with lyrics:** album covers in the player and as square tiles in the library. A `.lrc` file next to a song is loaded automatically and shown full-screen, scrolling along with the song (click a line to jump there); for videos `.lrc` files work as subtitles. The music player background can be a blurred cover, a gradient from the cover's colors or black, with adjustable dimming and cover size; press Y to switch between cover and lyrics. Hovering the timeline shows the lyric line at that moment.
+- **Music with lyrics:** album covers in the player and as square tiles in the library. A `.lrc` file next to a song is loaded automatically and shown full-screen, scrolling along with the song (click a line to jump there); for videos `.lrc` files work as subtitles. The music player background can be a blurred cover, a gradient from the cover's colors or black, with adjustable dimming and cover size; press Y to switch between cover and lyrics. Hovering the timeline shows the lyric line at that moment. The full-screen lyrics have their own text size (*Settings → Subtitles → Lyrics*).
 - **Surround sound:** 5.1 and 7.1 audio (Dolby Digital, DTS, TrueHD/Atmos core, AAC, FLAC …) keeps its channels, also when the file is converted and with the audio effects on (*Settings → Audio → Speakers*). Bitstream passthrough to a receiver is not possible in Chromium; the audio is decoded and sent as multichannel PCM.
 - **Audio:** multiple audio tracks, a 10-band equalizer with 18 presets, compressor, spatial audio (reverb), stereo widener and volume boost up to 200%.
 - **Video:** brightness, contrast, saturation, hue, gamma, sharpen, film grain, negative, posterize, grayscale, sepia, pixel cropping, rotate, zoom and mirror.
@@ -116,6 +117,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 | `Ctrl+P` | Settings | `Ctrl+\` | Hide interface |
 | `Shift+N` `Shift+P` | Next / previous chapter or bookmark | `Ctrl+B` | Add bookmark |
 | `Ctrl+Shift+B` | Chapters and bookmarks | `A` | A-B repeat (A, B, off) |
+| `Shift+Space` (hold) | 2× speed while held | | |
 | `F1` | All shortcuts | `Ctrl+Q` | Quit |
 </details>
 
@@ -157,9 +159,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.14.0"
-git tag v1.14.0
-git push origin v1.14.0
+# first set the version in app/package.json, e.g. "version": "1.15.0"
+git tag v1.15.0
+git push origin v1.15.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
