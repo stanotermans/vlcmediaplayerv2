@@ -1,6 +1,12 @@
 (async () => {
 const { $, $$, esc, el, icon } = UI;
-const video = $('#video');
+// Playback engine (Settings → Playback → Engine): the page's <video> (Classic: Chromium + FFmpeg), or libVLC behind
+// a <video>-like stand-in (VLC; Windows, see vlcplayer.js). Chosen at startup.
+const video = (() => {
+  const el = $('#video');
+  if (S.get('engine') === 'vlc' && window.VlcVideo && VlcVideo.available()) { try { return new VlcVideo(el); } catch (e) { console.error('VLC engine:', e); } }
+  return el;
+})();
 const api = window.api;
 const { port, token } = await api.info();
 const PATHS = await api.paths();
@@ -8,7 +14,7 @@ const MIDI_RE = /\.(mid|midi|kar|rmi|smf)$/i;
 // MIDI is rendered with the chosen SoundFont: a different SoundFont is a different URL (no cached old audio)
 const fileUrl = p => `http://127.0.0.1:${port}/file?t=${token}&src=${encodeURIComponent(p)}` + (MIDI_RE.test(p) ? '&sf=' + encodeURIComponent(S.get('soundfont') || '') : '');
 const streamUrl = (src, ss, a, vcopy, ch = 2) => `http://127.0.0.1:${port}/stream?t=${token}&src=${encodeURIComponent(src)}&ss=${ss.toFixed(2)}&a=${a}&vcopy=${vcopy ? 1 : 0}&q=${S.get('txQuality')}&maxw=${S.get('txMaxW')}&ch=${ch}`;
-FX.attach(video);
+FX.attach(video.media || video);   // audio effects and filters work on the real <video>
 
 /* ---------- pixel cat (idle screen) ---------- */
 const CAT = [
@@ -407,7 +413,9 @@ const OK_A = ['aac', 'mp3', 'opus', 'vorbis', 'flac', 'pcm_s16le', 'pcm_s24le', 
 const OK_F = /mov|mp4|matroska|webm|ogg|mp3|flac|wav|aac/;
 api.setSoundfont(S.get('soundfont') || '');
 S.on(async k => { if (k !== 'soundfont') return; await api.setSoundfont(S.get('soundfont') || ''); const it = curItem(); if (it && MIDI_RE.test(it.src)) reloadSource(); });
-const needsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.extra;
+const chromiumNeedsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.extra;
+// With the VLC engine nothing is converted, except what goes the Classic way (DVDs, or a file libVLC failed on)
+const needsTx = it => video.isVlc && !DVD_RE.test(it.src) ? false : chromiumNeedsTx(it);
 function canDirect(info) {
   if (!info) return true;
   if (!OK_F.test(info.format)) return false;
@@ -432,10 +440,15 @@ async function loadSource(at, autoplay) {
       if (kf != null) at = kf;
     }
     P.seekTarget = null; P.offset = at; P.pendingSeek = 0;
-    video.src = streamUrl(it.src, at, P.audio, P.vcopy, it.extra ? 2 : outChannels(it)) + (it.extra ? '&extra=' + encodeURIComponent(it.extra) : '');
+    const url = streamUrl(it.src, at, P.audio, P.vcopy, it.extra ? 2 : outChannels(it)) + (it.extra ? '&extra=' + encodeURIComponent(it.extra) : '');
+    if (video.isVlc) video.playClassic(url); else video.src = url;
+  } else if (video.isVlc && !DVD_RE.test(it.src)) {           // VLC engine: libVLC opens the file itself, starting at `at`
+    P.seekTarget = null; P.offset = 0; P.pendingSeek = 0;
+    video.vlcOpen(it.remote ? it.src : MIDI_RE.test(it.src) ? fileUrl(it.src) : it.src, at * 1000);
   } else {
     P.seekTarget = null; P.offset = 0; P.pendingSeek = at;
-    video.src = it.remote ? it.src : fileUrl(it.src);
+    const url = it.remote ? it.src : fileUrl(it.src);
+    if (video.isVlc) video.playClassic(url); else video.src = url;
   }
   FX.setChannels(P.tx && it.extra ? 2 : outChannels(it), srcChannels(it));
   video.playbackRate = S.get('speed') || 1;
@@ -483,7 +496,8 @@ video.addEventListener('loadedmetadata', () => {
   const it = curItem(); if (!it) return;
   if (!P.tx && P.pendingSeek) { video.currentTime = P.pendingSeek; P.pendingSeek = 0; }
   if (!P.tx && isFinite(video.duration) && video.duration > 0) it.duration = video.duration;
-  if (!P.tx && it.info && it.info.vcodec && !video.videoWidth) return fallbackToTx('Video codec not supported');
+  // Chromium could not show the picture (no size): convert. libVLC reports the size a moment later, so not there.
+  if (!P.tx && !(video.isVlc && !video.classic) && it.info && it.info.vcodec && !video.videoWidth) return fallbackToTx('Video codec not supported');
   setIdle(it);
   if (P.fit && video.videoWidth) { P.fit = false; fitWindow(); }
 });
@@ -505,8 +519,8 @@ video.addEventListener('error', () => {
 });
 function fallbackToTx(why) {
   if (P.retried) return; P.retried = true;
-  const t = P.pendingSeek || video.currentTime || 0;
-  P.tx = true; osd(t('{reason} – converting with ffmpeg…', { reason: t(why) })); loadSource(t, true);
+  const at = P.pendingSeek || video.currentTime || 0;
+  P.tx = true; osd(t('{reason} – converting with ffmpeg…', { reason: t(why) })); loadSource(at, true);
 }
 video.addEventListener('waiting', () => setSpinner(true));
 video.addEventListener('playing', () => setSpinner(false));
@@ -775,7 +789,7 @@ function showPreview() {
   pvFrameT = setTimeout(() => { pvStep = step; requestFrame(it, Math.min(d, step * stepLen)); }, P.tx ? 140 : 40);
 }
 function requestFrame(it, at) {
-  if (!P.tx) {                                               // direct file: seek the hidden <video>
+  if (video.isVlc ? !chromiumNeedsTx(it) : !P.tx) {           // Chromium can decode it: seek the hidden <video>
     const url = fileUrl(it.src);
     if (pvSrc !== url) { pvSrc = url; pvVideo.src = url; }
     pvWant = at; if (!pvBusy) pvSeekNext();
@@ -942,7 +956,7 @@ const subSync = { delay: 0, speed: 1, dur: 0 };
   if (mode === 'browser' && state.current >= 0 && video.videoWidth && !isAudio(curItem())) {
     const c = mctx.canvas, r = Math.min(c.width / video.videoWidth, c.height / video.videoHeight), w = video.videoWidth * r, h = video.videoHeight * r;
     mctx.fillStyle = '#000'; mctx.fillRect(0, 0, c.width, c.height);
-    try { mctx.filter = FX.filterString().replace(/url\([^)]*\)\s*/g, '') || 'none'; mctx.drawImage(video, (c.width - w) / 2, (c.height - h) / 2, w, h); mctx.filter = 'none'; } catch {}
+    try { mctx.filter = FX.filterString().replace(/url\([^)]*\)\s*/g, '') || 'none'; mctx.drawImage(video.drawable || video, (c.width - w) / 2, (c.height - h) / 2, w, h); mctx.filter = 'none'; } catch {}
     $('#miniCanvasWrap .cat').style.display = 'none'; miniArt.key = null;
   } else if (mode === 'browser') {
     const it = curItem(), art = it && isAudio(it) && (it.cover || it.thumb);
@@ -1149,7 +1163,7 @@ function stopRecord() { if (!rec) return; try { rec.mr.stop(); } catch {} rec = 
 async function snapshot() {
   if (!video.videoWidth) return osd('No video image');
   const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
-  const x = c.getContext('2d'); x.filter = FX.filterString(); x.drawImage(video, 0, 0);
+  const x = c.getContext('2d'); x.filter = FX.filterString(); x.drawImage(video.drawable || video, 0, 0);
   const ext = S.get('snapshotFormat') === 'jpg' ? 'jpg' : 'png';
   const name = `vlcsnap-${(curItem()?.name || 'video').replace(/\.[^.]+$/, '').replace(/[^\w.-]+/g, '_')}-${fmt(curTime()).replace(/:/g, '-')}.${ext}`;
   try { await api.snapshot(c.toDataURL(ext === 'jpg' ? 'image/jpeg' : 'image/png', 0.92), name, S.get('snapshotDir') || PATHS.snapshots); osd('Snapshot saved'); }
@@ -1452,7 +1466,7 @@ function mediaInfo(it) {
   const i = it.info || {};
   const rows = [['File', it.src], ['Container', i.format || '?'], ['Duration', fmt(it.duration)], ['Video', i.vcodec ? `${i.vcodec} ${i.width}×${i.height}` : '—'],
     ['Audio', (i.audio || []).map(a => `${a.label} (${a.codec})`).join(', ') || '—'], ['Subtitles', (i.subs || []).map(s => `${s.label} (${s.codec})`).join(', ') || '—']];
-  if (it === curItem()) rows.push(['Playback mode', t(P.tx ? (P.vcopy ? 'ffmpeg (audio converted)' : 'ffmpeg (converted to H.264)') : 'Direct')]);
+  if (it === curItem()) rows.push(['Playback mode', t(P.tx ? (P.vcopy ? 'ffmpeg (audio converted)' : 'ffmpeg (converted to H.264)') : video.isVlc && !video.classic ? 'VLC (libVLC {v})' : 'Direct', { v: video.version || '' })]);
   UI.dialog({ title: 'Media information', width: 560, body: el('div.kbtable', { style: { gridTemplateColumns: '1fr' } }, rows.map(([k, v]) => el('div.frow', {}, el('span.rlabel', {}, t(k)), el('span', { style: { wordBreak: 'break-all', textAlign: 'right', color: 'var(--text)' } }, v)))), buttons: [{ label: 'Close', primary: true, value: true }] });
 }
 function nudgeSub(d) { subSync.delay = +(subSync.delay + d).toFixed(2); osd(t('Subtitle delay {v} s', { v: subSync.delay.toFixed(1) })); quick && quick.refresh(); }

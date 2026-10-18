@@ -108,6 +108,16 @@ jobs:
           esac
           chmod +x node_modules/ffmpeg-static/ffmpeg* && ls -l node_modules/ffmpeg-static/
 
+      # VLC playback engine (Windows): libVLC from the official VLC build (checked against VideoLAN's SHA-256, trimmed,
+      # without the DVD plugins that contain libdvdcss) and the native module that connects it to the app
+      - name: libVLC and the vlcview module
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          node scripts/fetch-vlc.js
+          npx --yes node-gyp@11 rebuild -C native/vlcview --arch=x64
+          ls -l native/vlcview/build/Release/vlcview.node vendor/vlc
+
       # Windows in two signing rounds: first the app itself (so the installed .exe is signed),
       # then the installer and portable .exe that wrap it.
       - name: Windows app folder

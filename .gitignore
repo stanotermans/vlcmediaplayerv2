@@ -5,3 +5,5 @@ app/dist/
 Thumbs.db
 # API keys written by the release workflow
 app/keys.json
+app/vendor/
+app/native/*/build/

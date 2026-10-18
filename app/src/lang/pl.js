@@ -641,5 +641,11 @@ I18N.add('pl', {
  "Playlist exported": "Wyeksportowano listę odtwarzania",
  "Move up": "Przenieś w górę",
  "Move down": "Przenieś w dół",
- "Drag the items to change their order.": "Przeciągaj elementy, aby zmienić ich kolejność."
+ "Drag the items to change their order.": "Przeciągaj elementy, aby zmienić ich kolejność.",
+ "Engine": "Silnik",
+ "Playback engine": "Silnik odtwarzania",
+ "Classic (Chromium + FFmpeg)": "Klasyczny (Chromium + FFmpeg)",
+ "VLC (libVLC) – preview": "VLC (libVLC) – wersja testowa",
+ "VLC plays files with VLC’s own engine. Still in preview: audio effects, picture-in-picture and recording only work with Classic for now. Takes effect after restarting the app.": "VLC odtwarza pliki własnym silnikiem VLC. Wciąż w wersji testowej: efekty dźwiękowe, obraz w obrazie i nagrywanie działają na razie tylko z silnikiem Klasycznym. Zmiana zadziała po ponownym uruchomieniu aplikacji.",
+ "VLC (libVLC {v})": "VLC (libVLC {v})"
 });

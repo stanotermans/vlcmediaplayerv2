@@ -12,7 +12,9 @@
     "dist:win": "electron-builder --win",
     "dist:store": "electron-builder --win appx",
     "dist:linux": "electron-builder --linux deb rpm pacman tar.gz -c.productName=vlc-redesign && electron-builder --linux AppImage -c.compression=normal -c.productName=vlc-redesign",
-    "dist:mac": "electron-builder --mac"
+    "dist:mac": "electron-builder --mac",
+    "vlc:fetch": "node scripts/fetch-vlc.js",
+    "vlc:build": "node-gyp rebuild -C native/vlcview --arch=x64"
   },
   "build": {
     "appId": "nl.otermans.vlcredesign",
@@ -32,14 +34,16 @@
       "midi-render.mjs",
       "assets/**/*",
       "node_modules/spessasynth_core/**/*",
-      "node_modules/stb-vorbis/**/*"
+      "node_modules/stb-vorbis/**/*",
+      "native/vlcview/build/Release/vlcview.node"
     ],
     "asarUnpack": [
       "node_modules/ffmpeg-static/**/*",
       "midi-render.mjs",
       "assets/**/*",
       "node_modules/spessasynth_core/**/*",
-      "node_modules/stb-vorbis/**/*"
+      "node_modules/stb-vorbis/**/*",
+      "native/vlcview/build/Release/vlcview.node"
     ],
     "fileAssociations": [
       {
@@ -221,7 +225,13 @@
         }
       ],
       "icon": "build/icon.png",
-      "legalTrademarks": "VLC is a trademark of VideoLAN. VLC Redesign is an unofficial fan project and is not affiliated with VideoLAN."
+      "legalTrademarks": "VLC is a trademark of VideoLAN. VLC Redesign is an unofficial fan project and is not affiliated with VideoLAN.",
+      "extraResources": [
+        {
+          "from": "vendor/vlc",
+          "to": "vlc"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

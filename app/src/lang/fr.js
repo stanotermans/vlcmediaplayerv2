@@ -694,5 +694,11 @@ I18N.add('fr', {
  "Export playlist…": "Exporter la playlist…",
  "Playlist exported": "Playlist exportée",
  "Move up": "Monter",
- "Move down": "Descendre"
+ "Move down": "Descendre",
+ "Engine": "Moteur",
+ "Playback engine": "Moteur de lecture",
+ "Classic (Chromium + FFmpeg)": "Classique (Chromium + FFmpeg)",
+ "VLC (libVLC) – preview": "VLC (libVLC) – aperçu",
+ "VLC plays files with VLC’s own engine. Still in preview: audio effects, picture-in-picture and recording only work with Classic for now. Takes effect after restarting the app.": "VLC lit les fichiers avec le moteur de VLC lui-même. Encore en aperçu : les effets audio, l’image dans l’image et l’enregistrement ne fonctionnent pour l’instant qu’avec Classique. Prend effet après redémarrage de l’application.",
+ "VLC (libVLC {v})": "VLC (libVLC {v})"
 });

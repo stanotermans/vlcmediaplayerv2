@@ -646,3 +646,7 @@ input.bmname{flex:1;min-width:0}
 #grid:not(.list) .card.drop-after{box-shadow:4px 0 0 -1px var(--accent)}
 #grid.list .card.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
 #grid.list .card.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+/* VLC engine: the canvas takes the place of the <video> (vlcplayer.js copies its filter/transform/fit styles) */
+#vlcView{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:transparent}
+.fullscreen.in-player #player #vlcView{cursor:default}
+.fullscreen.in-player.hidecursor #player #vlcView{cursor:none}

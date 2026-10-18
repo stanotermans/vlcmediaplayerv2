@@ -694,5 +694,11 @@ I18N.add('nl', {
  "Export playlist…": "Afspeellijst exporteren…",
  "Playlist exported": "Afspeellijst geëxporteerd",
  "Move up": "Omhoog",
- "Move down": "Omlaag"
+ "Move down": "Omlaag",
+ "Engine": "Engine",
+ "Playback engine": "Afspeelengine",
+ "Classic (Chromium + FFmpeg)": "Klassiek (Chromium + FFmpeg)",
+ "VLC (libVLC) – preview": "VLC (libVLC) – preview",
+ "VLC plays files with VLC’s own engine. Still in preview: audio effects, picture-in-picture and recording only work with Classic for now. Takes effect after restarting the app.": "VLC speelt bestanden af met de eigen engine van VLC. Nog in preview: audio-effecten, beeld-in-beeld en opnemen werken voorlopig alleen met Klassiek. Werkt na het herstarten van de app.",
+ "VLC (libVLC {v})": "VLC (libVLC {v})"
 });
