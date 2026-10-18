@@ -13,6 +13,7 @@ typedef struct libvlc_instance_t libvlc_instance_t;
 typedef struct libvlc_media_t libvlc_media_t;
 typedef struct libvlc_media_player_t libvlc_media_player_t;
 typedef int64_t libvlc_time_t;
+typedef struct libvlc_track_description_t { int i_id; char *psz_name; struct libvlc_track_description_t *p_next; } libvlc_track_description_t;
 typedef void *(*lock_cb)(void *opaque, void **planes);
 typedef void (*unlock_cb)(void *opaque, void *picture, void *const *planes);
 typedef void (*display_cb)(void *opaque, void *picture);
@@ -41,6 +42,12 @@ static struct {
   void (*video_set_callbacks)(libvlc_media_player_t *, lock_cb, unlock_cb, display_cb, void *);
   void (*video_set_format_callbacks)(libvlc_media_player_t *, format_cb, cleanup_cb);
   int (*video_get_size)(libvlc_media_player_t *, unsigned, unsigned *, unsigned *);
+  libvlc_track_description_t *(*audio_tracks)(libvlc_media_player_t *);
+  void (*tracks_release)(libvlc_track_description_t *);
+  int (*audio_set_track)(libvlc_media_player_t *, int);
+  int (*audio_get_track)(libvlc_media_player_t *);
+  int (*video_set_spu)(libvlc_media_player_t *, int);
+  void (*next_frame)(libvlc_media_player_t *);
 } vlc;
 
 static HMODULE dll;
@@ -112,7 +119,10 @@ FN(Init) {
   LOAD(audio_set_volume, "libvlc_audio_set_volume") LOAD(audio_set_mute, "libvlc_audio_set_mute")
   LOAD(video_set_callbacks, "libvlc_video_set_callbacks") LOAD(video_set_format_callbacks, "libvlc_video_set_format_callbacks")
   LOAD(video_get_size, "libvlc_video_get_size")
-  const char *args[] = { "--no-video-title-show", "--quiet", "--no-osd", "--no-snapshot-preview", "--no-stats", "--no-lua" };
+  LOAD(audio_tracks, "libvlc_audio_get_track_description") LOAD(tracks_release, "libvlc_track_description_list_release")
+  LOAD(audio_set_track, "libvlc_audio_set_track") LOAD(audio_get_track, "libvlc_audio_get_track")
+  LOAD(video_set_spu, "libvlc_video_set_spu") LOAD(next_frame, "libvlc_media_player_next_frame")
+  const char *args[] = { "--no-video-title-show", "--quiet", "--no-osd", "--no-snapshot-preview", "--no-stats", "--no-lua", "--no-sub-autodetect-file" };
   inst = vlc.new_(sizeof args / sizeof *args, args);
   if (!inst) { throw_(env, "libvlc_new failed"); return NULL; }
   void *data; napi_get_arraybuffer_info(env, argv[1], &data, &buf_size); buf = data;
@@ -166,12 +176,32 @@ FN(Frame) {
   return o;
 }
 FN(Done) { InterlockedExchange(&reading, -1); return NULL; }
+// audioTracks() → [{ id, name }] without VLC's "Disable" entry, in stream order; current: id of the playing one
+FN(AudioTracks) {
+  napi_value arr; napi_create_array(env, &arr);
+  if (!mp) return arr;
+  libvlc_track_description_t *list = vlc.audio_tracks(mp), *d; uint32_t i = 0;
+  for (d = list; d; d = d->p_next) {
+    if (d->i_id < 0) continue;
+    napi_value o; napi_create_object(env, &o);
+    set(env, o, "id", d->i_id);
+    napi_set_named_property(env, o, "name", str(env, d->psz_name ? d->psz_name : ""));
+    napi_set_element(env, arr, i++, o);
+  }
+  if (list) vlc.tracks_release(list);
+  napi_set_named_property(env, arr, "current", num(env, vlc.audio_get_track(mp)));
+  return arr;
+}
+FN(SetAudioTrack) { ARGS(1); int32_t id; napi_get_value_int32(env, argv[0], &id); return num(env, mp ? vlc.audio_set_track(mp, id) : -1); }
+FN(NoSpu) { if (mp) vlc.video_set_spu(mp, -1); return NULL; }   // embedded subtitles are drawn by the app
+FN(NextFrame) { if (mp) vlc.next_frame(mp); return NULL; }
 
 static napi_value Init_(napi_env env, napi_value exports) {
   napi_property_descriptor p[] = {
 #define P(n, f) { n, 0, f, 0, 0, 0, napi_default, 0 }
     P("init", Init), P("open", Open), P("play", Play), P("pause", Pause), P("stop", Stop), P("seek", Seek),
     P("rate", Rate), P("volume", Volume), P("mute", Mute), P("state", State), P("frame", Frame), P("done", Done),
+    P("audioTracks", AudioTracks), P("setAudioTrack", SetAudioTrack), P("noSpu", NoSpu), P("nextFrame", NextFrame),
   };
   napi_define_properties(env, exports, sizeof p / sizeof *p, p);
   return exports;

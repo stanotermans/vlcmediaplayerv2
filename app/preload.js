@@ -129,4 +129,6 @@ contextBridge.exposeInMainWorld('vlcEngine', {
   play: () => vlc.play(), pause: () => vlc.pause(), stop: () => vlc.stop(), seek: ms => vlc.seek(ms),
   rate: r => vlc.rate(r), volume: v => vlc.volume(Math.round(v)), mute: b => vlc.mute(!!b),
   state: () => vlc.state(),
+  audioTracks: () => { const a = vlc.audioTracks(); return { list: [...a], current: a.current }; },
+  setAudioTrack: id => vlc.setAudioTrack(id), noSpu: () => vlc.noSpu(), nextFrame: () => vlc.nextFrame(),
 });

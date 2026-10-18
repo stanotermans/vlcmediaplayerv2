@@ -1132,7 +1132,12 @@ applySubStyle();
 
 /* ---------- audio tracks ---------- */
 const audioTracks = () => { const it = curItem(); const t = it && it.info ? it.info.audio : []; return t.length ? t.map(a => [a.i, `${a.label} (${a.codec}${a.ch ? ', ' + a.ch + 'ch' : ''})`]) : [[0, 'Default']]; };
-function setAudioTrack(i) { if (!curItem()) return; P.audio = i; P.tx = needsTx(curItem()) || P.audio > 0; loadSource(curTime(), !video.paused); const tk = audioTracks().find(x => x[0] === i); osd(t('Audio track: {name}', { name: tk ? tk[1] : i })); }
+function setAudioTrack(i) {
+  if (!curItem()) return;
+  if (video.isVlc && !video.classic && video.setAudioTrack(i)) {   // libVLC switches without reloading
+    P.audio = i; const tk = audioTracks().find(x => x[0] === i); return osd(t('Audio track: {name}', { name: tk ? tk[1] : i }));
+  }
+  P.audio = i; P.tx = needsTx(curItem()) || P.audio > 0; loadSource(curTime(), !video.paused); const tk = audioTracks().find(x => x[0] === i); osd(t('Audio track: {name}', { name: tk ? tk[1] : i })); }
 function cycleAudio() { const n = audioTracks().length; if (n < 2) return osd('Only one audio track'); setAudioTrack((P.audio + 1) % n); }
 
 /* ---------- recording ---------- */
@@ -1531,7 +1536,7 @@ const KEY_ACTIONS = [
   ['abRepeat', 'A-B repeat (set A, set B, off)', ['a'], () => abCycle()],
   ['bookmarks', 'Chapters and bookmarks', ['Ctrl+B'], () => Panels.bookmarks(App)],
 ];
-function frameStep(dir) { if (!curItem()) return; video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }
+function frameStep(dir) { if (!curItem()) return; if (video.isVlc && !video.classic && dir > 0) return video.nextFrame(); video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }
 const keyOf = e => {
   const mods = (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '');
   if (e.key === ' ') return mods + (e.shiftKey ? 'Shift+' : '') + 'Space';
