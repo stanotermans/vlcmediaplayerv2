@@ -61,21 +61,22 @@ const saveRecent = () => store.set('recent2', S.get('rememberRecent') ? state.re
 const isAudio = it => it.type === 'audio';
 const AUDIO_RE = /\.(mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|ac3|dts|mka|ape|aiff?|wv|tta|mpc|tak|shn|amr|au|snd|caf|dsf|dff|ra|voc|mid|midi|kar|rmi|smf)$/i;
 // A DVD folder is opened through its VIDEO_TS.IFO; show the folder's name instead ("My DVD", not "VIDEO_TS.IFO").
-// One title of a DVD is "<disc>#t<n>" (#35) and is named "My DVD – Title 3".
-const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)(#t\d+)?$/i;
+// One title of a DVD is "<disc>#t<n>n<i>" (#35): title n on the disc, shown as "My DVD – Title i" where i counts
+// the listed titles 1, 2, 3 … (repeated titles are left out, so the disc's own numbers can skip). Older items: "#t<n>".
+const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)(#t\d+(?:n\d+)?)?$/i;
 const itemName = src => {
-  const tm = /#t(\d+)$/.exec(src), file = tm ? src.slice(0, tm.index) : src;
+  const tm = /#t(\d+)(?:n(\d+))?$/.exec(src), file = tm ? src.slice(0, tm.index) : src;
   const disc = /[\\/]VIDEO_TS[\\/]VIDEO_TS\.IFO$/i.test(file) ? (file.split(/[\\/]/).slice(-3, -2)[0] || 'DVD') : baseName(file);
-  return tm ? `${disc.replace(/\.iso$/i, '')} – ${t('Title {n}', { n: +tm[1] })}` : disc;
+  return tm ? `${disc.replace(/\.iso$/i, '')} – ${t('Title {n}', { n: +(tm[2] || tm[1]) })}` : disc;
 };
 // A DVD with several titles is added as one item per title, in disc order (the menus themselves cannot be shown).
 async function expandDvds(srcs) {
   const out = []; let queue = null;
   for (const s of srcs) {
-    if (!DVD_RE.test(s) || /#t\d+$/.test(s)) { out.push(s); continue; }
+    if (!DVD_RE.test(s) || /#t\d+(n\d+)?$/.test(s)) { out.push(s); continue; }
     const titles = await api.dvdTitles(s);
     if (titles.length < 2) { out.push(s); continue; }
-    const list = titles.map(x => `${s}#t${x.title}`);
+    const list = titles.map((x, i) => `${s}#t${x.title}n${i + 1}`);
     out.push(...list); queue = queue || list;
   }
   return { srcs: out, queue };

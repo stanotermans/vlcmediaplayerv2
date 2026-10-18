@@ -88,9 +88,10 @@ async function serveGrowing(job, req, resp) {
 app.on('will-quit', () => { try { midiProc && midiProc.kill(); fs.rmSync(path.join(app.getPath('temp'), 'vlc-redesign-midi'), { recursive: true, force: true }); } catch {} });
 // DVDs: an .iso image or a VIDEO_TS folder (represented by its VIDEO_TS.IFO). Played with ffmpeg's dvdvideo demuxer
 // (libdvdread/libdvdnav, no decryption: copy-protected retail DVDs do not play).
-// A DVD with several titles (menu discs: episodes, extras …) becomes one item per title: "<disc>#t<n>" (#35).
-const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)(#t\d+)?$/i;
-const dvdSplit = src => { const m = /^(.*)#t(\d+)$/.exec(src); return m ? { file: m[1], title: +m[2] } : { file: src, title: 0 }; };
+// A DVD with several titles (menu discs: episodes, extras …) becomes one item per title: "<disc>#t<n>" (#35),
+// or "<disc>#t<n>n<i>" where i is its place in the list (the name; n is the title on the disc, which plays).
+const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)(#t\d+(?:n\d+)?)?$/i;
+const dvdSplit = src => { const m = /^(.*)#t(\d+)(?:n\d+)?$/.exec(src); return m ? { file: m[1], title: +m[2] } : { file: src, title: 0 }; };
 const realPath = src => DVD_RE.test(src) ? dvdSplit(src).file : src;   // the file on disk behind a source
 const dvdInput = src => { const f = dvdSplit(src).file; return /\.iso$/i.test(f) ? f : path.dirname(f); };   // the .iso file or the VIDEO_TS folder
 const DVD_TITLES = new Map();                                      // disc → [{ title, duration }] in disc order
