@@ -151,12 +151,14 @@ function vlcDraw() {
     gl.activeTexture(gl.TEXTURE0 + i); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, fmt[1], gl.UNSIGNED_BYTE, new Uint8Array(vlcBuf, off, w * h * B));
   });
   vlc.done();
-  if (c.width !== VW || c.height !== VH) { c.width = VW; c.height = VH; }   // the canvas has the video's own size; CSS scales it
+  // the canvas has the video's own size (wider or narrower for non-square pixels, like a 16:9 DVD); CSS scales it
+  const CW = Math.round(VW * (s.sar > 0 ? s.sar : 1));
+  if (c.width !== CW || c.height !== VH) { c.width = CW; c.height = VH; }
   gl.uniform2f(glU.crop, VW / W, VH / H);
   gl.uniform1i(glU.deep, deep ? 1 : 0);
   gl.uniform1i(glU.mtx, vlcColor.mtx > 0 ? vlcColor.mtx : VH <= 576 ? 601 : 709);   // unknown matrix: SD → 601, HD → 709
   gl.uniform1i(glU.full, vlcColor.full); gl.uniform1i(glU.tf, deep ? vlcColor.tf : 0);
-  gl.viewport(0, 0, VW, VH); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.viewport(0, 0, CW, VH); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 // media-info colour names → shader settings; HDR (PQ/HLG) also asks libVLC for 10-bit frames
 function colorOf(c = {}) {
@@ -187,4 +189,7 @@ contextBridge.exposeInMainWorld('vlcEngine', {
   state: () => vlc.state(),
   audioTracks: () => { const a = vlc.audioTracks(); return { list: [...a], current: a.current }; },
   setAudioTrack: id => vlc.setAudioTrack(id), noSpu: () => vlc.noSpu(), nextFrame: () => vlc.nextFrame(),
+  // DVD menus: navigate(0 OK, 1 up, 2 down, 3 left, 4 right), menu() = the disc's menu, mouse(x, y, click) in video pixels
+  navigate: m => vlc.navigate(m | 0), menu: () => vlc.menu(), mouse: (x, y, click) => vlc.mouse(+x, +y, !!click),
+  titles: () => [...vlc.titles()], setTitle: i => vlc.setTitle(i | 0),
 });

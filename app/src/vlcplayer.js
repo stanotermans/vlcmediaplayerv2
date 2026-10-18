@@ -37,7 +37,7 @@ class VlcVideo extends EventTarget {
     });
     this._applyEq(); this._applyFx(); window.vlcEngine.stereo(S.get('surround') === false);
   }
-  _reset() { this._st = { state: 0, time: 0, length: 0, width: 0, height: 0, frames: 0 }; this._meta = false; this._ended = false; this._seekTo = null; this._error = null; this._playAt = 0; this._clock = null; this._shown = 0; this._spuOff = false; }
+  _reset() { this._st = { state: 0, time: 0, length: 0, width: 0, height: 0, frames: 0 }; this._meta = false; this._ended = false; this._seekTo = null; this._error = null; this._playAt = 0; this._clock = null; this._shown = 0; this._spuOff = false; this._title = null; this.dvdMenu = false; }
   // Audio settings → VLC. Equalizer: VLC's own 10 bands (the app's presets are VLC's). Compressor, spatial audio and
   // stereo widening: VLC's audio filters with the same settings (reverb's 0–10 sliders are VLC's 0–1).
   _applyEq() { window.vlcEngine.equalizer(S.get('eqOn') ? S.get('eq') : null); }
@@ -63,7 +63,8 @@ class VlcVideo extends EventTarget {
     if (s.state !== prev.state) {
       if (s.state === ST.playing) {
         // the app draws subtitles itself (its own style, delay and size): libVLC must not burn embedded ones in
-        if (!this._spuOff) { this._spuOff = true; window.vlcEngine.noSpu(); }
+        // (on a DVD libVLC keeps them: its menus' buttons are subpictures too)
+        if (!this._spuOff && !this.isDvd) { this._spuOff = true; window.vlcEngine.noSpu(); }
         this._fire('playing');
       }
       if (s.state === ST.buffering || s.state === ST.opening) this._fire('waiting');
@@ -71,6 +72,13 @@ class VlcVideo extends EventTarget {
       if (s.state === ST.error) { this._error = { code: 4, message: 'libVLC could not play this' }; this._fire('error'); }
     }
     if (s.length && s.length !== prev.length) this._fire('durationchange');
+    // DVD: a menu (libVLC's title 0, or a title marked as menu) takes the arrow keys, Enter and clicks
+    if (this.isDvd && s.title !== this._title && s.state === ST.playing) {
+      this._title = s.title; const ts = window.vlcEngine.titles(), cur = ts[s.title];
+      const menu = s.title === 0 || !!(cur && (cur.menu || cur.interactive));
+      if (menu !== this.dvdMenu) { this.dvdMenu = menu; this._fire('dvdmenu'); }
+      this._fire('dvdtitle');
+    }
     // metadata: once the picture size is known, or for sound only once it has played a moment
     const video = s.width > 0, waited = s.state === ST.playing && Date.now() - this._playAt > 600;
     if (s.length && !this._meta && (video || waited)) { this._meta = true; this._fire('loadedmetadata', 'canplay'); }
@@ -92,6 +100,7 @@ class VlcVideo extends EventTarget {
     this._reset(); this._src = target || '';
     if (!target) return;
     const isUrl = /^[a-z][a-z0-9+.-]+:\/\//i.test(target);
+    if (!isUrl && /^[a-z]:\//i.test(target)) target = target.replace(/\//g, '\\');   // libVLC wants C:\… (playlists may say C:/…)
     this._color = color; window.vlcEngine.open(target, isUrl, startMs, color);
     window.vlcEngine.rate(this._rate); this._applyVolume(); window.vlcEngine.mute(this._muted);
     this._playAt = Date.now(); this._paused = false;
@@ -140,12 +149,28 @@ class VlcVideo extends EventTarget {
   nextFrame() { window.vlcEngine.nextFrame(); this._paused = true; this._fire('pause'); }
   get muted() { return this.classic ? this.media.muted : this._muted; }
   set muted(b) { this._muted = !!b; if (this.classic) this.media.muted = b; else { window.vlcEngine.mute(b); this._fire('volumechange'); } }
-  get videoWidth() { return this.classic ? this.media.videoWidth : this._st.width; }
+  get videoWidth() { return this.classic ? this.media.videoWidth : Math.round(this._st.width * (this._st.sar || 1)); }   // shown width
   get videoHeight() { return this.classic ? this.media.videoHeight : this._st.height; }
   get readyState() { return this.classic ? this.media.readyState : this._meta ? 4 : 0; }
   get error() { return this.classic ? this.media.error : this._error; }
   get buffered() { return this.classic ? this.media.buffered : { length: 0, start: () => 0, end: () => 0 }; }
   get seeking() { return this.classic ? this.media.seeking : this._seekTo != null; }
+  // ---- DVD menus (VLC engine) ----
+  get isDvd() { return !this.classic && /^dvd:/i.test(this._src || ''); }
+  dvdNavigate(key) { const m = { Enter: 0, ArrowUp: 1, ArrowDown: 2, ArrowLeft: 3, ArrowRight: 4 }[key]; if (m == null) return false; window.vlcEngine.navigate(m); return true; }
+  dvdMenuShow() { window.vlcEngine.menu(); }
+  dvdTitle() { return this._title; }
+  // a point on screen → the video's own pixels (the canvas is scaled with object-fit like the <video>)
+  dvdMouse(clientX, clientY, click) {
+    const c = this.canvas, r = c.getBoundingClientRect(), W = this._st.width, H = this._st.height;
+    if (!W || !H || !r.width) return false;
+    const fit = getComputedStyle(c).objectFit, cw = c.width, ch = c.height;
+    let w = r.width, h = r.height;
+    if (fit === 'contain' || fit === 'cover') { const k = (fit === 'contain' ? Math.min : Math.max)(r.width / cw, r.height / ch); w = cw * k; h = ch * k; }
+    const x = (clientX - r.left - (r.width - w) / 2) / w * W, y = (clientY - r.top - (r.height - h) / 2) / h * H;
+    if (x < 0 || y < 0 || x >= W || y >= H) return false;
+    window.vlcEngine.mouse(x, y, click); return true;
+  }
   get drawable() { return this.classic ? this.media : this.canvas; }                    // for drawImage (mini player, snapshot)
   get style() { return this.media.style; }
   get parentElement() { return this.media.parentElement; }

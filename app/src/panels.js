@@ -343,7 +343,7 @@ function pages(App) {
       window.VlcVideo && VlcVideo.available() ? sec('Engine',
         row('Playback engine', select([['classic', 'Classic (Chromium + FFmpeg)'], ['vlc', 'VLC (libVLC) – preview']],
           { get: () => S.get('engine'), set: v => { S.set('engine', v); App.osd('Restart the app to apply this'); }, path: 'engine' }),
-          { info: 'VLC plays files with VLC’s own engine. Still in preview: audio effects, picture-in-picture and recording only work with Classic for now. Takes effect after restarting the app.' })) : null,
+          { info: 'VLC plays files with VLC’s own engine, including DVD menus (also copy-protected DVDs). Still in preview: recording only works with Classic for now. Takes effect after restarting the app.' })) : null,
       sec('Defaults',
         row('Repeat', select([['off', 'Off'], ['one', 'Current'], ['all', 'All']], 'repeat')),
         row('Shuffle', toggle('shuffle')),

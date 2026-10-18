@@ -14,6 +14,9 @@ typedef struct libvlc_media_t libvlc_media_t;
 typedef struct libvlc_media_player_t libvlc_media_player_t;
 typedef struct libvlc_equalizer_t libvlc_equalizer_t;
 typedef int64_t libvlc_time_t;
+typedef struct { unsigned i_height, i_width, i_sar_num, i_sar_den, i_frame_rate_num, i_frame_rate_den; } libvlc_video_track_t;
+typedef struct { uint32_t i_codec, i_original_fourcc; int i_id, i_type, i_profile, i_level; void *u; unsigned i_bitrate; char *psz_language, *psz_description; } libvlc_media_track_t;
+typedef struct libvlc_title_description_t { int64_t i_duration; char *psz_name; unsigned i_flags; } libvlc_title_description_t;
 typedef struct libvlc_track_description_t { int i_id; char *psz_name; struct libvlc_track_description_t *p_next; } libvlc_track_description_t;
 typedef void *(*lock_cb)(void *opaque, void **planes);
 typedef void (*unlock_cb)(void *opaque, void *picture, void *const *planes);
@@ -55,6 +58,18 @@ static struct {
   int (*eq_set_amp)(libvlc_equalizer_t *, float, unsigned);
   int (*mp_set_equalizer)(libvlc_media_player_t *, libvlc_equalizer_t *);
   int (*audio_set_channel)(libvlc_media_player_t *, int);
+  void (*navigate)(libvlc_media_player_t *, unsigned);
+  int (*get_titles)(libvlc_media_player_t *, libvlc_title_description_t ***);
+  void (*titles_release)(libvlc_title_description_t **, unsigned);
+  int (*get_title)(libvlc_media_player_t *);
+  void (*set_title)(libvlc_media_player_t *, int);
+  int (*get_chapter)(libvlc_media_player_t *);
+  int (*chapter_count)(libvlc_media_player_t *);
+  void (*set_chapter)(libvlc_media_player_t *, int);
+  libvlc_media_t *(*mp_get_media)(libvlc_media_player_t *);
+  unsigned (*tracks_get)(libvlc_media_t *, libvlc_media_track_t ***);
+  void (*tracks_release_)(libvlc_media_track_t **, unsigned);
+  int (*video_get_track)(libvlc_media_player_t *);
 } vlc;
 
 static HMODULE dll;
@@ -72,6 +87,7 @@ typedef struct { int i_type; int i_count; vlc_value_t *p_values; } vlc_list_t;
 #define VAR_INTEGER 0x30
 #define VAR_STRING 0x40
 #define VAR_FLOAT 0x50
+#define VAR_COORDS 0xA0
 static struct {
   int (*var_Create)(void *, const char *, int);
   int (*var_SetChecked)(void *, const char *, int, vlc_value_t);
@@ -79,6 +95,7 @@ static struct {
   void (*obj_hold)(void *);
   void (*obj_release)(void *);
   void (*free_)(void *);
+  int (*var_Trigger)(void *, const char *);
 } core;
 static char fx_filters[256];                    // e.g. "compressor:spatializer" (the equalizer is added when it is on)
 static struct { char name[48]; int type; double v; } fx_param[32]; static int fx_n;
@@ -87,6 +104,7 @@ static struct { char name[48]; int type; double v; } fx_param[32]; static int fx
 #define SLOTS 3
 static uint8_t *buf; static size_t buf_size; static napi_ref buf_ref;
 static volatile LONG width, height, slot_size, fmt_ok, sample_bytes = 1;
+static volatile LONG sar_dirty = 1; static double sar = 1;   // pixel aspect (DVDs: 720×576 pixels shown as 4:3 or 16:9)
 static int want_deep = 0;                      // HDR: ask libVLC for 10-bit frames (I0AL) instead of 8-bit
 static char source_chroma[5];
 static volatile LONG latest = -1, reading = -1, next_slot = 0;
@@ -104,7 +122,7 @@ static unsigned on_format(void **opaque, char *chroma, unsigned *w, unsigned *h,
   pitches[0] = W * B; pitches[1] = pitches[2] = W / 2 * B;
   lines[0] = H; lines[1] = lines[2] = H / 2;
   InterlockedExchange(&width, W); InterlockedExchange(&height, H); InterlockedExchange(&slot_size, (LONG)need);
-  InterlockedExchange(&latest, -1); InterlockedExchange(&fmt_ok, 1);
+  InterlockedExchange(&latest, -1); InterlockedExchange(&fmt_ok, 1); InterlockedExchange(&sar_dirty, 1);
   return 1;
 }
 static void on_cleanup(void *opaque) { InterlockedExchange(&fmt_ok, 0); }
@@ -159,6 +177,12 @@ FN(Init) {
   LOAD(eq_new, "libvlc_audio_equalizer_new") LOAD(eq_release, "libvlc_audio_equalizer_release")
   LOAD(eq_set_preamp, "libvlc_audio_equalizer_set_preamp") LOAD(eq_set_amp, "libvlc_audio_equalizer_set_amp_at_index")
   LOAD(mp_set_equalizer, "libvlc_media_player_set_equalizer") LOAD(audio_set_channel, "libvlc_audio_set_channel")
+  LOAD(navigate, "libvlc_media_player_navigate") LOAD(get_titles, "libvlc_media_player_get_full_title_descriptions")
+  LOAD(titles_release, "libvlc_title_descriptions_release") LOAD(get_title, "libvlc_media_player_get_title")
+  LOAD(set_title, "libvlc_media_player_set_title") LOAD(get_chapter, "libvlc_media_player_get_chapter")
+  LOAD(chapter_count, "libvlc_media_player_get_chapter_count") LOAD(set_chapter, "libvlc_media_player_set_chapter")
+  LOAD(mp_get_media, "libvlc_media_player_get_media") LOAD(tracks_get, "libvlc_media_tracks_get")
+  LOAD(tracks_release_, "libvlc_media_tracks_release") LOAD(video_get_track, "libvlc_video_get_track")
   HMODULE cdll = GetModuleHandleW(L"libvlccore.dll"), crt = LoadLibraryW(L"msvcrt.dll");
   if (cdll && crt) {
     *(FARPROC *)&core.var_Create = GetProcAddress(cdll, "var_Create");
@@ -167,6 +191,7 @@ FN(Init) {
     *(FARPROC *)&core.obj_hold = GetProcAddress(cdll, "vlc_object_hold");
     *(FARPROC *)&core.obj_release = GetProcAddress(cdll, "vlc_object_release");
     *(FARPROC *)&core.free_ = GetProcAddress(crt, "free");       // libVLC is built against msvcrt
+    *(FARPROC *)&core.var_Trigger = GetProcAddress(cdll, "var_TriggerCallback");
   }
   static char extra[8][1024]; const char *args[16] = { "--no-video-title-show", "--quiet", "--no-osd", "--no-snapshot-preview", "--no-stats", "--no-lua", "--no-sub-autodetect-file" };
   int na = 7; uint32_t ne = 0;
@@ -179,20 +204,21 @@ FN(Init) {
   return str(env, vlc.get_version());
 }
 static int core_ok(void) { return core.var_Create && core.var_SetChecked && core.list_children && core.obj_hold && core.obj_release && core.free_; }
-// the media player's audio output (held), or NULL before the file's audio started
-static void *hold_aout(void) {
+// the media player's child object of this type ("audio output", "video output"), held; NULL if there is none yet
+static void *hold_child(const char *want) {
   if (!mp || !core_ok()) return NULL;
   vlc_list_t *l = core.list_children(mp); void *a = NULL;
   if (!l) return NULL;
   for (int i = 0; i < l->i_count; i++) {
     void *o = l->p_values[i].p_address;
     const char *type = *(const char **)o;                        // vlc_object_t starts with its type name
-    if (!a && type && !strcmp(type, "audio output")) { core.obj_hold(o); a = o; }
+    if (!a && type && !strcmp(type, want)) { core.obj_hold(o); a = o; }
     core.obj_release(o);
   }
   core.free_(l->p_values); core.free_(l);
   return a;
 }
+static void *hold_aout(void) { return hold_child("audio output"); }
 static void set_var(void *o, const char *name, int type, vlc_value_t v) {
   if (core.var_SetChecked(o, name, type, v) != 0) { core.var_Create(o, name, type); core.var_SetChecked(o, name, type, v); }
 }
@@ -219,7 +245,7 @@ static void apply_stereo(void) {
   set_var(*(void **)inst, "stereo-mode", VAR_INTEGER, m);         // libvlc_instance_t starts with its libvlc_int_t
   void *a = hold_aout(); if (a) { set_var(a, "stereo-mode", VAR_INTEGER, m); core.obj_release(a); }
 }
-static void release_player(void) { if (mp) { vlc.mp_stop(mp); vlc.mp_release(mp); mp = NULL; } InterlockedExchange(&fmt_ok, 0); }
+static void release_player(void) { sar = 1; InterlockedExchange(&sar_dirty, 1); if (mp) { vlc.mp_stop(mp); vlc.mp_release(mp); mp = NULL; } InterlockedExchange(&fmt_ok, 0); }
 // open(target, isLocation, startMs, deep, options) → plays a file path, or a URL/MRL when isLocation; deep: 10-bit
 // frames; options: extra libVLC media options (":audio-filter=…" etc.)
 FN(Open) {
@@ -250,6 +276,20 @@ FN(Seek) { ARGS(1); double ms; napi_get_value_double(env, argv[0], &ms); if (mp)
 FN(Rate) { ARGS(1); double r; napi_get_value_double(env, argv[0], &r); if (mp) vlc.mp_set_rate(mp, (float)r); return NULL; }
 FN(Volume) { ARGS(1); int32_t v; napi_get_value_int32(env, argv[0], &v); if (mp) vlc.audio_set_volume(mp, v); return NULL; }   // 0–200
 FN(Mute) { ARGS(1); bool b; napi_get_value_bool(env, argv[0], &b); if (mp) vlc.audio_set_mute(mp, b); return NULL; }
+// the playing video track's pixel aspect, from libVLC's track list (asked again after every format change)
+static void update_sar(void) {
+  if (!mp || !InterlockedExchange(&sar_dirty, 0)) return;
+  libvlc_media_t *m = vlc.mp_get_media(mp); if (!m) return;
+  libvlc_media_track_t **t = NULL; unsigned n = vlc.tracks_get(m, &t); int cur = vlc.video_get_track(mp); double r = 0;
+  for (unsigned i = 0; i < n; i++) {
+    if (t[i]->i_type != 1 || !t[i]->u) continue;                    // 1 = video
+    libvlc_video_track_t *v = t[i]->u;
+    if (v->i_sar_num && v->i_sar_den && (t[i]->i_id == cur || r == 0)) r = (double)v->i_sar_num / v->i_sar_den;
+  }
+  if (n) vlc.tracks_release_(t, n);
+  vlc.media_release(m);
+  if (r > 0) sar = r; else InterlockedExchange(&sar_dirty, 1);    // not known yet: ask again
+}
 // state() → { state, time, length, width, height, frames } (state: 0 idle, 1 opening, 2 buffering, 3 playing,
 // 4 paused, 5 stopped, 6 ended, 7 error)
 FN(State) {
@@ -261,6 +301,9 @@ FN(State) {
   set(env, o, "length", mp ? (double)vlc.mp_get_length(mp) : 0);
   set(env, o, "width", fmt_ok ? vw : 0); set(env, o, "height", fmt_ok ? vh : 0);
   set(env, o, "frames", (double)frames);
+  if (fmt_ok) update_sar();
+  set(env, o, "sar", sar);
+  set(env, o, "title", mp ? vlc.get_title(mp) : -1); set(env, o, "chapter", mp ? vlc.get_chapter(mp) : -1);
   napi_set_named_property(env, o, "chroma", str(env, source_chroma));
   return o;
 }
@@ -321,6 +364,57 @@ FN(AudioFx) {
   return num(env, core_ok());
 }
 
+// ---- DVD menus (libdvdnav) ----
+// navigate(mode): 0 activate (OK), 1 up, 2 down, 3 left, 4 right, 5 popup menu
+FN(Navigate) { ARGS(1); int32_t m; napi_get_value_int32(env, argv[0], &m); if (mp) vlc.navigate(mp, (unsigned)m); return NULL; }
+// titles() → [{ duration, name, menu, interactive }] for the open disc (index = libVLC title number)
+FN(Titles) {
+  napi_value arr; napi_create_array(env, &arr);
+  if (!mp) return arr;
+  libvlc_title_description_t **t = NULL; int n = vlc.get_titles(mp, &t);
+  for (int i = 0; i < n; i++) {
+    napi_value o; napi_create_object(env, &o);
+    set(env, o, "duration", (double)t[i]->i_duration);
+    napi_set_named_property(env, o, "name", str(env, t[i]->psz_name ? t[i]->psz_name : ""));
+    napi_value b; napi_get_boolean(env, (t[i]->i_flags & 1) != 0, &b); napi_set_named_property(env, o, "menu", b);
+    napi_get_boolean(env, (t[i]->i_flags & 2) != 0, &b); napi_set_named_property(env, o, "interactive", b);
+    napi_set_element(env, arr, i, o);
+  }
+  if (n > 0) vlc.titles_release(t, n);
+  return arr;
+}
+// menu(): the disc's menu, like VLC's Menu button (the title menu, else the root menu)
+FN(Menu) {
+  void *in = core.var_Trigger ? hold_child("input") : NULL; if (!in) return num(env, 0);
+  int r = core.var_Trigger(in, "menu-title"); core.obj_release(in);
+  return num(env, r == 0);
+}
+// setTitle(i): title i of the disc; 0 is the disc's root menu
+FN(SetTitle) { ARGS(1); int32_t i; napi_get_value_int32(env, argv[0], &i); if (mp) vlc.set_title(mp, i); return NULL; }
+FN(SetChapter) { ARGS(1); int32_t i; napi_get_value_int32(env, argv[0], &i); if (mp) vlc.set_chapter(mp, i); return NULL; }
+FN(ChapterCount) { return num(env, mp ? vlc.chapter_count(mp) : -1); }
+// mouse(x, y, click): a pointer position in video pixels over a DVD menu (moves the highlight; click: press it).
+// libVLC passes these from its own video window; here the app's canvas is the window, so they are set the same way.
+FN(Mouse) {
+  ARGS(3); double x, y; bool click = false;
+  napi_get_value_double(env, argv[0], &x); napi_get_value_double(env, argv[1], &y); napi_get_value_bool(env, argv[2], &click);
+  if (!mp || !core_ok()) return num(env, 0);
+  vlc_value_t c; memset(&c, 0, sizeof c); c.c.x = (int32_t)x; c.c.y = (int32_t)y;
+  vlc_list_t *l = core.list_children(mp); int n = 0;                 // VLC can keep a spare video output: tell every one
+  if (!l) return num(env, 0);
+  for (int i = 0; i < l->i_count; i++) {
+    void *o = l->p_values[i].p_address; const char *type = *(const char **)o;
+    if (type && !strcmp(type, "video output")) {
+      core.var_SetChecked(o, "mouse-moved", VAR_COORDS, c);
+      if (click) core.var_SetChecked(o, "mouse-clicked", VAR_COORDS, c);
+      n++;
+    }
+    core.obj_release(o);
+  }
+  core.free_(l->p_values); core.free_(l);
+  return num(env, n);
+}
+
 static napi_value Init_(napi_env env, napi_value exports) {
   napi_property_descriptor p[] = {
 #define P(n, f) { n, 0, f, 0, 0, 0, napi_default, 0 }
@@ -328,6 +422,8 @@ static napi_value Init_(napi_env env, napi_value exports) {
     P("rate", Rate), P("volume", Volume), P("mute", Mute), P("state", State), P("frame", Frame), P("done", Done),
     P("audioTracks", AudioTracks), P("setAudioTrack", SetAudioTrack), P("noSpu", NoSpu), P("nextFrame", NextFrame),
     P("equalizer", Equalizer), P("stereo", Stereo), P("audioFx", AudioFx),
+    P("navigate", Navigate), P("titles", Titles), P("setTitle", SetTitle), P("setChapter", SetChapter),
+    P("chapterCount", ChapterCount), P("mouse", Mouse), P("menu", Menu),
   };
   napi_define_properties(env, exports, sizeof p / sizeof *p, p);
   return exports;

@@ -699,8 +699,10 @@ I18N.add('pt', {
  "Playback engine": "Motor de reprodução",
  "Classic (Chromium + FFmpeg)": "Clássico (Chromium + FFmpeg)",
  "VLC (libVLC) – preview": "VLC (libVLC) – pré-visualização",
+ "VLC plays files with VLC’s own engine, including DVD menus (also copy-protected DVDs). Still in preview: recording only works with Classic for now. Takes effect after restarting the app.": "O VLC reproduz os ficheiros com o motor do próprio VLC, incluindo os menus de DVD (também de DVD protegidos). Ainda em pré-visualização: por agora a gravação só funciona com Clássico. Tem efeito depois de reiniciar a app.",
+ "DVD menu": "Menu do DVD",
+ "No DVD is playing": "Nenhum DVD em reprodução",
  "Passthrough (Dolby / DTS to receiver)": "Passthrough (Dolby / DTS para o recetor)",
  "VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.": "Apenas com o motor VLC. Envia Dolby Digital, Dolby TrueHD (Atmos), DTS e DTS-HD sem alterações por HDMI ou S/PDIF para um recetor AV ou barra de som, que os descodifica. O equalizador, os efeitos e o volume da app não se aplicam a esse som. Tem efeito depois de reiniciar a app.",
- "VLC plays files with VLC’s own engine. Still in preview: audio effects, picture-in-picture and recording only work with Classic for now. Takes effect after restarting the app.": "O VLC reproduz ficheiros com o próprio motor do VLC. Ainda em pré-visualização: efeitos de áudio, imagem na imagem e gravação só funcionam com o Clássico por agora. Aplica-se depois de reiniciar a aplicação.",
  "VLC (libVLC {v})": "VLC (libVLC {v})"
 });

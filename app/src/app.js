@@ -75,7 +75,8 @@ const itemName = src => {
   const disc = /[\\/]VIDEO_TS[\\/]VIDEO_TS\.IFO$/i.test(file) ? (file.split(/[\\/]/).slice(-3, -2)[0] || 'DVD') : baseName(file);
   return tm ? `${disc.replace(/\.iso$/i, '')} – ${t('Title {n}', { n: +(tm[2] || tm[1]) })}` : disc;
 };
-// A DVD with several titles is added as one item per title, in disc order (the menus themselves cannot be shown).
+// A DVD with several titles is added as one item per title, in disc order. With the VLC engine the disc itself
+// comes first: it starts at the disc's menu, like VLC.
 async function expandDvds(srcs) {
   const out = []; let queue = null;
   for (const s of srcs) {
@@ -83,6 +84,7 @@ async function expandDvds(srcs) {
     const titles = await api.dvdTitles(s);
     if (titles.length < 2) { out.push(s); continue; }
     const list = titles.map((x, i) => `${s}#t${x.title}n${i + 1}`);
+    if (video.isVlc) list.unshift(s);
     out.push(...list); queue = queue || list;
   }
   return { srcs: out, queue };
@@ -415,10 +417,16 @@ api.setSoundfont(S.get('soundfont') || '');
 S.on(async k => { if (k !== 'soundfont') return; await api.setSoundfont(S.get('soundfont') || ''); const it = curItem(); if (it && MIDI_RE.test(it.src)) reloadSource(); });
 const chromiumNeedsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.extra;
 // With the VLC engine nothing is converted, except what goes the Classic way (DVDs, or a file libVLC failed on)
-// What the VLC engine leaves to the Classic path: DVDs (their plugins contain libdvdcss and are not shipped), and HDR
-// films on an HDR screen: there Chromium can show real HDR, while the VLC engine's canvas tone-maps to SDR.
+// What the VLC engine leaves to the Classic path: HDR films on an HDR screen. There Chromium can show real HDR, while
+// the VLC engine's canvas tone-maps to SDR.
 const isHdr = it => !!(it.info && it.info.color && /smpte2084|arib-std-b67/.test(it.info.color.transfer || ''));
-const vlcSkips = it => DVD_RE.test(it.src) || (isHdr(it) && matchMedia('(dynamic-range: high)').matches);
+const vlcSkips = it => !DVD_RE.test(it.src) && isHdr(it) && matchMedia('(dynamic-range: high)').matches;
+// A DVD for libVLC: dvd:///<the .iso, or the folder holding VIDEO_TS>, plus #<title> for one title (none: the menu)
+function dvdMrl(src) {
+  const tm = /#t(\d+)(?:n\d+)?$/.exec(src), file = tm ? src.slice(0, tm.index) : src;
+  const disc = /\.iso$/i.test(file) ? file : file.replace(/[\\/]VIDEO_TS[\\/]VIDEO_TS\.IFO$/i, '') + '/';
+  return 'dvd://' + (disc.startsWith('/') ? '' : '/') + disc.replace(/\\/g, '/') + (tm ? '#' + tm[1] : '');
+}
 const needsTx = it => video.isVlc && !vlcSkips(it) ? false : chromiumNeedsTx(it);
 function canDirect(info) {
   if (!info) return true;
@@ -448,7 +456,8 @@ async function loadSource(at, autoplay) {
     if (video.isVlc) video.playClassic(url); else video.src = url;
   } else if (video.isVlc && !vlcSkips(it)) {                  // VLC engine: libVLC opens the file itself, starting at `at`
     P.seekTarget = null; P.offset = 0; P.pendingSeek = 0;
-    video.vlcOpen(it.remote ? it.src : MIDI_RE.test(it.src) ? fileUrl(it.src) : it.src, at * 1000, it.info && it.info.color);
+    if (DVD_RE.test(it.src) && !/#t\d+(n\d+)?$/.test(it.src)) at = 0;   // a whole disc starts at its menu
+    video.vlcOpen(it.remote ? it.src : MIDI_RE.test(it.src) ? fileUrl(it.src) : DVD_RE.test(it.src) ? dvdMrl(it.src) : it.src, at * 1000, it.info && it.info.color);
   } else {
     P.seekTarget = null; P.offset = 0; P.pendingSeek = at;
     const url = it.remote ? it.src : fileUrl(it.src);
@@ -1396,6 +1405,11 @@ function playerMenu(x, y) {
       { label: 'Next chapter / bookmark', kbd: 'Shift + N', action: () => jumpMark(1), disabled: !it || !markTimes(it).length },
       { label: 'Previous chapter / bookmark', kbd: 'Shift + P', action: () => jumpMark(-1), disabled: !it || !markTimes(it).length },
       { label: 'Chapters and bookmarks…', kbd: 'Ctrl + Shift + B', action: () => Panels.bookmarks(App), disabled: !it },
+      ...(video.isDvd ? (() => {
+        const ts = window.vlcEngine.titles(), cur = video.dvdTitle();
+        return [{ sep: true }, { header: 'DVD' }, { label: 'DVD menu', kbd: 'Shift + M', action: dvdMenu },
+          ...ts.map((x, i) => i && !x.menu ? { label: t('Title {n}', { n: i }) + (x.duration ? '  ·  ' + shortFmt(x.duration / 1000) : ''), checked: cur === i, action: () => window.vlcEngine.setTitle(i) } : null)];
+      })() : []),
     ] },
     { label: 'Video', icon: 'video', sub: () => [
       { label: 'Fullscreen', icon: 'fullscreen', kbd: 'F', action: toggleFs },
@@ -1539,7 +1553,10 @@ const KEY_ACTIONS = [
   ['bookmark', 'Add bookmark', ['Ctrl+b'], () => addBookmark()],
   ['abRepeat', 'A-B repeat (set A, set B, off)', ['a'], () => abCycle()],
   ['bookmarks', 'Chapters and bookmarks', ['Ctrl+B'], () => Panels.bookmarks(App)],
+  ['dvdMenu', 'DVD menu', ['M'], () => dvdMenu()],
 ];
+// VLC engine: the disc's menu (in a menu the arrow keys, Enter and clicks work the menu's buttons, see below)
+function dvdMenu() { if (!video.isDvd) return osd('No DVD is playing'); video.dvdMenuShow(); osd('DVD menu'); }
 function frameStep(dir) { if (!curItem()) return; if (video.isVlc && !video.classic && dir > 0) return video.nextFrame(); video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }
 const keyOf = e => {
   const mods = (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '');
@@ -1704,6 +1721,17 @@ document.addEventListener('pointerdown', e => {
   swallowVideoClick = e.target === video;
 }, true);
 video.addEventListener('click', e => { if (swallowVideoClick) { swallowVideoClick = false; e.stopImmediatePropagation(); } }, true);
+// DVD menus (VLC engine): the arrow keys and Enter move and press the menu's buttons, the mouse points and clicks them
+// (instead of seeking, volume, pause and hold-for-2×)
+window.addEventListener('keydown', e => {
+  if (!video.dvdMenu || mode !== 'player' || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || UI.dialogOpen()) return;
+  if (e.target.matches?.('input,select,textarea,button')) return;
+  if (video.dvdNavigate(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);
+video.addEventListener('pointermove', e => { if (video.dvdMenu) video.dvdMouse(e.clientX, e.clientY, false); });
+video.addEventListener('pointerdown', e => { if (video.dvdMenu && e.button === 0) e.stopImmediatePropagation(); }, true);
+video.addEventListener('click', e => { if (video.dvdMenu && video.dvdMouse(e.clientX, e.clientY, true)) e.stopImmediatePropagation(); }, true);
+video.addEventListener('dvdmenu', () => $('#player').classList.toggle('dvd-menu', !!video.dvdMenu));
 $('#setBtn').onclick = () => quick.toggle();
 $('#eqBtn').onclick = () => quick.toggle('audio');
 $('#subBtn').onclick = () => quick.toggle('subs');
