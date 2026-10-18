@@ -226,23 +226,25 @@ let win = null;
 // The few strings the main process shows itself (file-dialog filters, default track names), per UI language.
 let LANG = 'en';
 const MT = {
-  'Chapters': { nl: 'Hoofdstukken', de: 'Kapitel', fr: 'Chapitres', es: 'Capítulos', it: 'Capitoli', pt: 'Capítulos' },
-  'All files': { nl: 'Alle bestanden', de: 'Alle Dateien', fr: 'Tous les fichiers', es: 'Todos los archivos', it: 'Tutti i file', pt: 'Todos os ficheiros' },
-  'Subtitles': { nl: 'Ondertitels', de: 'Untertitel', fr: 'Sous-titres', es: 'Subtítulos', it: 'Sottotitoli', pt: 'Legendas' },
-  'Track': { nl: 'Spoor', de: 'Spur', fr: 'Piste', es: 'Pista', it: 'Traccia', pt: 'Faixa' },
-  'Subtitle': { nl: 'Ondertitel', de: 'Untertitel', fr: 'Sous-titre', es: 'Subtítulo', it: 'Sottotitolo', pt: 'Legenda' },
-  'Open media': { nl: 'Media openen', de: 'Medien öffnen', fr: 'Ouvrir des médias', es: 'Abrir multimedia', it: 'Apri file multimediali', pt: 'Abrir multimédia' },
-  'Add media folder': { nl: 'Mediamap toevoegen', de: 'Medienordner hinzufügen', fr: 'Ajouter un dossier de médias', es: 'Añadir carpeta multimedia', it: 'Aggiungi cartella multimediale', pt: 'Adicionar pasta multimédia' },
-  'Open subtitle file': { nl: 'Ondertitelbestand openen', de: 'Untertiteldatei öffnen', fr: 'Ouvrir un fichier de sous-titres', es: 'Abrir archivo de subtítulos', it: 'Apri file di sottotitoli', pt: 'Abrir ficheiro de legendas' },
-  'Add fonts': { nl: 'Lettertypen toevoegen', de: 'Schriftarten hinzufügen', fr: 'Ajouter des polices', es: 'Añadir fuentes', it: 'Aggiungi caratteri', pt: 'Adicionar tipos de letra' },
-  'Save log': { nl: 'Logboek opslaan', de: 'Protokoll speichern', fr: 'Enregistrer le journal', es: 'Guardar registro', it: 'Salva registro', pt: 'Guardar registo' },
-  'Select folder': { nl: 'Map kiezen', de: 'Ordner auswählen', fr: 'Choisir le dossier', es: 'Seleccionar carpeta', it: 'Seleziona cartella', pt: 'Selecionar pasta' },
-  'Open': { nl: 'Openen', de: 'Öffnen', fr: 'Ouvrir', es: 'Abrir', it: 'Apri', pt: 'Abrir' },
-  'Save': { nl: 'Opslaan', de: 'Speichern', fr: 'Enregistrer', es: 'Guardar', it: 'Salva', pt: 'Guardar' },
-  'Media': { nl: 'Media', de: 'Medien', fr: 'Médias', es: 'Multimedia', it: 'File multimediali', pt: 'Multimédia' },
-  'Import playlist': { nl: 'Afspeellijst importeren', de: 'Wiedergabeliste importieren', fr: 'Importer une playlist', es: 'Importar lista de reproducción', it: 'Importa playlist', pt: 'Importar lista de reprodução' },
-  'Playlists': { nl: 'Afspeellijsten', de: 'Wiedergabelisten', fr: 'Playlists', es: 'Listas de reproducción', it: 'Playlist', pt: 'Listas de reprodução' },
-  'Fonts': { nl: 'Lettertypen', de: 'Schriftarten', fr: 'Polices', es: 'Fuentes', it: 'Caratteri', pt: 'Tipos de letra' },
+  'Export playlist': { nl: 'Afspeellijst exporteren', de: 'Wiedergabeliste exportieren', fr: 'Exporter la playlist', es: 'Exportar lista de reproducción', it: 'Esporta playlist', pt: 'Exportar lista de reprodução', pl: 'Eksportuj listę odtwarzania' },
+  'Playlist': { nl: 'Afspeellijst', de: 'Wiedergabeliste', fr: 'Playlist', es: 'Lista de reproducción', it: 'Playlist', pt: 'Lista de reprodução', pl: 'Lista odtwarzania' },
+  'Chapters': { nl: 'Hoofdstukken', de: 'Kapitel', fr: 'Chapitres', es: 'Capítulos', it: 'Capitoli', pt: 'Capítulos', pl: 'Rozdziały' },
+  'All files': { nl: 'Alle bestanden', de: 'Alle Dateien', fr: 'Tous les fichiers', es: 'Todos los archivos', it: 'Tutti i file', pt: 'Todos os ficheiros', pl: 'Wszystkie pliki' },
+  'Subtitles': { nl: 'Ondertitels', de: 'Untertitel', fr: 'Sous-titres', es: 'Subtítulos', it: 'Sottotitoli', pt: 'Legendas', pl: 'Napisy' },
+  'Track': { nl: 'Spoor', de: 'Spur', fr: 'Piste', es: 'Pista', it: 'Traccia', pt: 'Faixa', pl: 'Ścieżka' },
+  'Subtitle': { nl: 'Ondertitel', de: 'Untertitel', fr: 'Sous-titre', es: 'Subtítulo', it: 'Sottotitolo', pt: 'Legenda', pl: 'Napisy' },
+  'Open media': { nl: 'Media openen', de: 'Medien öffnen', fr: 'Ouvrir des médias', es: 'Abrir multimedia', it: 'Apri file multimediali', pt: 'Abrir multimédia', pl: 'Otwórz multimedia' },
+  'Add media folder': { nl: 'Mediamap toevoegen', de: 'Medienordner hinzufügen', fr: 'Ajouter un dossier de médias', es: 'Añadir carpeta multimedia', it: 'Aggiungi cartella multimediale', pt: 'Adicionar pasta multimédia', pl: 'Dodaj folder multimediów' },
+  'Open subtitle file': { nl: 'Ondertitelbestand openen', de: 'Untertiteldatei öffnen', fr: 'Ouvrir un fichier de sous-titres', es: 'Abrir archivo de subtítulos', it: 'Apri file di sottotitoli', pt: 'Abrir ficheiro de legendas', pl: 'Otwórz plik napisów' },
+  'Add fonts': { nl: 'Lettertypen toevoegen', de: 'Schriftarten hinzufügen', fr: 'Ajouter des polices', es: 'Añadir fuentes', it: 'Aggiungi caratteri', pt: 'Adicionar tipos de letra', pl: 'Dodaj czcionki' },
+  'Save log': { nl: 'Logboek opslaan', de: 'Protokoll speichern', fr: 'Enregistrer le journal', es: 'Guardar registro', it: 'Salva registro', pt: 'Guardar registo', pl: 'Zapisz dziennik' },
+  'Select folder': { nl: 'Map kiezen', de: 'Ordner auswählen', fr: 'Choisir le dossier', es: 'Seleccionar carpeta', it: 'Seleziona cartella', pt: 'Selecionar pasta', pl: 'Wybierz folder' },
+  'Open': { nl: 'Openen', de: 'Öffnen', fr: 'Ouvrir', es: 'Abrir', it: 'Apri', pt: 'Abrir', pl: 'Otwórz' },
+  'Save': { nl: 'Opslaan', de: 'Speichern', fr: 'Enregistrer', es: 'Guardar', it: 'Salva', pt: 'Guardar', pl: 'Zapisz' },
+  'Media': { nl: 'Media', de: 'Medien', fr: 'Médias', es: 'Multimedia', it: 'File multimediali', pt: 'Multimédia', pl: 'Multimedia' },
+  'Import playlist': { nl: 'Afspeellijst importeren', de: 'Wiedergabeliste importieren', fr: 'Importer une playlist', es: 'Importar lista de reproducción', it: 'Importa playlist', pt: 'Importar lista de reprodução', pl: 'Importuj listę odtwarzania' },
+  'Playlists': { nl: 'Afspeellijsten', de: 'Wiedergabelisten', fr: 'Playlists', es: 'Listas de reproducción', it: 'Playlist', pt: 'Listas de reprodução', pl: 'Listy odtwarzania' },
+  'Fonts': { nl: 'Lettertypen', de: 'Schriftarten', fr: 'Polices', es: 'Fuentes', it: 'Caratteri', pt: 'Tipos de letra', pl: 'Czcionki' },
 };
 const mt = k => (MT[k] && MT[k][LANG]) || k;
 let pendingPaths = [];
@@ -685,6 +687,27 @@ ipcMain.handle('snapshot', (_e, dataUrl, name, dir) => {
 ipcMain.handle('save-text', async (_e, { title, name, text }) => {
   const r = await dialog.showSaveDialog(win, { title, buttonLabel: mt('Save'), defaultPath: name, filters: [{ name: mt('Chapters'), extensions: ['txt'] }] });
   if (r.canceled || !r.filePath) return false;
+  fs.writeFileSync(r.filePath, text, 'utf8'); return true;
+});
+// Playlist export (#50): XSPF (VLC's own format) or M3U8, chosen by the file type in the save dialog.
+// Local files are written as file:// URLs (XSPF) or plain paths (M3U); streams as their URL.
+ipcMain.handle('export-playlist', async (_e, { name, items }) => {
+  const safe = String(name || 'Playlist').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Playlist';
+  const r = await dialog.showSaveDialog(win, { title: mt('Export playlist'), buttonLabel: mt('Save'), defaultPath: safe + '.xspf',
+    filters: [{ name: 'XSPF (VLC)', extensions: ['xspf'] }, { name: 'M3U', extensions: ['m3u8', 'm3u'] }] });
+  if (r.canceled || !r.filePath) return false;
+  const loc = src => /^[a-z]+:\/\//i.test(src) ? src : require('url').pathToFileURL(realPath(src)).href;
+  const xml = s => String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
+  let text;
+  if (/\.m3u8?$/i.test(r.filePath)) {
+    text = '#EXTM3U\n' + items.map(i => `#EXTINF:${Math.round(i.duration) || -1},${i.name}\n${/^[a-z]+:\/\//i.test(i.src) ? i.src : realPath(i.src)}`).join('\n') + '\n';
+  } else {
+    text = '<?xml version="1.0" encoding="UTF-8"?>\n<playlist version="1" xmlns="http://xspf.org/ns/0/">\n' +
+      `  <title>${xml(name)}</title>\n  <trackList>\n` +
+      items.map(i => `    <track>\n      <location>${xml(loc(i.src))}</location>\n      <title>${xml(i.name)}</title>\n` +
+        (i.duration ? `      <duration>${Math.round(i.duration * 1000)}</duration>\n` : '') + '    </track>\n').join('') +
+      '  </trackList>\n</playlist>\n';
+  }
   fs.writeFileSync(r.filePath, text, 'utf8'); return true;
 });
 ipcMain.handle('open-text', async (_e, { title }) => {

@@ -690,5 +690,9 @@ I18N.add('nl', {
  "In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.": "Selecteer in de Finder een video of nummer, druk op ⌘I (Toon info), kies VLC Redesign bij ‘Open met’ en klik op ‘Wijzig alles…’. Doe dit één keer per bestandstype, bijvoorbeeld .mp4, .mkv en .mp3.",
  "Volume bar shape": "Vorm van de volumebalk",
  "Bar": "Balk",
- "Cone": "Kegel"
+ "Cone": "Kegel",
+ "Export playlist…": "Afspeellijst exporteren…",
+ "Playlist exported": "Afspeellijst geëxporteerd",
+ "Move up": "Omhoog",
+ "Move down": "Omlaag"
 });

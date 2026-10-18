@@ -337,6 +337,10 @@ function render() {
     count = list.length + (b && !state.query ? b.folders.length : 0);
   }
   grid.innerHTML = html;
+  // your own playlists: drag the items to change their order (#50)
+  const reorder = v === 'playlists' && state.activePlaylist && !state.activePlaylist.all && !state.query;
+  grid.classList.toggle('reorder', !!reorder);
+  if (reorder) grid.querySelectorAll('.card[data-idx]').forEach(c => { c.draggable = true; });
   $('#count').textContent = count ? itemsLabel(count) : '';
   const empty = $('#empty'); const isEmpty = !html;
   empty.classList.toggle('show', isEmpty);
@@ -1221,12 +1225,52 @@ $('#search').addEventListener('input', e => { state.query = e.target.value.trim(
 const nearEnd = el => el.scrollTop + el.clientHeight > el.scrollHeight - 800;
 $('#grid').addEventListener('scroll', e => { if (nearEnd(e.target) && state.gridLimit < 1e6 && e.target.querySelectorAll('.card').length >= state.gridLimit) { state.gridLimit += 240; render(); } }, { passive: true });
 $('#sideList').addEventListener('scroll', e => { if (nearEnd(e.target) && e.target.children.length >= state.sideLimit) { state.sideLimit += 400; renderSide(); } }, { passive: true });
+/* ---------- playlists: change the order (#50) ---------- */
+function movePlaylistItem(p, src, target, after) {
+  const from = p.srcs.indexOf(src); if (from < 0 || src === target) return;
+  p.srcs.splice(from, 1);
+  let to = target == null ? p.srcs.length : p.srcs.indexOf(target) + (after ? 1 : 0);
+  if (to < 0) to = p.srcs.length;
+  p.srcs.splice(to, 0, src); savePlaylists(); render();
+}
+let dragSrc = null;
+const dropAfter = (e, c) => { const r = c.getBoundingClientRect(); return state.list ? e.clientY > r.top + r.height / 2 : e.clientX > r.left + r.width / 2; };
+const clearDropMarks = () => $('#grid').querySelectorAll('.drop-before,.drop-after,.dragging').forEach(n => n.classList.remove('drop-before', 'drop-after', 'dragging'));
+$('#grid').addEventListener('dragstart', e => {
+  const c = e.target.closest && e.target.closest('.card[data-idx]');
+  if (!c || !$('#grid').classList.contains('reorder')) return;
+  dragSrc = state.items[+c.dataset.idx].src;
+  e.dataTransfer.setData('application/x-vlcx-item', dragSrc); e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => c.classList.add('dragging'), 0);
+});
+$('#grid').addEventListener('dragover', e => {
+  if (!dragSrc) return;
+  const c = e.target.closest('.card[data-idx]'); e.preventDefault();
+  $('#grid').querySelectorAll('.drop-before,.drop-after').forEach(n => n.classList.remove('drop-before', 'drop-after'));
+  if (c) c.classList.add(dropAfter(e, c) ? 'drop-after' : 'drop-before');
+});
+$('#grid').addEventListener('drop', e => {
+  if (!dragSrc) return;
+  e.preventDefault(); e.stopPropagation();                      // not the "drop files to add" handler
+  const c = e.target.closest('.card[data-idx]'), p = state.activePlaylist, src = dragSrc;
+  dragSrc = null; clearDropMarks();
+  if (p && c) movePlaylistItem(p, src, state.items[+c.dataset.idx].src, dropAfter(e, c));
+});
+$('#grid').addEventListener('dragend', () => { dragSrc = null; clearDropMarks(); });
+// A playlist (or "All media") as an .xspf or .m3u8 file for other players
+async function exportPlaylist(p) {
+  const items = p.srcs.map(bySrc).filter(Boolean);
+  if (!items.length) return osd('Playlist is empty');
+  const ok = await api.exportPlaylist({ name: p.name, items: items.map(i => ({ src: i.src, name: i.name, duration: i.duration || 0 })) });
+  if (ok) osd('Playlist exported');
+}
 const toggleList = () => { state.list = !state.list; store.set('listView', state.list); render(); };
 $('#viewToggle').onclick = toggleList;
 $('#sortBtn').onclick = $('#sortBtn2').onclick = () => { state.sort = state.sort === 'name' ? 'added' : 'name'; state.sortDesc = false; osd(state.sort === 'name' ? 'Sort by name' : 'Sort by date added'); render(); };
 $('#moreBtn').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); UI.menu([
   { label: 'Grid / list', icon: 'queue', action: toggleList },
   { label: state.sort === 'name' ? 'Sort by date' : 'Sort by name', icon: 'speed', action: () => $('#sortBtn').click() },
+  ...(state.view === 'playlists' && state.activePlaylist ? [{ label: 'Export playlist…', icon: 'download', action: () => exportPlaylist(state.activePlaylist) }] : []),
   { sep: true }, ...openMediaItems(), { sep: true },
   { label: 'Manage media folders…', icon: 'library', action: () => Panels.openSettings(App, 'library') },
 ], r.right - 260, r.bottom + 4); };
@@ -1259,6 +1303,12 @@ document.addEventListener('contextmenu', e => {
       { label: isWatched(it) ? 'Mark as unwatched' : 'Mark as watched', icon: 'eye', action: () => { isWatched(it) ? watched.delete(it.src) : watched.add(it.src); saveWatched(); render(); } },
       !it.remote ? { label: 'Show in folder', icon: 'folder', action: () => api.reveal(it.src) } : null,
       { label: 'Media information', icon: 'info', action: () => mediaInfo(it) },
+      ...(state.view === 'playlists' && state.activePlaylist && !state.activePlaylist.all ? (() => {
+        const p = state.activePlaylist, i = p.srcs.indexOf(it.src);
+        return [{ sep: true },
+          { label: 'Move up', action: () => movePlaylistItem(p, it.src, p.srcs[i - 1], false), disabled: i <= 0 },
+          { label: 'Move down', action: () => movePlaylistItem(p, it.src, p.srcs[i + 1], true), disabled: i < 0 || i >= p.srcs.length - 1 }];
+      })() : []),
       { sep: true },
       state.view === 'playlists' && state.activePlaylist && !state.activePlaylist.all
         ? { label: 'Remove from playlist', icon: 'trash', danger: true, action: () => { const p = state.activePlaylist; p.srcs = p.srcs.filter(s => s !== it.src); savePlaylists(); render(); } }
@@ -1268,6 +1318,7 @@ document.addEventListener('contextmenu', e => {
     const p = plByKey(pl.dataset.pl); if (!p) return;
     UI.menu([
       { label: 'Play', icon: 'play', accent: true, action: () => { const f = bySrc(p.srcs[0]); if (f) { state.queueList = p.srcs.map(bySrc).filter(Boolean); playItem(idxOf(f)); } else osd('Playlist is empty'); } },
+      { label: 'Export playlist…', icon: 'download', action: () => exportPlaylist(p) },
       ...(p.all ? [] : [
       { label: 'Rename…', icon: 'general', action: async () => { const n = await UI.prompt('Rename', { value: p.name }); if (n && n.trim()) { p.name = n.trim(); savePlaylists(); render(); } } },
       { label: 'Choose cover…', icon: 'camera', action: async () => { const f = await api.chooseFile(t('Cover image'), ['png', 'jpg', 'jpeg', 'webp']); if (f) { p.cover = await api.readImage(f); savePlaylists(); render(); } } },

@@ -639,3 +639,10 @@ input.bmname{flex:1;min-width:0}
 /* volume bar as a cone (Settings → Interface → Player controls): narrow on the left, wide on the right */
 .vol-cone #vol{height:24px;border-radius:0;clip-path:polygon(0 38%,1px 35.5%,3px 34%,calc(100% - 6px) 0,calc(100% - 2px) 1.5px,100% 6px,100% calc(100% - 6px),calc(100% - 2px) calc(100% - 1.5px),calc(100% - 6px) 100%,3px 66%,1px 64.5%,0 62%)}
 .vol-cone #volFill{border-radius:0}
+/* playlists: drag to change the order (#50) */
+#grid.reorder .card[data-idx]{cursor:grab}
+#grid .card.dragging{opacity:.35}
+#grid:not(.list) .card.drop-before{box-shadow:-4px 0 0 -1px var(--accent)}
+#grid:not(.list) .card.drop-after{box-shadow:4px 0 0 -1px var(--accent)}
+#grid.list .card.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+#grid.list .card.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}

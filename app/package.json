@@ -1,7 +1,7 @@
 {
   "name": "vlc-redesign",
   "productName": "VLC Redesign",
-  "version": "1.16.1",
+  "version": "1.17.0",
   "description": "VLC Redesign – unofficial fan-made media player (not affiliated with VideoLAN)",
   "homepage": "https://stanotermans.github.io/vlcmediaplayerv2/",
   "main": "main.js",
@@ -348,7 +348,8 @@
         "es_419",
         "it",
         "pt_BR",
-        "pt_PT"
+        "pt_PT",
+        "pl"
       ]
     },
     "copyright": "© 2026 Stan Otermans. Unofficial fan project – not affiliated with VideoLAN. Design © Juxtopposed.",
@@ -363,7 +364,8 @@
       "es-419",
       "it",
       "pt-BR",
-      "pt-PT"
+      "pt-PT",
+      "pl"
     ],
     "pacman": {
       "afterInstall": "build/linux/after-install.tpl",

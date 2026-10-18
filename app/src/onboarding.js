@@ -4,7 +4,7 @@
 const { el, icon } = UI;
 const CONE = `<svg viewBox="0 0 24 24" class="ob-cone"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="var(--accent)"/><path d="M8.1 7h7.8l1.1 4H7z" fill="currentColor" opacity=".9"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="var(--accent)"/><path d="M3 18h18l1 3H2z" fill="var(--accent)"/></svg>`;
 // "Choose your language" in each language, so everyone can find their own
-const HELLO = { en: 'Choose your language', nl: 'Kies je taal', de: 'Wähle deine Sprache', fr: 'Choisissez votre langue', es: 'Elige tu idioma', it: 'Scegli la tua lingua', pt: 'Escolha o seu idioma' };
+const HELLO = { en: 'Choose your language', nl: 'Kies je taal', de: 'Wähle deine Sprache', fr: 'Choisissez votre langue', es: 'Elige tu idioma', it: 'Scegli la tua lingua', pt: 'Escolha o seu idioma', pl: 'Wybierz język' };
 
 function show(App, { onDone } = {}) {
   let step = 0, folder = S.get('mediaFolders')[0] || App.paths.videos;

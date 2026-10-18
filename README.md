@@ -79,11 +79,11 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **MIDI:** `.mid`, `.midi`, `.kar` and `.rmi` files play with a built-in General MIDI SoundFont (FluidR3 Mono), with no extra download, and start right away while the rest is rendered. Pick your own `.sf2`/`.sf3` SoundFont under *Settings → Audio → MIDI*.
 - **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
 - **Instant seek preview.** Hover the timeline to see a thumbnail; a storyboard of frames is generated in the background so the preview follows your mouse without delay.
-- **7 languages:** English, Nederlands, Deutsch, Français, Español, Italiano and Português, switchable instantly without restarting.
+- **8 languages:** English, Nederlands, Deutsch, Français, Español, Italiano, Português and Polski, switchable instantly without restarting.
 - **Onboarding** on first launch: choose your language, pick a media folder, choose a theme and accent color (with live preview), make VLC Redesign your default player, and learn the key shortcuts.
 - **Default player:** *Settings → General → Default player* (also in the welcome screen). On Windows it opens *Default apps* right on VLC Redesign (the installer registers it there), on Linux it sets itself as default for all its file types, on macOS it explains the Finder steps.
 - **Library** with videos, music, network streams, playlists and recently played. Browse folders with breadcrumbs (Videos ▸ Shows ▸ The Wand ▸ S01), "continue watching", and watched items dimmed.
-- **Playlists:** play `.m3u`, `.m3u8`, `.xspf` and `.pls` files by opening or dragging them, or keep them with *Playlists → Import playlist…*, an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
+- **Playlists:** play `.m3u`, `.m3u8`, `.xspf` and `.pls` files by opening or dragging them, or keep them with *Playlists → Import playlist…*; drag the items of your own playlists to change their order, and export any playlist as `.xspf` or `.m3u8` (right-click it → *Export playlist…*), an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
 - **Player** with a timeline preview (hover the seek bar to see that moment), mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.
 - **Made for watching:** while a video plays, the sidebar tucks away so the video gets the full width, and the window resizes to the video's shape (up to 70% of the screen, like VLC). Both can be turned off in *Settings → Interface*. There you can also hide individual player controls (e.g. keep only the timeline), make the volume bar a cone like classic VLC, and turn on rounded window corners.
 - **Hold for 2× speed:** hold Shift+Space, or hold the mouse button on the video, to play at double speed until you let go.
@@ -160,9 +160,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.16.1"
-git tag v1.16.1
-git push origin v1.16.1
+# first set the version in app/package.json, e.g. "version": "1.17.0"
+git tag v1.17.0
+git push origin v1.17.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.

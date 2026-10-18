@@ -3,7 +3,7 @@
 (() => {
 const LANGS = [
   ['en', 'English'], ['nl', 'Nederlands'], ['de', 'Deutsch'], ['fr', 'Français'],
-  ['es', 'Español'], ['it', 'Italiano'], ['pt', 'Português'],
+  ['es', 'Español'], ['it', 'Italiano'], ['pt', 'Português'], ['pl', 'Polski'],
 ];
 const dict = {};
 const supported = code => LANGS.some(([c]) => c === code);
