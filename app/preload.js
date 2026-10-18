@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   openText: o => inv('open-text', o),
   setSoundfont: file => inv('set-soundfont', file),
   chooseSoundfont: () => inv('choose-soundfont'),
-  frame: (src, at, w) => inv('frame', src, at, w),
+  frame: (src, at, w, background) => inv('frame', src, at, w, !!background),
   clearThumbs: () => inv('clear-thumbs'),
   readImage: p => inv('read-image', p),
   subs: (src, idx) => inv('subs', src, idx),
@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('api', {
   recStart: (dir, name) => inv('rec-start', dir, name),
   recChunk: (file, buf) => inv('rec-chunk', file, buf),
   recStop: file => inv('rec-stop', file),
+  recDir: dir => inv('rec-dir', dir),
   reveal: p => inv('reveal', p),
   openPath: p => inv('open-path', p),
   setLog: cfg => inv('set-log', cfg),
@@ -192,4 +193,7 @@ contextBridge.exposeInMainWorld('vlcEngine', {
   // DVD menus: navigate(0 OK, 1 up, 2 down, 3 left, 4 right), menu() = the disc's menu, mouse(x, y, click) in video pixels
   navigate: m => vlc.navigate(m | 0), menu: () => vlc.menu(), mouse: (x, y, click) => vlc.mouse(+x, +y, !!click),
   titles: () => [...vlc.titles()], setTitle: i => vlc.setTitle(i | 0),
+  // subtitles libVLC draws itself (image subtitles): ids in stream order, choose one (-1 none), delay in ms
+  record: (on, dir) => vlc.record(!!on, String(dir || '')), fastSeek: b => vlc.fastSeek(!!b),
+  spuTracks: () => [...vlc.spuTracks()], setSpu: id => vlc.setSpu(id | 0), spuDelay: ms => vlc.spuDelay(+ms || 0),
 });

@@ -70,12 +70,15 @@ static struct {
   unsigned (*tracks_get)(libvlc_media_t *, libvlc_media_track_t ***);
   void (*tracks_release_)(libvlc_media_track_t **, unsigned);
   int (*video_get_track)(libvlc_media_player_t *);
+  libvlc_track_description_t *(*spu_tracks)(libvlc_media_player_t *);
+  int (*set_spu_delay)(libvlc_media_player_t *, int64_t);
 } vlc;
 
 static HMODULE dll;
 static libvlc_instance_t *inst;
 static libvlc_media_player_t *mp;
 static libvlc_equalizer_t *eq;                  // VLC's 10-band equalizer; NULL = off (kept across files)
+static int fast_seek = 0;                       // VLC's "Fast seek": seeks land on keyframes (default: the exact frame)
 static int stereo_mode = 0;                     // libVLC stereo mode: 0 = as the file is, 1 = stereo (downmix)
 
 // VLC's audio filters (compressor, spatializer, stereo widener) and the stereo mode are object variables that the audio
@@ -183,6 +186,7 @@ FN(Init) {
   LOAD(chapter_count, "libvlc_media_player_get_chapter_count") LOAD(set_chapter, "libvlc_media_player_set_chapter")
   LOAD(mp_get_media, "libvlc_media_player_get_media") LOAD(tracks_get, "libvlc_media_tracks_get")
   LOAD(tracks_release_, "libvlc_media_tracks_release") LOAD(video_get_track, "libvlc_video_get_track")
+  LOAD(spu_tracks, "libvlc_video_get_spu_description") LOAD(set_spu_delay, "libvlc_video_set_spu_delay")
   HMODULE cdll = GetModuleHandleW(L"libvlccore.dll"), crt = LoadLibraryW(L"msvcrt.dll");
   if (cdll && crt) {
     *(FARPROC *)&core.var_Create = GetProcAddress(cdll, "var_Create");
@@ -266,6 +270,7 @@ FN(Open) {
   InterlockedExchange64(&frames, 0); InterlockedExchange(&latest, -1);
   vlc.mp_set_equalizer(mp, eq);                    // NULL is "off"
   apply_fx(mp); apply_fx_live();                   // libVLC makes the audio output with the player, so set it there too
+  if (core_ok()) { vlc_value_t f; memset(&f, 0, sizeof f); f.b_bool = fast_seek; set_var(mp, "input-fast-seek", VAR_BOOL, f); }   // the input inherits it
   int r = vlc.mp_play(mp);
   return num(env, r);
 }
@@ -334,6 +339,18 @@ FN(AudioTracks) {
   return arr;
 }
 FN(SetAudioTrack) { ARGS(1); int32_t id; napi_get_value_int32(env, argv[0], &id); return num(env, mp ? vlc.audio_set_track(mp, id) : -1); }
+// spuTracks() → libVLC ids of the subtitle tracks, in stream order (without "Disable")
+FN(SpuTracks) {
+  napi_value arr; napi_create_array(env, &arr);
+  if (!mp) return arr;
+  libvlc_track_description_t *list = vlc.spu_tracks(mp), *d; uint32_t i = 0;
+  for (d = list; d; d = d->p_next) if (d->i_id >= 0) napi_set_element(env, arr, i++, num(env, d->i_id));
+  if (list) vlc.tracks_release(list);
+  return arr;
+}
+// setSpu(id): libVLC draws this subtitle track into the picture (image subtitles); -1 = none
+FN(SetSpu) { ARGS(1); int32_t id; napi_get_value_int32(env, argv[0], &id); return num(env, mp ? vlc.video_set_spu(mp, id) : -1); }
+FN(SpuDelay) { ARGS(1); double ms; napi_get_value_double(env, argv[0], &ms); if (mp) vlc.set_spu_delay(mp, (int64_t)(ms * 1000)); return NULL; }
 FN(NoSpu) { if (mp) vlc.video_set_spu(mp, -1); return NULL; }   // embedded subtitles are drawn by the app
 FN(NextFrame) { if (mp) vlc.next_frame(mp); return NULL; }
 // equalizer([preamp, 10 band gains in dB]) on, or equalizer(null) off; applies right away
@@ -389,6 +406,22 @@ FN(Menu) {
   int r = core.var_Trigger(in, "menu-title"); core.obj_release(in);
   return num(env, r == 0);
 }
+// fastSeek(on): from the next file on (and when a file is opened again)
+FN(FastSeek) { ARGS(1); bool b = false; napi_get_value_bool(env, argv[0], &b); fast_seek = b; return NULL; }
+// record(on, folder): VLC's Record button. libVLC saves the playing streams unchanged (with sound, no re-encoding) as
+// "vlc-record-<date>-<name>.<ext>" in folder until record(false). → 1 when the player took it.
+FN(Record) {
+  ARGS(2); bool on = false; napi_get_value_bool(env, argv[0], &on);
+  if (!mp || !core_ok()) return num(env, 0);
+  if (on && argc > 1) {
+    char dir[1024]; size_t n; napi_get_value_string_utf8(env, argv[1], dir, sizeof dir, &n);
+    vlc_value_t d; d.psz_string = dir; set_var(mp, "input-record-path", VAR_STRING, d);
+  }
+  void *in = hold_child("input"); if (!in) return num(env, 0);
+  vlc_value_t b; memset(&b, 0, sizeof b); b.b_bool = on;
+  int r = core.var_SetChecked(in, "record", VAR_BOOL, b); core.obj_release(in);
+  return num(env, r == 0);
+}
 // setTitle(i): title i of the disc; 0 is the disc's root menu
 FN(SetTitle) { ARGS(1); int32_t i; napi_get_value_int32(env, argv[0], &i); if (mp) vlc.set_title(mp, i); return NULL; }
 FN(SetChapter) { ARGS(1); int32_t i; napi_get_value_int32(env, argv[0], &i); if (mp) vlc.set_chapter(mp, i); return NULL; }
@@ -424,6 +457,7 @@ static napi_value Init_(napi_env env, napi_value exports) {
     P("equalizer", Equalizer), P("stereo", Stereo), P("audioFx", AudioFx),
     P("navigate", Navigate), P("titles", Titles), P("setTitle", SetTitle), P("setChapter", SetChapter),
     P("chapterCount", ChapterCount), P("mouse", Mouse), P("menu", Menu),
+    P("record", Record), P("fastSeek", FastSeek), P("spuTracks", SpuTracks), P("setSpu", SetSpu), P("spuDelay", SpuDelay),
   };
   napi_define_properties(env, exports, sizeof p / sizeof *p, p);
   return exports;

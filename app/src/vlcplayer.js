@@ -34,8 +34,9 @@ class VlcVideo extends EventTarget {
       if (/^eq/.test(k)) this._applyEq();                            // VLC's equalizer changes live
       if (/^(comp|reverb|widen)/.test(k)) this._applyFx();            // VLC rebuilds its filters right away
       if (k === 'surround') window.vlcEngine.stereo(S.get('surround') === false);
+      if (k === 'fastSeek') window.vlcEngine.fastSeek(S.get('fastSeek'));   // from the next file on
     });
-    this._applyEq(); this._applyFx(); window.vlcEngine.stereo(S.get('surround') === false);
+    this._applyEq(); this._applyFx(); window.vlcEngine.stereo(S.get('surround') === false); window.vlcEngine.fastSeek(S.get('fastSeek'));
   }
   _reset() { this._st = { state: 0, time: 0, length: 0, width: 0, height: 0, frames: 0 }; this._meta = false; this._ended = false; this._seekTo = null; this._error = null; this._playAt = 0; this._clock = null; this._shown = 0; this._spuOff = false; this._title = null; this.dvdMenu = false; }
   // Audio settings → VLC. Equalizer: VLC's own 10 bands (the app's presets are VLC's). Compressor, spatial audio and
@@ -64,7 +65,7 @@ class VlcVideo extends EventTarget {
       if (s.state === ST.playing) {
         // the app draws subtitles itself (its own style, delay and size): libVLC must not burn embedded ones in
         // (on a DVD libVLC keeps them: its menus' buttons are subpictures too)
-        if (!this._spuOff && !this.isDvd) { this._spuOff = true; window.vlcEngine.noSpu(); }
+        if (!this._spuOff && !this.isDvd) { this._spuOff = true; if (this._imgSub != null) this.setImageSub(this._imgSub); else window.vlcEngine.noSpu(); }
         this._fire('playing');
       }
       if (s.state === ST.buffering || s.state === ST.opening) this._fire('waiting');
@@ -97,6 +98,7 @@ class VlcVideo extends EventTarget {
   // plays a path or URL with libVLC; startMs: begin there (resume); color: the media info's colour description
   vlcOpen(target, startMs = 0, color) {
     if (this.classic) { this.classic = false; this.media.pause(); this.media.removeAttribute('src'); this.media.load(); this._show(); }
+    if ((target || '') !== this._src) { this._imgSub = null; this._spuMs = 0; }   // another file: no image subtitle chosen yet
     this._reset(); this._src = target || '';
     if (!target) return;
     const isUrl = /^[a-z][a-z0-9+.-]+:\/\//i.test(target);
@@ -155,6 +157,20 @@ class VlcVideo extends EventTarget {
   get error() { return this.classic ? this.media.error : this._error; }
   get buffered() { return this.classic ? this.media.buffered : { length: 0, start: () => 0, end: () => 0 }; }
   get seeking() { return this.classic ? this.media.seeking : this._seekTo != null; }
+  // VLC's Record: libVLC saves what plays, unchanged (picture, sound, subtitles), into dir; false if it could not
+  record(on, dir) { return !this.classic && !!window.vlcEngine.record(on, dir); }
+  // ---- image subtitles (PGS, VobSub, DVB): libVLC draws them into the picture, like VLC ----
+  // k: the file's k-th subtitle track (stream order), -1 = none. False when libVLC does not know that track (yet).
+  setImageSub(k) {
+    if (this.classic) return false;
+    if (k < 0) { this._imgSub = null; window.vlcEngine.setSpu(-1); return true; }
+    const id = window.vlcEngine.spuTracks()[k];
+    this._imgSub = k;
+    if (id == null) return this._st.state !== ST.playing;     // not playing yet: chosen when it starts
+    window.vlcEngine.setSpu(id); window.vlcEngine.spuDelay(this._spuMs || 0); return true;
+  }
+  // the app's subtitle delay (s; later is positive, like VLC) also moves image subtitles
+  set subDelay(s) { const ms = Math.round((s || 0) * 1000); if (ms !== this._spuMs) { this._spuMs = ms; if (!this.classic && this._imgSub != null) window.vlcEngine.spuDelay(ms); } }
   // ---- DVD menus (VLC engine) ----
   get isDvd() { return !this.classic && /^dvd:/i.test(this._src || ''); }
   dvdNavigate(key) { const m = { Enter: 0, ArrowUp: 1, ArrowDown: 2, ArrowLeft: 3, ArrowRight: 4 }[key]; if (m == null) return false; window.vlcEngine.navigate(m); return true; }

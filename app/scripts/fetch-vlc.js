@@ -1,7 +1,7 @@
 // Fetches libVLC (VLC's engine) for the "VLC" playback engine on Windows: the official VLC build from VideoLAN,
 // checked against VideoLAN's own SHA-256, trimmed to what the app needs, into app/vendor/vlc (git-ignored).
 // Usage: node scripts/fetch-vlc.js   (run from app/; the release workflow does this before packaging)
-// Left out: the VLC interface (Qt, skins, Lua) and streaming output. The DVD plugins (menus, like VLC) are kept; in
+// Left out: the VLC interface (Qt, skins, Lua), visualizations and service discovery. The DVD plugins (menus, like VLC) are kept; in
 // VideoLAN's build they contain libdvdcss, which reads copy-protected DVDs.
 const fs = require('fs');
 const os = require('os');
@@ -11,10 +11,13 @@ const crypto = require('crypto');
 const { execFileSync } = require('child_process');
 
 const VERSION = '3.0.24';
-const STAMP = VERSION + ' with DVD';                   // written to vendor/vlc/VERSION; a different one fetches again
+const STAMP = VERSION + ' with DVD and record';        // written to vendor/vlc/VERSION; a different one fetches again
 const BASE = `https://download.videolan.org/pub/videolan/vlc/${VERSION}/win64/vlc-${VERSION}-win64.zip`;
 const OUT = path.join(__dirname, '..', 'vendor', 'vlc');
-const SKIP_DIRS = ['gui', 'lua', 'control', 'visualization', 'video_splitter', 'services_discovery', 'stream_out', 'access_output', 'mux'];
+const SKIP_DIRS = ['gui', 'lua', 'control', 'visualization', 'video_splitter', 'services_discovery'];
+// VLC's Record (the input's "record") saves through a few stream outputs, the muxers and the file output; the other
+// streaming plugins are left out
+const ONLY = { stream_out: /^libstream_out_(record|standard|es|dummy|duplicate)_plugin\.dll$/i, access_output: /^libaccess_output_file_plugin\.dll$/i };
 
 function get(url) {
   return new Promise((res, rej) => https.get(url, r => {
@@ -35,7 +38,7 @@ const sizeOf = d => fs.readdirSync(d, { withFileTypes: true }).reduce((s, e) => 
 
 (async () => {
   if (process.platform !== 'win32') { console.log('fetch-vlc: only needed on Windows for now'); return; }
-  if (fs.existsSync(path.join(OUT, 'libvlc.dll')) && fs.readFileSync(path.join(OUT, 'VERSION'), 'utf8').trim() === STAMP) { console.log('libVLC', VERSION, 'already in', OUT); return; }
+  if (fs.existsSync(path.join(OUT, 'VERSION')) && fs.readFileSync(path.join(OUT, 'VERSION'), 'utf8').trim() === STAMP) { console.log('libVLC', VERSION, 'already in', OUT); return; }
   console.log('downloading', BASE);
   const [zip, sum] = await Promise.all([get(BASE), get(BASE + '.sha256')]);
   const want = sum.toString().trim().split(/\s+/)[0].toLowerCase(), have = crypto.createHash('sha256').update(zip).digest('hex');
@@ -49,7 +52,7 @@ const sizeOf = d => fs.readdirSync(d, { withFileTypes: true }).reduce((s, e) => 
   for (const f of ['libvlc.dll', 'libvlccore.dll']) fs.copyFileSync(path.join(src, f), path.join(OUT, f));
   fs.copyFileSync(path.join(src, 'COPYING.txt'), path.join(OUT, 'COPYING-VLC.txt'));
   copyTree(path.join(src, 'plugins'), path.join(OUT, 'plugins'), (p, e) =>
-    e.isDirectory() ? !SKIP_DIRS.includes(e.name) : /\.dll$/i.test(e.name));
+    e.isDirectory() ? !SKIP_DIRS.includes(e.name) : /\.dll$/i.test(e.name) && (ONLY[path.basename(path.dirname(p))] || /./).test(e.name));
   execFileSync(path.join(src, 'vlc-cache-gen.exe'), [path.join(OUT, 'plugins')]);   // plugins.dat: faster start
   fs.writeFileSync(path.join(OUT, 'VERSION'), STAMP + '\n');
   fs.writeFileSync(path.join(OUT, 'README.txt'), `libVLC ${VERSION} from the official VLC build (${BASE}), trimmed for VLC Redesign.\n` +

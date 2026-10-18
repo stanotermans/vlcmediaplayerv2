@@ -442,6 +442,7 @@ function setBadge() { const b = $('#badge'); b.textContent = P.tx ? t(P.vcopy ? 
 let loadSeq = 0;
 async function loadSource(at, autoplay) {
   const it = curItem(); if (!it) return;
+  if (rec && rec.vlc) stopRecord();   // libVLC's recording belongs to the file that was open
   const seq = ++loadSeq;
   if (P.tx) {
     P.vcopy = !!(it.info && it.info.vcodec === 'h264' && /^yuv420p$/.test(it.info.pix || '') && !P.forceReencode);
@@ -768,12 +769,14 @@ function buildStoryboard(it) {
   const worker = async () => {
     while (SB.job === job && next < order.length) {
       const i = order[next++];
-      const url = await api.frame(it.src, Math.min(d - 0.3, (i + 0.5) * SB.step), 240);
+      const url = await api.frame(it.src, Math.min(d - 0.3, (i + 0.5) * SB.step), 240, true);
       if (SB.job !== job) return;
       if (url) { const img = new Image(); img.src = url; try { await img.decode(); } catch {} SB.frames[i] = img; }
     }
   };
-  setTimeout(() => { if (SB.job === job) for (let k = 0; k < 3; k++) worker(); }, 1200);
+  // in the background: one at a time for big videos (above 1440p), else three
+  const workers = (it.info && it.info.width * it.info.height > 2560 * 1440) ? 1 : 3;
+  setTimeout(() => { if (SB.job === job) for (let k = 0; k < workers; k++) worker(); }, 1200);
 }
 function sbNearest(at) {
   if (!SB.n) return null;
@@ -996,6 +999,7 @@ const subSync = { delay: 0, speed: 1, dur: 0 };
     htmlSub = tr.cues.filter(c => t >= c.s / sp && t <= c.e / sp + subSync.dur).map(c => `<span>${c.h}</span>`).join('<br>');
   }
   if (htmlSub !== lastSub) { $('#subs').innerHTML = htmlSub; lastSub = htmlSub; }
+  if (video.isVlc) video.subDelay = subSync.delay;
   if (LYR.shown && LYR.synced) syncLyrics();
   if (AB.b != null && !video.paused && P.seekTarget == null && curTime() >= AB.b) seekTo(AB.a);
   if (rec) $('#rec span').textContent = 'REC ' + fmt((performance.now() - rec.t0) / 1000).slice(3);
@@ -1017,7 +1021,9 @@ function parseVTT(text) {
 }
 function clearSubs() { SUB.tracks = []; SUB.active = -1; subSync.delay = 0; subSync.speed = 1; subSync.dur = 0; LYR.lines = null; LYR.hover = null; renderLyrics(); }
 async function setupSubs(it) {
-  if (it.info) it.info.subs.forEach(s => SUB.tracks.push({ label: s.label + (BITMAP.test(s.codec) ? ' (' + t('image-based, not supported') + ')' : ''), lang: s.lang, src: it.src, idx: s.i, bitmap: BITMAP.test(s.codec) }));
+  // image subtitles: drawn by libVLC on the VLC engine (k = the file's k-th subtitle track); not possible on Classic
+  const imgOk = video.isVlc && !vlcSkips(it);
+  if (it.info) it.info.subs.forEach((s, k) => SUB.tracks.push({ label: s.label + (BITMAP.test(s.codec) && !imgOk ? ' (' + t('image-based, not supported') + ')' : ''), lang: s.lang, src: it.src, idx: s.i, bitmap: BITMAP.test(s.codec), k }));
   if (!it.remote && (S.get('subAuto') || S.get('lrcAuto'))) {
     const all = await api.siblingSubs(it.src); if (curItem() !== it) return;
     const lrc = all.filter(f => /\.lrc$/i.test(f)), sib = S.get('subAuto') ? all.filter(f => !/\.lrc$/i.test(f)) : [];
@@ -1031,10 +1037,14 @@ async function setupSubs(it) {
 }
 async function addSubFile(file, select) { if (/\.lrc$/i.test(file)) { if (!await useLyricsFile(file)) osd('No lyrics found'); return quick && quick.refresh(); } SUB.tracks.push({ label: baseName(file), src: file, idx: null }); if (select) await selectSub(SUB.tracks.length - 1); quick && quick.refresh(); }
 async function selectSub(i) {
+  if (video.isVlc) video.setImageSub(-1);
   if (i < 0) { SUB.active = -1; osd('Subtitles off'); return; }
   SUB.active = i;
   const tr = SUB.tracks[i]; if (!tr) return;
-  if (tr.bitmap) { osd('Image-based subtitles are not supported'); SUB.active = -1; return; }
+  if (tr.bitmap) {
+    if (video.isVlc && video.setImageSub(tr.k)) return osd(t('Subtitles: {name}', { name: tr.label }));
+    osd('Image-based subtitles are not supported'); SUB.active = -1; return;
+  }
   if (!tr.cues) { osd('Loading subtitles…'); const txt = await api.subs(tr.src, tr.idx); tr.cues = txt ? parseVTT(txt) : []; }
   osd(tr.cues.length ? t('Subtitles: {name}', { name: tr.label }) : 'No subtitles found');
 }
@@ -1157,6 +1167,16 @@ function cycleAudio() { const n = audioTracks().length; if (n < 2) return osd('O
 async function toggleRecord() { rec ? stopRecord() : startRecord(); }
 async function startRecord() {
   const it = curItem(); if (!it) return osd('Play something first');
+  // VLC engine: like VLC's Record button, libVLC saves the file's own streams (no re-encoding, with sound) from the
+  // next keyframe on, as vlc-record-<date>-<name> in the recordings folder
+  if (video.isVlc && !video.classic) {
+    const dir = await api.recDir(S.get('recDir') || PATHS.recordings);
+    if (!video.record(true, dir)) return osd('Recording not possible');
+    rec = { vlc: true, src: it.src, t0: performance.now() };
+    $('#rec').classList.add('show'); osd('Recording started');
+    if (video.paused) video.play();
+    return;
+  }
   try {
     const stream = video.captureStream();
     if (!S.get('recAudio')) stream.getAudioTracks().forEach(t => stream.removeTrack(t));
@@ -1175,7 +1195,12 @@ async function startRecord() {
     if (video.paused) video.play();
   } catch (e) { console.error(e); osd('Recording not possible'); }
 }
-function stopRecord() { if (!rec) return; try { rec.mr.stop(); } catch {} rec = null; $('#rec').classList.remove('show'); }
+function stopRecord() {
+  if (!rec) return;
+  if (rec.vlc) { video.record(false); osd(t('Recording saved to {dir}', { dir: S.get('recDir') || PATHS.recordings })); }
+  else try { rec.mr.stop(); } catch {}
+  rec = null; $('#rec').classList.remove('show');
+}
 
 /* ---------- snapshot ---------- */
 async function snapshot() {

@@ -382,8 +382,12 @@ function log(level, msg) {
 }
 
 /* ---------------- helpers ---------------- */
-function run(bin, args, { maxBuffer = 64 * 1024 * 1024, encoding = 'utf8', timeout = 30000 } = {}) {
-  return new Promise(res => execFile(bin, args, { maxBuffer, encoding, timeout, windowsHide: true }, (err, out) => res(err ? null : out)));
+// low: below-normal CPU priority, for work in the background (the seek preview frames) so playback keeps every frame
+function run(bin, args, { maxBuffer = 64 * 1024 * 1024, encoding = 'utf8', timeout = 30000, low = false } = {}) {
+  return new Promise(res => {
+    const child = execFile(bin, args, { maxBuffer, encoding, timeout, windowsHide: true }, (err, out) => res(err ? null : out));
+    if (low && child.pid) try { require('os').setPriority(child.pid, require('os').constants.priority.PRIORITY_BELOW_NORMAL); } catch {}
+  });
 }
 
 function expand(paths, depth = 0) {
@@ -582,11 +586,12 @@ ipcMain.handle('dvd-titles', async (_e, src) => (await dvdTitles(src)).filter(t 
 ipcMain.handle('probe', (_e, src) => probe(src));
 ipcMain.handle('keyframe', (_e, src, ss) => keyframe(src, ss));
 // One video frame at time `at` for the timeline hover preview (formats the hidden <video> can't decode).
-ipcMain.handle('frame', async (_e, src, at, w) => {
+// background (the storyboard): one FFmpeg thread at below-normal priority, so playback keeps every frame
+ipcMain.handle('frame', async (_e, src, at, w, background) => {
   const hls = await hlsPick(src), h = hls && await hlsSeek(hls.video, Math.max(0, at));
   const input = h ? [...h.args, ...(h.off ? ['-ss', String(h.off)] : [])] : inArgs(src, Math.max(0, at));
-  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...input, '-frames:v', '1',
-    '-vf', `scale=${Math.round(w) || 320}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '6', 'pipe:1'], { encoding: 'buffer', timeout: 8000 });
+  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...(background ? ['-threads', '1'] : []), ...input, '-frames:v', '1',
+    '-vf', `scale=${Math.round(w) || 320}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '6', 'pipe:1'], { encoding: 'buffer', timeout: background ? 20000 : 8000, low: !!background });
   return buf && buf.length ? 'data:image/jpeg;base64,' + buf.toString('base64') : null;
 });
 ipcMain.handle('thumb',(_e, src, at) => thumbnail(src, at));
@@ -777,6 +782,7 @@ ipcMain.handle('read-image', (_e, p) => { try { const ext = path.extname(p).slic
 const recs = new Map();
 ipcMain.handle('rec-start', (_e, dir, name) => { fs.mkdirSync(dir, { recursive: true }); const file = path.join(dir, name); recs.set(file, fs.openSync(file, 'w')); return file; });
 ipcMain.handle('rec-chunk', (_e, file, buf) => { const fd = recs.get(file); if (fd != null) fs.writeSync(fd, Buffer.from(buf)); });
+ipcMain.handle('rec-dir', (_e, dir) => { fs.mkdirSync(dir, { recursive: true }); return dir; });   // VLC engine: libVLC writes the file
 ipcMain.handle('rec-stop', (_e, file) => { const fd = recs.get(file); if (fd != null) { fs.closeSync(fd); recs.delete(file); } return file; });
 ipcMain.on('quit', () => app.quit());
 
