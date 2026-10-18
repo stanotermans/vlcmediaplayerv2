@@ -148,6 +148,68 @@ async function hlsMaster(url) {
   const audio = [...new Map(renditions.filter(m => groups.has(m['GROUP-ID'])).map(m => [m.uri, { uri: m.uri, name: m.NAME || '', lang: m.LANGUAGE }])).values()];
   return { video: best.uri, audio, muxed: 0 };
 }
+// Seeking in a picked HLS stream: ffmpeg 6's input seek (-ss before -i) in fMP4 byte-range segments reads hundreds
+// of MB and outputs nothing ("Invalid NAL unit size"). Instead ffmpeg gets a copy of the media playlist that starts at
+// the segment containing the seek time (absolute URIs, init section and byte ranges kept), written to a temp file.
+const HLS_MEDIA = new Map();                                       // media playlist URL → promise of { head, segs } (null: live or unreadable)
+const HLS_PROTO = ['-protocol_whitelist', 'file,http,https,tcp,tls,crypto'];
+const hlsDir = () => path.join(app.getPath('temp'), 'vlc-redesign-hls');
+function hlsMedia(url) {
+  if (!HLS_MEDIA.has(url)) HLS_MEDIA.set(url, (async () => {
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return null;
+    const text = await r.text();
+    if (!/#EXT-X-ENDLIST/.test(text)) return null;                   // live: the playlist changes, nothing to seek in
+    const abs = u => new URL(u, r.url || url).href, absAttr = l => l.replace(/URI="([^"]*)"/, (_, u) => `URI="${abs(u)}"`);
+    const head = [], segs = [], end = new Map();                     // end: where the last byte range of each URI stopped
+    let seq = 0, map = '', key = '', tags = [], range = null, t = 0, dur = 0;
+    for (const l of text.split(/\r?\n/).map(x => x.trim()).filter(Boolean)) {
+      if (l.startsWith('#EXT-X-MEDIA-SEQUENCE:')) seq = parseInt(l.slice(22)) || 0;
+      else if (/^#EXT-X-(VERSION|TARGETDURATION|PLAYLIST-TYPE|INDEPENDENT-SEGMENTS|DISCONTINUITY-SEQUENCE)\b/.test(l)) head.push(l);
+      else if (l.startsWith('#EXT-X-MAP:')) map = absAttr(l);
+      else if (l.startsWith('#EXT-X-KEY:')) key = absAttr(l);
+      else if (l.startsWith('#EXT-X-BYTERANGE:')) range = l.slice(17).split('@');
+      else if (l === '#EXTM3U' || l === '#EXT-X-ENDLIST') continue;
+      else if (l.startsWith('#')) { if (l.startsWith('#EXTINF:')) dur = parseFloat(l.slice(8)) || 0; tags.push(l); }
+      else {
+        const u = abs(l);
+        if (range) {                                                 // a range without @offset continues the previous one: make it explicit
+          const o = range[1] != null ? +range[1] : end.get(u) || 0;
+          end.set(u, o + +range[0]); tags.push(`#EXT-X-BYTERANGE:${+range[0]}@${o}`);
+        }
+        segs.push({ start: t, map, key, seq: seq + segs.length, lines: [...tags, u] });
+        t += dur; tags = []; range = null; dur = 0;
+      }
+    }
+    return segs.length ? { head, segs } : null;
+  })().catch(() => null));
+  return HLS_MEDIA.get(url);
+}
+// The playlist from the segment that contains `ss` on: { file, start } (start = that segment's time), or null
+async function hlsTrim(url, ss) {
+  const m = await hlsMedia(url); if (!m) return null;
+  let i = m.segs.findIndex((s, k) => (k + 1 < m.segs.length ? m.segs[k + 1].start : Infinity) > ss + 0.01);
+  if (i < 0) i = m.segs.length - 1;
+  const file = path.join(hlsDir(), crypto.createHash('md5').update(url).digest('hex') + '-' + i + '.m3u8');
+  if (!fs.existsSync(file)) {
+    const out = ['#EXTM3U', ...m.head, `#EXT-X-MEDIA-SEQUENCE:${m.segs[i].seq}`]; let map = '', key = '';
+    for (const s of m.segs.slice(i)) {
+      if (s.key !== key) out.push(key = s.key);
+      if (s.map !== map) out.push(map = s.map);
+      out.push(...s.lines);
+    }
+    out.push('#EXT-X-ENDLIST');
+    fs.mkdirSync(hlsDir(), { recursive: true }); fs.writeFileSync(file, out.filter(Boolean).join('\n') + '\n');
+  }
+  return { file, start: m.segs[i].start };
+}
+// Input arguments that start an HLS media playlist at `ss`: { args, off }, off = how far after the input's start ss lies
+async function hlsSeek(url, ss) {
+  const t = ss > 0 ? await hlsTrim(url, ss).catch(() => null) : null;
+  return t ? { args: [...HLS_PROTO, '-i', t.file], off: Math.max(0, ss - t.start) }
+    : { args: [...netArgs(url), ...(ss ? ['-ss', String(ss)] : []), '-i', url], off: 0 };
+}
+app.on('will-quit', () => { try { fs.rmSync(hlsDir(), { recursive: true, force: true }); } catch {} });
 // ffmpeg input arguments for a source, with optional input seek (works the same for DVDs and normal files)
 function inArgs(src, ss) {
   const seek = ss ? ['-ss', String(ss)] : [];
@@ -238,7 +300,7 @@ function startServer() {
         if (u.pathname === '/stream') return job.done.then(w => serveStream(w, u.searchParams, req, resp), fail);
       }
       if (u.pathname === '/file') return serveFile(src, req, resp);
-      if (u.pathname === '/stream') return hlsPick(src).then(() => serveStream(src, u.searchParams, req, resp), fail);
+      if (u.pathname === '/stream') return hlsPick(src).then(() => serveStream(src, u.searchParams, req, resp)).catch(fail);
       resp.writeHead(404); resp.end();
     });
     srv.listen(0, '127.0.0.1', () => { PORT = srv.address().port; res(); });
@@ -265,7 +327,7 @@ function serveFile(file, req, resp) {
 }
 
 // Live transcode to fragmented MP4 (H.264/AAC) for formats Chromium can't play.
-function serveStream(src, q, req, resp) {
+async function serveStream(src, q, req, resp) {
   const ss = Math.max(0, +q.get('ss') || 0);
   const a = Math.max(0, +q.get('a') || 0);
   const vcopy = q.get('vcopy') === '1';
@@ -278,17 +340,25 @@ function serveStream(src, q, req, resp) {
   const hls = HLS_PICK.get(src);
   let extra = q.get('extra'), useExtra = !!extra && (/^https?:/i.test(extra) || fs.existsSync(extra));
   if (!useExtra && hls && a >= hls.muxed && hls.audio[a - hls.muxed]) { extra = hls.audio[a - hls.muxed].uri; useExtra = true; }
-  args.push(...inArgs(src, ss));
-  if (useExtra) { args.push(...netArgs(extra)); if (ss) args.push('-ss', String(ss)); args.push('-i', extra); }
+  // HLS: each input starts at the segment that contains ss (see hlsSeek); the part before ss is cut off per input,
+  // so video and a separate audio rendition (other segment times) start together. Copied video starts on the
+  // segment start (keyframe() returns it), so there is nothing to cut.
+  let vOff = 0, aOff = 0;
+  if (hls) { const v = await hlsSeek(hls.video, ss); args.push(...v.args); vOff = aOff = v.off; }
+  else args.push(...inArgs(src, ss));
+  if (useExtra && hls && extra === (hls.audio[a - hls.muxed] || {}).uri) { const x = await hlsSeek(extra, ss); args.push(...x.args); aOff = x.off; }
+  else if (useExtra) { args.push(...netArgs(extra)); if (ss) args.push('-ss', String(ss)); args.push('-i', extra); aOff = 0; }
   args.push('-map', '0:V:0?', '-map', useExtra ? '1:a:0?' : `0:a:${a}?`);
-  if (vcopy) args.push('-c:v', 'copy');
+  if (vcopy) { args.push('-c:v', 'copy'); aOff = Math.max(0, aOff - vOff); }   // copied video can't be cut: audio follows its start
   else args.push('-c:v', 'libx264', '-preset', preset, '-tune', 'zerolatency', '-crf', crf, '-g', '48', '-pix_fmt', 'yuv420p',
-    '-vf', `scale=w='min(${maxw},iw)':h=-2`);
+    '-vf', (vOff > 0.01 ? `trim=start=${vOff},setpts=PTS-STARTPTS,` : '') + `scale=w='min(${maxw},iw)':h=-2`);
+  if (aOff > 0.01) args.push('-af', `atrim=start=${aOff},asetpts=PTS-STARTPTS`);
   // surround (#44) when the player asks for it (ch=6/8), otherwise stereo as before. 5.1 as AAC; 7.1 as FLAC,
   // because Chromium does not reliably decode 7.1 AAC (the back channels came out as copies of the sides).
   const ch = [6, 8].includes(+q.get('ch')) ? +q.get('ch') : 2;
   args.push(...(ch === 8 ? ['-c:a', 'flac', '-strict', '-2'] : ['-c:a', 'aac', '-b:a', ch === 6 ? '384k' : '192k']), '-ac', String(ch), '-sn', '-dn',
     '-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', 'pipe:1');
+  if (req.socket.destroyed) return resp.end();                     // the player moved on while the playlists were read
   const ff = spawn(FFMPEG, args, { windowsHide: true });
   active.add(ff);
   resp.writeHead(200, { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store' });
@@ -393,7 +463,8 @@ async function probe(src) {
 // Last video keyframe at or before `ss` – stream copy can only start on a keyframe.
 // Decodes only keyframes (-skip_frame nokey) in the 20 s before `ss` and reads their timestamps from showinfo.
 async function keyframe(src, ss) {
-  await hlsPick(src);
+  const hls = await hlsPick(src);
+  if (hls) { const t = await hlsTrim(hls.video, ss).catch(() => null); if (t) return t.start; }   // HLS segments start on a keyframe
   const start = Math.max(0, ss - 20);
   const txt = await runErr(FFMPEG, ['-hide_banner', '-nostdin', '-skip_frame', 'nokey', '-t', String(ss - start + 0.1), '-copyts', ...inArgs(src, start),
     '-map', '0:v:0', '-vf', 'showinfo', '-an', '-sn', '-f', 'null', '-'], 15000);
@@ -502,8 +573,9 @@ ipcMain.handle('probe', (_e, src) => probe(src));
 ipcMain.handle('keyframe', (_e, src, ss) => keyframe(src, ss));
 // One video frame at time `at` for the timeline hover preview (formats the hidden <video> can't decode).
 ipcMain.handle('frame', async (_e, src, at, w) => {
-  await hlsPick(src);
-  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...inArgs(src, Math.max(0, at)), '-frames:v', '1',
+  const hls = await hlsPick(src), h = hls && await hlsSeek(hls.video, Math.max(0, at));
+  const input = h ? [...h.args, ...(h.off ? ['-ss', String(h.off)] : [])] : inArgs(src, Math.max(0, at));
+  const buf = await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...input, '-frames:v', '1',
     '-vf', `scale=${Math.round(w) || 320}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '6', 'pipe:1'], { encoding: 'buffer', timeout: 8000 });
   return buf && buf.length ? 'data:image/jpeg;base64,' + buf.toString('base64') : null;
 });
