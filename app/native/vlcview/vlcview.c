@@ -57,17 +57,22 @@ static libvlc_media_player_t *mp;
 // frame slots inside the JS-owned buffer
 #define SLOTS 3
 static uint8_t *buf; static size_t buf_size; static napi_ref buf_ref;
-static volatile LONG width, height, slot_size, fmt_ok;
+static volatile LONG width, height, slot_size, fmt_ok, sample_bytes = 1;
+static int want_deep = 0;                      // HDR: ask libVLC for 10-bit frames (I0AL) instead of 8-bit
+static char source_chroma[5];
 static volatile LONG latest = -1, reading = -1, next_slot = 0;
 static volatile LONG64 frames = 0;            // frames libVLC has shown since open()
 
 static unsigned on_format(void **opaque, char *chroma, unsigned *w, unsigned *h, unsigned *pitches, unsigned *lines) {
   unsigned W = (*w + 1) & ~1u, H = (*h + 1) & ~1u;   // decoders can add a few padding rows; the visible size comes from libVLC
-  size_t need = (size_t)W * H * 3 / 2;
-  memcpy(chroma, "I420", 4);
+  memcpy(source_chroma, chroma, 4); source_chroma[4] = 0;
+  LONG B = want_deep ? 2 : 1;                        // bytes per sample: I0AL keeps 10 bits in 16-bit samples
+  size_t need = (size_t)W * H * 3 / 2 * B;
+  memcpy(chroma, B == 2 ? "I0AL" : "I420", 4);
   if (need * SLOTS > buf_size) { InterlockedExchange(&fmt_ok, 0); return 0; }   // larger than the buffer: no picture
   *w = W; *h = H;
-  pitches[0] = W; pitches[1] = pitches[2] = W / 2;
+  InterlockedExchange(&sample_bytes, B);
+  pitches[0] = W * B; pitches[1] = pitches[2] = W / 2 * B;
   lines[0] = H; lines[1] = lines[2] = H / 2;
   InterlockedExchange(&width, W); InterlockedExchange(&height, H); InterlockedExchange(&slot_size, (LONG)need);
   InterlockedExchange(&latest, -1); InterlockedExchange(&fmt_ok, 1);
@@ -79,8 +84,8 @@ static void *on_lock(void *opaque, void **planes) {
   for (int i = 0; i < SLOTS; i++) { s = (s + 1) % SLOTS; if (s != latest && s != reading) break; }   // never the slot JS is reading
   next_slot = s;
   uint8_t *base = buf + (size_t)s * slot_size;
-  LONG W = width, H = height;
-  planes[0] = base; planes[1] = base + W * H; planes[2] = base + W * H + (W / 2) * (H / 2);
+  LONG W = width, H = height, B = sample_bytes;
+  planes[0] = base; planes[1] = base + W * H * B; planes[2] = base + W * H * B + (W / 2) * (H / 2) * B;
   return (void *)(intptr_t)s;
 }
 static void on_unlock(void *opaque, void *picture, void *const *planes) {}
@@ -130,12 +135,13 @@ FN(Init) {
   return str(env, vlc.get_version());
 }
 static void release_player(void) { if (mp) { vlc.mp_stop(mp); vlc.mp_release(mp); mp = NULL; } InterlockedExchange(&fmt_ok, 0); }
-// open(target, isLocation, startMs) → plays a file path, or a URL/MRL when isLocation
+// open(target, isLocation, startMs, deep) → plays a file path, or a URL/MRL when isLocation; deep: 10-bit frames
 FN(Open) {
-  ARGS(3); char p[4096]; size_t n; bool loc = false; double start = 0;
+  ARGS(4); char p[4096]; size_t n; bool loc = false; double start = 0;
   napi_get_value_string_utf8(env, argv[0], p, sizeof p, &n);
   if (argc > 1) napi_get_value_bool(env, argv[1], &loc);
   if (argc > 2) napi_get_value_double(env, argv[2], &start);
+  bool deep = false; if (argc > 3) napi_get_value_bool(env, argv[3], &deep); want_deep = deep;
   release_player();
   libvlc_media_t *m = loc ? vlc.media_new_location(inst, p) : vlc.media_new_path(inst, p);
   if (!m) { throw_(env, "cannot open"); return NULL; }
@@ -164,6 +170,7 @@ FN(State) {
   set(env, o, "length", mp ? (double)vlc.mp_get_length(mp) : 0);
   set(env, o, "width", fmt_ok ? vw : 0); set(env, o, "height", fmt_ok ? vh : 0);
   set(env, o, "frames", (double)frames);
+  napi_set_named_property(env, o, "chroma", str(env, source_chroma));
   return o;
 }
 // frame() → { slot, width, height, offset, frames } for the newest picture; marks that slot as being read until done()
@@ -172,7 +179,7 @@ FN(Frame) {
   LONG s = fmt_ok ? latest : -1;
   InterlockedExchange(&reading, s);
   set(env, o, "slot", s); set(env, o, "width", width); set(env, o, "height", height);
-  set(env, o, "offset", (double)(s < 0 ? 0 : s) * slot_size); set(env, o, "frames", (double)frames);
+  set(env, o, "offset", (double)(s < 0 ? 0 : s) * slot_size); set(env, o, "frames", (double)frames); set(env, o, "bytes", sample_bytes);
   return o;
 }
 FN(Done) { InterlockedExchange(&reading, -1); return NULL; }

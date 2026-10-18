@@ -68,13 +68,13 @@ class VlcVideo extends EventTarget {
   getAttribute(k) { return k === 'src' ? this.src || null : this.media.getAttribute(k); }
   removeAttribute(k) { if (k === 'src') { this._src = ''; window.vlcEngine.stop(); this._reset(); this.media.removeAttribute('src'); } else this.media.removeAttribute(k); }
   load() { if (this.classic) this.media.load(); }
-  // plays a path or URL with libVLC; startMs: begin there (resume)
-  vlcOpen(target, startMs = 0) {
+  // plays a path or URL with libVLC; startMs: begin there (resume); color: the media info's colour description
+  vlcOpen(target, startMs = 0, color) {
     if (this.classic) { this.classic = false; this.media.pause(); this.media.removeAttribute('src'); this.media.load(); this._show(); }
     this._reset(); this._src = target || '';
     if (!target) return;
     const isUrl = /^[a-z][a-z0-9+.-]+:\/\//i.test(target);
-    window.vlcEngine.open(target, isUrl, startMs);
+    this._color = color; window.vlcEngine.open(target, isUrl, startMs, color);
     window.vlcEngine.rate(this._rate); this._applyVolume(); window.vlcEngine.mute(this._muted);
     this._playAt = Date.now(); this._paused = false;
     this._fire('emptied', 'loadstart', 'play');
@@ -88,7 +88,7 @@ class VlcVideo extends EventTarget {
   }
   play() {
     if (this.classic) return this.media.play();
-    if (this._ended && this._src) { this.vlcOpen(this._src); return Promise.resolve(); }   // play again after the end
+    if (this._ended && this._src) { this.vlcOpen(this._src, 0, this._color); return Promise.resolve(); }   // play again after the end
     window.vlcEngine.play(); this._paused = false; this._fire('play'); return Promise.resolve();
   }
   pause() { if (this.classic) return this.media.pause(); window.vlcEngine.pause(); this._paused = true; this._fire('pause'); }
@@ -107,7 +107,7 @@ class VlcVideo extends EventTarget {
   set currentTime(t) {
     if (this.classic) { this.media.currentTime = t; return; }
     const ms = Math.max(0, t * 1000);
-    if (this._ended) { this.vlcOpen(this._src, ms); return; }
+    if (this._ended) { this.vlcOpen(this._src, ms, this._color); return; }
     this._seekTo = ms; this._shown = ms; this._clock = null; this._seekAt = performance.now(); window.vlcEngine.seek(ms); this._fire('seeking', 'timeupdate');
   }
   get duration() { return this.classic ? this.media.duration : this._st.length ? this._st.length / 1000 : NaN; }
@@ -133,7 +133,25 @@ class VlcVideo extends EventTarget {
   get parentElement() { return this.media.parentElement; }
   getBoundingClientRect() { return (this.classic ? this.media : this.canvas).getBoundingClientRect(); }
   captureStream() { return this.classic ? this.media.captureStream() : this.canvas.captureStream(); }   // picture only for now
-  requestPictureInPicture() { return this.classic ? this.media.requestPictureInPicture() : Promise.reject(new Error('Picture-in-picture comes later for the VLC engine')); }
+  // Picture-in-picture: the canvas as a live stream in a hidden <video>, which goes into the PiP window.
+  // Play/pause in that window control libVLC; the sound keeps coming from libVLC.
+  async requestPictureInPicture() {
+    if (this.classic) return this.media.requestPictureInPicture();
+    if (!this._pip) {
+      const v = this._pip = document.createElement('video');
+      v.muted = true; v.playsInline = true;
+      Object.assign(v.style, { position: 'fixed', left: '-10px', top: '-10px', width: '2px', height: '2px', opacity: '0', pointerEvents: 'none' });
+      document.body.append(v);
+      v.addEventListener('pause', () => { if (document.pictureInPictureElement === v && !this.paused) this.pause(); });
+      v.addEventListener('play', () => { if (document.pictureInPictureElement === v && this.paused) this.play(); });
+      v.addEventListener('leavepictureinpicture', () => { v.pause(); v.srcObject = null; });
+      this.addEventListener('pause', () => { if (!v.paused) v.pause(); });
+      this.addEventListener('play', () => { if (v.srcObject && v.paused) v.play().catch(() => {}); });
+    }
+    this._pip.srcObject = this.canvas.captureStream();
+    await this._pip.play();
+    return this._pip.requestPictureInPicture();
+  }
   addEventListener(type, fn, opt) {
     if (INPUT_EVENTS.test(type)) { this.media.addEventListener(type, fn, opt); this.canvas.addEventListener(type, fn, opt); }
     else super.addEventListener(type, fn, opt);

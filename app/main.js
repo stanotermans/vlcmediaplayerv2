@@ -447,13 +447,21 @@ async function probe(src) {
   const v = streams.find(s => s.type === 'video' && !isCover(s));
   const size = v && /(\d{2,5})x(\d{2,5})/.exec(v.rest);
   const pix = v && /,\s*([a-z][a-z0-9_]*)(?=[(,\s]|$)/.exec(v.rest);
+  // colour description after the pixel format, e.g. "yuv420p10le(tv, bt2020nc/bt2020/smpte2084, progressive)":
+  // range, then matrix/primaries/transfer (or one name for all three). The VLC engine uses it for HDR and SD colours.
+  const cd = pix && new RegExp(pix[1] + '\\(([^)]*)\\)').exec(v.rest), color = {};
+  if (cd) for (const part of cd[1].split(',').map(x => x.trim())) {
+    if (part === 'tv' || part === 'pc') color.range = part;
+    else if (part.includes('/')) [color.matrix, color.primaries, color.transfer] = part.split('/');
+    else if (/^(bt|smpte|arib|iec|fcc|unknown)/.test(part)) color.matrix = color.primaries = color.transfer = part;
+  }
   const channels = rest => { const c = /Hz, ([^,]+)/.exec(rest); if (!c) return undefined; const k = c[1].replace(/\(.*\)/, '').trim(); return CHANNELS[k] || parseInt(k) || undefined; };
   const label = s => s.title || s.lang || '';
   const aud = streams.filter(s => s.type === 'audio'), sub = streams.filter(s => s.type === 'subtitle');
   return {
     duration: dm ? (+dm[1]) * 3600 + (+dm[2]) * 60 + parseFloat(dm[3]) : 0,
     format: head[1],
-    vcodec: v ? v.codec : null, pix: pix ? pix[1] : null, width: size ? +size[1] : 0, height: size ? +size[2] : 0,
+    vcodec: v ? v.codec : null, pix: pix ? pix[1] : null, color, width: size ? +size[1] : 0, height: size ? +size[2] : 0,
     audio: aud.map((s, i) => ({ i, codec: s.codec, label: label(s) || `${mt('Track')} ${i + 1}`, lang: s.lang, ch: channels(s.rest) })),
     subs: sub.map((s, i) => ({ i, codec: s.codec, label: label(s) || `${mt('Subtitle')} ${i + 1}`, lang: s.lang })),
     cover: streams.some(s => s.type === 'video' && isCover(s)),

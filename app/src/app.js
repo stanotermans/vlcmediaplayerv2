@@ -415,7 +415,11 @@ api.setSoundfont(S.get('soundfont') || '');
 S.on(async k => { if (k !== 'soundfont') return; await api.setSoundfont(S.get('soundfont') || ''); const it = curItem(); if (it && MIDI_RE.test(it.src)) reloadSource(); });
 const chromiumNeedsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.extra;
 // With the VLC engine nothing is converted, except what goes the Classic way (DVDs, or a file libVLC failed on)
-const needsTx = it => video.isVlc && !DVD_RE.test(it.src) ? false : chromiumNeedsTx(it);
+// What the VLC engine leaves to the Classic path: DVDs (their plugins contain libdvdcss and are not shipped), and HDR
+// films on an HDR screen: there Chromium can show real HDR, while the VLC engine's canvas tone-maps to SDR.
+const isHdr = it => !!(it.info && it.info.color && /smpte2084|arib-std-b67/.test(it.info.color.transfer || ''));
+const vlcSkips = it => DVD_RE.test(it.src) || (isHdr(it) && matchMedia('(dynamic-range: high)').matches);
+const needsTx = it => video.isVlc && !vlcSkips(it) ? false : chromiumNeedsTx(it);
 function canDirect(info) {
   if (!info) return true;
   if (!OK_F.test(info.format)) return false;
@@ -442,9 +446,9 @@ async function loadSource(at, autoplay) {
     P.seekTarget = null; P.offset = at; P.pendingSeek = 0;
     const url = streamUrl(it.src, at, P.audio, P.vcopy, it.extra ? 2 : outChannels(it)) + (it.extra ? '&extra=' + encodeURIComponent(it.extra) : '');
     if (video.isVlc) video.playClassic(url); else video.src = url;
-  } else if (video.isVlc && !DVD_RE.test(it.src)) {           // VLC engine: libVLC opens the file itself, starting at `at`
+  } else if (video.isVlc && !vlcSkips(it)) {                  // VLC engine: libVLC opens the file itself, starting at `at`
     P.seekTarget = null; P.offset = 0; P.pendingSeek = 0;
-    video.vlcOpen(it.remote ? it.src : MIDI_RE.test(it.src) ? fileUrl(it.src) : it.src, at * 1000);
+    video.vlcOpen(it.remote ? it.src : MIDI_RE.test(it.src) ? fileUrl(it.src) : it.src, at * 1000, it.info && it.info.color);
   } else {
     P.seekTarget = null; P.offset = 0; P.pendingSeek = at;
     const url = it.remote ? it.src : fileUrl(it.src);
