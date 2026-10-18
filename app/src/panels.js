@@ -314,6 +314,7 @@ function pages(App) {
       sec('Player controls',
         row('Previous / next', toggle('ctl.prevnext')), row('Play / pause', toggle('ctl.play')),
         row('Time', toggle('ctl.time')), row('Volume', toggle('ctl.volume')),
+        row('Volume bar shape', segmented([['bar', 'Bar'], ['cone', 'Cone']], 'volShape')),
         row('Audio', toggle('ctl.audio')), row('Subtitles', toggle('ctl.subs')),
         row('Settings', toggle('ctl.settings')), row('Library / player', toggle('ctl.library')),
         el('p.note', {}, t('Hidden controls still work with the keyboard. Press F1 for all shortcuts.'))),

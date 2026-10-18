@@ -1537,7 +1537,10 @@ addEventListener('beforeunload', () => { savePos(); stopRecord(); });
 /* ---------- settings reactions ---------- */
 api.setZoom(S.get('uiScale') / 100);
 // Player controls the user switched off in Settings → Interface → Player controls (#10); keyboard shortcuts keep working.
-function applyControls() { for (const [k, on] of Object.entries(S.get('ctl'))) document.body.classList.toggle('no-ctl-' + k, !on); }
+function applyControls() {
+  for (const [k, on] of Object.entries(S.get('ctl'))) document.body.classList.toggle('no-ctl-' + k, !on);
+  document.body.classList.toggle('vol-cone', S.get('volShape') === 'cone');   // volume bar as a cone, like classic VLC
+}
 applyControls();
 function applyLog() { api.setLog({ on: S.get('logOn'), file: S.get('logFile') || PATHS.log, level: S.get('logLevel') }); }
 S.on(path => {
@@ -1547,7 +1550,7 @@ S.on(path => {
   if (/^(audioBg|audioBgDim|coverSize)$/.test(path)) renderAudioBg();
   if (path === 'audioLabel') { applyAudioLabel(); render(); }
   if (path === 'uiScale') api.setZoom(S.get('uiScale') / 100);
-  if (path.startsWith('ctl')) applyControls();
+  if (path.startsWith('ctl') || path === 'volShape') applyControls();
   if (/^(navExpanded|showThumbs|dimWatched|miniPlayer)$/.test(path)) render();
   if (path === 'showBadge') setBadge();
   if (path === 'rememberRecent') { if (!S.get('rememberRecent')) { state.recent = []; render(); } saveRecent(); saveLibrary(); saveWatched(); }

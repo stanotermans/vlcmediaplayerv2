@@ -687,5 +687,8 @@ I18N.add('it', {
  "Windows Settings is open on Default apps. Search for a file type such as .mp4 and choose VLC Redesign. (The portable version does not appear there; use the installer for that.)": "Le Impostazioni di Windows sono aperte su App predefinite. Cerca un tipo di file come .mp4 e scegli VLC Redesign. (La versione portatile non compare lì; usa il programma di installazione.)",
  "VLC Redesign is not in your app menu yet. Install the .deb, .rpm or Arch package, or add the AppImage to your app menu first (for example with Gear Lever or AppImageLauncher).": "VLC Redesign non è ancora nel menu delle app. Installa il pacchetto .deb, .rpm o Arch, oppure aggiungi prima l’AppImage al menu (ad esempio con Gear Lever o AppImageLauncher).",
  "That did not work here (xdg-mime is missing). Choose VLC Redesign under Default applications in your system settings.": "Qui non ha funzionato (manca xdg-mime). Scegli VLC Redesign in Applicazioni predefinite nelle impostazioni di sistema.",
- "In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.": "Nel Finder seleziona un video o un brano, premi ⌘I (Ottieni informazioni), scegli VLC Redesign in «Apri con» e fai clic su «Modifica tutto…». Fallo una volta per ogni tipo di file, ad esempio .mp4, .mkv e .mp3."
+ "In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.": "Nel Finder seleziona un video o un brano, premi ⌘I (Ottieni informazioni), scegli VLC Redesign in «Apri con» e fai clic su «Modifica tutto…». Fallo una volta per ogni tipo di file, ad esempio .mp4, .mkv e .mp3.",
+ "Volume bar shape": "Forma della barra del volume",
+ "Bar": "Barra",
+ "Cone": "Cono"
 });

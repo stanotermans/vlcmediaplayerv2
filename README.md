@@ -85,7 +85,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Library** with videos, music, network streams, playlists and recently played. Browse folders with breadcrumbs (Videos ▸ Shows ▸ The Wand ▸ S01), "continue watching", and watched items dimmed.
 - **Playlists:** play `.m3u`, `.m3u8`, `.xspf` and `.pls` files by opening or dragging them, or keep them with *Playlists → Import playlist…*, an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
 - **Player** with a timeline preview (hover the seek bar to see that moment), mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.
-- **Made for watching:** while a video plays, the sidebar tucks away so the video gets the full width, and the window resizes to the video's shape (up to 70% of the screen, like VLC). Both can be turned off in *Settings → Interface*. There you can also hide individual player controls (e.g. keep only the timeline) and turn on rounded window corners.
+- **Made for watching:** while a video plays, the sidebar tucks away so the video gets the full width, and the window resizes to the video's shape (up to 70% of the screen, like VLC). Both can be turned off in *Settings → Interface*. There you can also hide individual player controls (e.g. keep only the timeline), make the volume bar a cone like classic VLC, and turn on rounded window corners.
 - **Hold for 2× speed:** hold Shift+Space, or hold the mouse button on the video, to play at double speed until you let go.
 - **A-B repeat:** press A to set the start, A again to set the end and loop that part, and A once more to stop (also in the right-click menu under *Playback*). The looped part is shown on the timeline.
 - **Chapters and bookmarks:** chapters embedded in a file (MKV, MP4, DVD) show as marks on the timeline, with the chapter name above the preview. Add your own bookmarks with Ctrl+B, jump between chapters and bookmarks with Shift+N / Shift+P, and manage, import or export them (OGM chapter files, FFmpeg metadata, Matroska XML, CUE and "1:23 Title" lists) via Ctrl+Shift+B.
@@ -160,9 +160,9 @@ The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_mod
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.16.0"
-git tag v1.16.0
-git push origin v1.16.0
+# first set the version in app/package.json, e.g. "version": "1.16.1"
+git tag v1.16.1
+git push origin v1.16.1
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
