@@ -229,7 +229,8 @@
       "createDesktopShortcut": true,
       "shortcutName": "VLC Redesign",
       "artifactName": "VLC-Redesign-Setup-${version}-${arch}.${ext}",
-      "uninstallDisplayName": "VLC Redesign (unofficial)"
+      "uninstallDisplayName": "VLC Redesign (unofficial)",
+      "include": "build/installer.nsh"
     },
     "portable": {
       "artifactName": "VLC-Redesign-Portable-${version}.exe"

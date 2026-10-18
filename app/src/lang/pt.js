@@ -675,5 +675,17 @@ I18N.add('pt', {
  "Lyrics text size": "Tamanho do texto das letras",
  "Separate from the subtitle size above. Lyrics shown as subtitles use the subtitle size.": "Separado do tamanho das legendas acima. Letras mostradas como legendas usam o tamanho das legendas.",
  "Video overlays": "Sobreposições de vídeo",
- "Lets the graphics card show video on its own layer (saves power). Turn off if the mouse cursor disappears over videos in fullscreen. Takes effect after restarting the app.": "Deixa a placa gráfica mostrar o vídeo numa camada própria (poupa energia). Desligue se o cursor desaparecer sobre vídeos em ecrã inteiro. Aplica-se depois de reiniciar a aplicação."
+ "Lets the graphics card show video on its own layer (saves power). Turn off if the mouse cursor disappears over videos in fullscreen. Takes effect after restarting the app.": "Deixa a placa gráfica mostrar o vídeo numa camada própria (poupa energia). Desligue se o cursor desaparecer sobre vídeos em ecrã inteiro. Aplica-se depois de reiniciar a aplicação.",
+ "Set as default player": "Definir como leitor predefinido",
+ "Make VLC your default player": "Faça do VLC o seu leitor predefinido",
+ "Then videos and music open in VLC Redesign when you double-click them. You can also do this later in Settings → General.": "Assim, vídeos e música abrem no VLC Redesign com um duplo clique. Também pode fazê-lo mais tarde em Definições → Geral.",
+ "One moment…": "Um momento…",
+ "Default player": "Leitor predefinido",
+ "Open videos and music with VLC Redesign": "Abrir vídeos e música com o VLC Redesign",
+ "Done: VLC Redesign now opens {n} kinds of video and audio files.": "Feito: o VLC Redesign abre agora {n} tipos de ficheiros de vídeo e áudio.",
+ "Windows Settings is open. Choose “Set default” at the top (Windows 11), or pick VLC Redesign for each file type you want.": "As Definições do Windows estão abertas. Escolha «Definir como predefinição» no topo (Windows 11) ou escolha o VLC Redesign para cada tipo de ficheiro que quiser.",
+ "Windows Settings is open on Default apps. Search for a file type such as .mp4 and choose VLC Redesign. (The portable version does not appear there; use the installer for that.)": "As Definições do Windows estão abertas em Aplicações predefinidas. Procure um tipo de ficheiro como .mp4 e escolha o VLC Redesign. (A versão portátil não aparece aí; use o instalador para isso.)",
+ "VLC Redesign is not in your app menu yet. Install the .deb, .rpm or Arch package, or add the AppImage to your app menu first (for example with Gear Lever or AppImageLauncher).": "O VLC Redesign ainda não está no menu de aplicações. Instale o pacote .deb, .rpm ou Arch, ou adicione primeiro a AppImage ao menu (por exemplo com o Gear Lever ou o AppImageLauncher).",
+ "That did not work here (xdg-mime is missing). Choose VLC Redesign under Default applications in your system settings.": "Não funcionou aqui (falta o xdg-mime). Escolha o VLC Redesign em Aplicações predefinidas nas definições do sistema.",
+ "In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.": "No Finder, selecione um vídeo ou uma música, prima ⌘I (Obter informações), escolha o VLC Redesign em «Abrir com» e clique em «Alterar tudo…». Faça isto uma vez por tipo de ficheiro, por exemplo .mp4, .mkv e .mp3."
 });

@@ -272,6 +272,11 @@ function pages(App) {
         row('Theme', segmented([['dark', 'Dark'], ['black', 'Black'], ['light', 'Light'], ['system', 'System']], 'theme'), { info: 'Black is pure black (AMOLED): easier on the eyes in the dark and saves battery on OLED screens.' }),
         slider({ label: 'Interface size', min: 75, max: 150, step: 5, binding: 'uiScale', fmt: v => v + '%', ticks: 2 }),
         row('Accent color', swatches(S.ACCENTS, 'accent'))),
+      sec('Default player', (() => {
+        const note = el('p.note', { hidden: true });
+        const b = button('Set as default player', async () => { b.disabled = true; note.hidden = false; note.textContent = t('One moment…'); note.textContent = await setDefaultPlayer(); b.disabled = false; }, 'ghost');
+        return [row('Open videos and music with VLC Redesign', b), note];
+      })()),
       sec('Startup',
         row('Start page', select(() => ['home', 'videos', 'music', 'network', 'playlists', 'recent'].map(v => [v, App.viewTitle ? App.viewTitle(v) : v]), 'startView'), { info: 'The library page the app opens on.' }),
         row('Show confirmation and error dialogs', toggle('confirmDialogs'), { info: 'Ask for confirmation before deleting or clearing.' }),
@@ -641,6 +646,19 @@ function osAccountBlock(onChange) {
   draw();
   return box;
 }
+/* ---------- default player ---------- */
+// Runs the platform's way of making VLC Redesign the default player and returns what the user should know (or do).
+async function setDefaultPlayer() {
+  const r = await api.defaultPlayer();
+  if (r.mode === 'done') return t('Done: VLC Redesign now opens {n} kinds of video and audio files.', { n: r.count });
+  if (r.mode === 'settings') return r.registered
+    ? t('Windows Settings is open. Choose “Set default” at the top (Windows 11), or pick VLC Redesign for each file type you want.')
+    : t('Windows Settings is open on Default apps. Search for a file type such as .mp4 and choose VLC Redesign. (The portable version does not appear there; use the installer for that.)');
+  if (r.reason === 'nodesktop') return t('VLC Redesign is not in your app menu yet. Install the .deb, .rpm or Arch package, or add the AppImage to your app menu first (for example with Gear Lever or AppImageLauncher).');
+  if (r.reason === 'xdg') return t('That did not work here (xdg-mime is missing). Choose VLC Redesign under Default applications in your system settings.');
+  return t('In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.');
+}
+
 /* ---------- chapters and bookmarks (#40) ---------- */
 const hms = s => { s = Math.max(0, s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${x.toFixed(3).padStart(6, '0')}`; };
 const short = s => { s = Math.floor(Math.max(0, s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
@@ -723,5 +741,5 @@ function bookmarks(App) {
   dialog({ title: 'Chapters and bookmarks', body, buttons: [], width: 520 });
 }
 
-window.Panels = { quickPanel, openSettings, openNetwork, newPlaylist, shortcuts, SHORTCUTS, keycaps, searchSubtitles, bookmarks, parseChapters, toChapterFile };
+window.Panels = { setDefaultPlayer, quickPanel, openSettings, openNetwork, newPlaylist, shortcuts, SHORTCUTS, keycaps, searchSubtitles, bookmarks, parseChapters, toChapterFile };
 })();

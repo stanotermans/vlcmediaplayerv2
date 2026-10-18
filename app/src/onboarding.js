@@ -1,4 +1,5 @@
-// First-run onboarding: language → welcome + media folder → theme & accent → keyboard shortcuts. Exposes window.Onboarding
+// First-run onboarding: language → welcome + media folder → theme & accent → default player → keyboard shortcuts.
+// Exposes window.Onboarding
 (() => {
 const { el, icon } = UI;
 const CONE = `<svg viewBox="0 0 24 24" class="ob-cone"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="var(--accent)"/><path d="M8.1 7h7.8l1.1 4H7z" fill="currentColor" opacity=".9"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="var(--accent)"/><path d="M3 18h18l1 3H2z" fill="var(--accent)"/></svg>`;
@@ -7,7 +8,7 @@ const HELLO = { en: 'Choose your language', nl: 'Kies je taal', de: 'Wähle dein
 
 function show(App, { onDone } = {}) {
   let step = 0, folder = S.get('mediaFolders')[0] || App.paths.videos;
-  const STEPS = [stepLanguage, stepWelcome, stepTheme, stepKeys];
+  const STEPS = [stepLanguage, stepWelcome, stepTheme, stepDefault, stepKeys];
   const layer = el('div.ob-layer');
   const card = el('div.ob-card');
   layer.append(card);
@@ -63,6 +64,21 @@ function show(App, { onDone } = {}) {
         el('span.pv-seek', {}, el('b')), el('span.pv-t', {}, '00:25:40'), el('span.pv-ic', { html: icon('volume') }), el('span.pv-vol'), el('span.pv-ic', { html: icon('audio') }), el('span.pv-ic', { html: icon('subtitle') }), el('span.pv-ic', { html: icon('settings') })));
     return el('div.ob-step.ob-themestep', {}, preview,
       el('div.ob-bottom', {}, dots, nav(true, 'Continue', () => go(3))));
+  }
+
+  // Optional: make VLC Redesign the app that opens videos and music (the system decides how; see Panels.setDefaultPlayer)
+  function stepDefault() {
+    const result = el('p.ob-result', { hidden: true });
+    const setBtn = el('button.btn.primary.ob-bigbtn', { type: 'button', onclick: async () => {
+      setBtn.disabled = true; result.hidden = false; result.textContent = t('One moment…');
+      result.textContent = await Panels.setDefaultPlayer(); setBtn.disabled = false;
+    } }, t('Set as default player'));
+    return el('div.ob-step.ob-default', {},
+      el('div', { html: CONE }),
+      el('h1', {}, t('Make VLC your default player')),
+      el('p.ob-lead', {}, t('Then videos and music open in VLC Redesign when you double-click them. You can also do this later in Settings → General.')),
+      setBtn, result,
+      nav(true, 'Continue', () => go(4)));
   }
 
   function stepKeys() {

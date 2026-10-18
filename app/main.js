@@ -694,6 +694,33 @@ ipcMain.handle('open-text', async (_e, { title }) => {
 });
 ipcMain.handle('reveal', (_e, p) => shell.showItemInFolder(realPath(p)));
 ipcMain.handle('open-path', (_e, p) => { fs.mkdirSync(p, { recursive: true }); return shell.openPath(p); });
+// "Set as default player". Windows: apps may not make themselves the default, so open Settings → Default apps,
+// right on VLC Redesign when the installer registered it (build/installer.nsh). Linux: set it with xdg-mime for
+// every type the app's menu entry lists. macOS: no API for this; the app explains Finder's "Open with → Change All".
+ipcMain.handle('default-player', async () => {
+  if (process.platform === 'win32') {
+    const has = root => new Promise(res => execFile('reg', ['query', `${root}\\Software\\RegisteredApplications`, '/v', 'VLC Redesign'], { windowsHide: true }, err => res(!err)));
+    const where = (await has('HKCU')) ? 'registeredAppUser' : (await has('HKLM')) ? 'registeredAppMachine' : '';
+    await shell.openExternal('ms-settings:defaultapps' + (where ? `?${where}=${encodeURIComponent('VLC Redesign')}` : ''));
+    return { mode: 'settings', registered: !!where };
+  }
+  if (process.platform === 'linux') {
+    const dirs = [path.join(app.getPath('home'), '.local/share/applications'), '/usr/local/share/applications', '/usr/share/applications'];
+    let desktop = null;
+    for (const d of dirs) {
+      let names = []; try { names = fs.readdirSync(d); } catch { continue; }
+      const n = names.find(f => f === 'vlc-redesign.desktop') || names.find(f => /\.desktop$/.test(f) && /vlc-redesign/i.test(f));
+      if (n) { desktop = path.join(d, n); break; }
+    }
+    if (!desktop) return { mode: 'manual', reason: 'nodesktop' };
+    const m = /^MimeType=(.*)$/m.exec(fs.readFileSync(desktop, 'utf8'));
+    const types = m ? m[1].split(';').filter(Boolean) : [];
+    if (!types.length) return { mode: 'manual', reason: 'nodesktop' };
+    const ok = await new Promise(res => execFile('xdg-mime', ['default', path.basename(desktop), ...types], err => res(!err)));
+    return ok ? { mode: 'done', count: types.length } : { mode: 'manual', reason: 'xdg' };
+  }
+  return { mode: 'manual', reason: 'mac' };
+});
 ipcMain.handle('paths', () => ({
   videos: app.getPath('videos'), music: app.getPath('music'), pictures: app.getPath('pictures'),
   recordings: path.join(app.getPath('videos'), 'VLC Redesign'), snapshots: path.join(app.getPath('pictures'), 'VLC Redesign'),
