@@ -699,6 +699,8 @@ I18N.add('fr', {
  "Playback engine": "Moteur de lecture",
  "Classic (Chromium + FFmpeg)": "Classique (Chromium + FFmpeg)",
  "VLC (libVLC) – preview": "VLC (libVLC) – aperçu",
+ "Passthrough (Dolby / DTS to receiver)": "Passthrough (Dolby / DTS vers l’ampli)",
+ "VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.": "Moteur VLC uniquement. Envoie le Dolby Digital, le Dolby TrueHD (Atmos), le DTS et le DTS-HD tels quels via HDMI ou S/PDIF à un ampli AV ou une barre de son, qui les décode. L’égaliseur, les effets et le volume de l’app ne s’appliquent pas à ce son. Prend effet après le redémarrage de l’app.",
  "VLC plays files with VLC’s own engine. Still in preview: audio effects, picture-in-picture and recording only work with Classic for now. Takes effect after restarting the app.": "VLC lit les fichiers avec le moteur de VLC lui-même. Encore en aperçu : les effets audio, l’image dans l’image et l’enregistrement ne fonctionnent pour l’instant qu’avec Classique. Prend effet après redémarrage de l’application.",
  "VLC (libVLC {v})": "VLC (libVLC {v})"
 });

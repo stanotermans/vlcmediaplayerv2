@@ -167,16 +167,21 @@ function colorOf(c = {}) {
 contextBridge.exposeInMainWorld('vlcEngine', {
   available: () => !!vlcPaths,
   // start(canvasId) → libVLC version; allocates the frame buffer (3 slots of up to 4K plus padding rows, 16-bit samples)
-  start: id => {
+  // extraArgs: libVLC start options (passthrough)
+  start: (id, extraArgs) => {
     if (!vlc) {
       vlc = require(vlcPaths.mod); vlcBuf = new ArrayBuffer(4096 * 2304 * 3 / 2 * 2 * 3);   // 3 slots of up to 4K, 10-bit
-      vlc.version = vlc.init(vlcPaths.dir, vlcBuf);
+      // VLCX_VLC_ARGS: extra libVLC options for testing, separated by | (e.g. write the sound to a file)
+      const testArgs = (process.env.VLCX_VLC_ARGS || '').split('|').filter(Boolean);
+      vlc.version = vlc.init(vlcPaths.dir, vlcBuf, [...(extraArgs || []), ...testArgs]);
       vlcGL(document.getElementById(id)); requestAnimationFrame(vlcDraw);
     }
     return vlc.version;
   },
   // color: the media info's colour description (range, matrix, transfer)
-  open: (target, isLocation, startMs, color) => { drawnFrames = 0; vlcColor = colorOf(color); return vlc.open(target, !!isLocation, startMs || 0, vlcColor.tf > 0); },
+  open: (target, isLocation, startMs, color, options) => { drawnFrames = 0; vlcColor = colorOf(color); return vlc.open(target, !!isLocation, startMs || 0, vlcColor.tf > 0, options || []); },
+  equalizer: bands => vlc.equalizer(bands || null), stereo: b => vlc.stereo(!!b),
+  audioFx: (filters, params) => vlc.audioFx(String(filters || ''), params || []),
   play: () => vlc.play(), pause: () => vlc.pause(), stop: () => vlc.stop(), seek: ms => vlc.seek(ms),
   rate: r => vlc.rate(r), volume: v => vlc.volume(Math.round(v)), mute: b => vlc.mute(!!b),
   state: () => vlc.state(),

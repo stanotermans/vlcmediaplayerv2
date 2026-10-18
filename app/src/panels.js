@@ -368,7 +368,10 @@ function pages(App) {
         row('Compressor', toggle('compOn'), { info: 'Evens out quiet and loud passages.' }), collapse(compBlock()),
         row('Spatial audio', toggle('reverbOn'), { info: 'Adds reverb, as if you are in a room.' }), collapse(reverbBlock()),
         row('Stereo widening', toggle('widenOn')), collapse(widenBlock())),
-      sec('Speakers', row('Surround sound (5.1 / 7.1)', toggle('surround'), { info: 'Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.' })),
+      sec('Speakers', row('Surround sound (5.1 / 7.1)', toggle('surround'), { info: 'Keeps the surround channels of films and music, also when the file is converted. Turn it off to always get stereo. Your speakers or receiver must be set to 5.1 or 7.1 in the system sound settings.' }),
+        // bitstream to an AV receiver: only libVLC can do this (VLC engine); a libVLC start option
+        window.VlcVideo && VlcVideo.available() ? row('Passthrough (Dolby / DTS to receiver)', toggle({ get: () => S.get('passthrough'), set: v => { S.set('passthrough', v); App.osd('Restart the app to apply this'); }, path: 'passthrough' }),
+          { info: 'VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.' }) : null),
       sec('Volume', slider({ label: 'Volume boost', min: 0, max: 200, binding: 'gain', fmt: v => v + '%', ticks: 2 })),
       sec('MIDI', ...(() => {
         const inp = el('input.txt.path', { readonly: true });

@@ -17,7 +17,8 @@ class VlcVideo extends EventTarget {
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'vlcView'; this.canvas.className = el.className;
     el.after(this.canvas);
-    this.version = window.vlcEngine.start('vlcView');
+    // passthrough (Settings → Audio): Dolby/DTS go to the receiver as they are; a libVLC start option
+    this.version = window.vlcEngine.start('vlcView', S.get('passthrough') ? ['--mmdevice-passthrough=2'] : []);
     this.classic = false;                                     // true while an item plays through the <video>
     this._src = ''; this._rate = 1; this._volume = 1; this._muted = false;
     this._reset();
@@ -27,9 +28,26 @@ class VlcVideo extends EventTarget {
     new MutationObserver(copy).observe(el, { attributes: true, attributeFilter: ['style'] }); copy();
     this._show();
     this._timer = setInterval(() => this._poll(), 100);
-    S.on(k => { if (k === 'gain' && !this.classic) this._applyVolume(); });
+    S.on(k => {
+      if (this.classic) return;
+      if (k === 'gain') this._applyVolume();
+      if (/^eq/.test(k)) this._applyEq();                            // VLC's equalizer changes live
+      if (/^(comp|reverb|widen)/.test(k)) this._applyFx();            // VLC rebuilds its filters right away
+      if (k === 'surround') window.vlcEngine.stereo(S.get('surround') === false);
+    });
+    this._applyEq(); this._applyFx(); window.vlcEngine.stereo(S.get('surround') === false);
   }
   _reset() { this._st = { state: 0, time: 0, length: 0, width: 0, height: 0, frames: 0 }; this._meta = false; this._ended = false; this._seekTo = null; this._error = null; this._playAt = 0; this._clock = null; this._shown = 0; this._spuOff = false; }
+  // Audio settings → VLC. Equalizer: VLC's own 10 bands (the app's presets are VLC's). Compressor, spatial audio and
+  // stereo widening: VLC's audio filters with the same settings (reverb's 0–10 sliders are VLC's 0–1).
+  _applyEq() { window.vlcEngine.equalizer(S.get('eqOn') ? S.get('eq') : null); }
+  _applyFx() {
+    const f = [], o = [], c = S.get('comp'), r = S.get('reverb'), w = S.get('widen');
+    if (S.get('compOn')) { f.push('compressor'); o.push(['compressor-threshold', 'f', c.threshold], ['compressor-ratio', 'f', c.ratio], ['compressor-knee', 'f', c.knee], ['compressor-attack', 'f', c.attack], ['compressor-release', 'f', c.release], ['compressor-makeup-gain', 'f', c.makeup]); }
+    if (S.get('reverbOn')) { f.push('spatializer'); o.push(['spatializer-roomsize', 'f', r.size / 10], ['spatializer-width', 'f', r.width / 10], ['spatializer-wet', 'f', r.wet / 10], ['spatializer-dry', 'f', r.dry / 10], ['spatializer-damp', 'f', r.damp / 10]); }
+    if (S.get('widenOn')) { f.push('stereo_widen'); o.push(['stereowiden-delay', 'f', w.delay], ['stereowiden-feedback', 'f', w.feedback], ['stereowiden-crossfeed', 'f', w.crossfeed], ['stereowiden-dry-mix', 'f', w.dry]); }
+    window.vlcEngine.audioFx(f.join(':'), o);
+  }
   _show() { this.media.style.visibility = this.classic ? '' : 'hidden'; this.canvas.style.display = this.classic ? 'none' : ''; }
   _fire(...types) { for (const t of types) this.dispatchEvent(new Event(t)); }
   // libVLC has no events here; its state is read 10× a second and turned into the usual media events
