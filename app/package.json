@@ -319,9 +319,7 @@
         "xdg-utils",
         "libatspi2.0-0",
         "libuuid1",
-        "libsecret-1-0",
-        "libvlc5",
-        "vlc-plugin-base"
+        "libsecret-1-0"
       ],
       "afterInstall": "build/linux/after-install.tpl",
       "afterRemove": "build/linux/after-remove.tpl"
@@ -405,12 +403,7 @@
         "util-linux-libs",
         "libsecret",
         "alsa-lib",
-        "mesa",
-        "libvlc",
-        "vlc-plugins-base",
-        "vlc-plugin-ffmpeg",
-        "vlc-plugin-dvd",
-        "vlc-plugin-pulse"
+        "mesa"
       ]
     }
   },

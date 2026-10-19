@@ -75,11 +75,11 @@ const vlcPaths = (() => {
   const path = require('path'), fs = require('fs');
   const mod = path.join(__dirname, 'native', 'vlcview', 'build', 'Release', 'vlcview.node').replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
   // libVLC that comes with the app (resources/vlc, or vendor/vlc when run from source): Windows libvlc.dll, macOS and
-  // Linux lib/libvlc…; on Linux without one (deb, pacman) the system's libVLC, which the module opens as "" by name
+  // Linux lib/libvlc…. Not the system's on Linux: its FFmpeg plugins would get Electron's own FFmpeg (libffmpeg.so)
+  // and show no picture; the bundled one has its FFmpeg renamed (build/vlc-linux).
   const own = { win32: ['libvlc.dll'], darwin: ['lib/libvlc.dylib', 'lib/libvlc.5.dylib'], linux: ['lib/libvlc.so.5'] }[process.platform] || [];
   const dir = [path.join(process.resourcesPath || '', 'vlc'), path.join(__dirname, 'vendor', 'vlc')].find(d => own.some(f => fs.existsSync(path.join(d, f))));
-  const system = process.platform === 'linux' && !dir && ['/usr/lib/x86_64-linux-gnu', '/usr/lib64', '/usr/lib', '/usr/local/lib'].some(d => fs.existsSync(path.join(d, 'libvlc.so.5')));
-  return fs.existsSync(mod) && (dir || system) ? { mod, dir: dir || '' } : null;
+  return fs.existsSync(mod) && dir ? { mod, dir } : null;
 })();
 let vlc = null, vlcBuf = null, gl = null, glProg = null, glTex = [], glSize = '', drawnFrames = 0, glU = {};
 // Colours of what is playing (from the media info): matrix 601/709/2020, full or limited range, transfer SDR/PQ/HLG

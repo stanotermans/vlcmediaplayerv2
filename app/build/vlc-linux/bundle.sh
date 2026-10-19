@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Linux x64, in two steps (docker.sh runs each in its own container):
-#   bundle.sh libvlc  (Debian 12) libVLC for the packages that bring their own (AppImage, rpm, tar.gz). VideoLAN
+#   bundle.sh libvlc  (Debian 12) libVLC for all Linux packages (AppImage, deb, rpm, pacman, tar.gz). VideoLAN
 #                     publishes no Linux libVLC builds, so this takes Debian's libVLC 3 packages (security updates
 #                     until 2028) with the libraries they need, minus the ones every desktop system has (glibc, the C++
 #                     runtime, graphics, X11, ALSA, fonts). The libraries find each other through their rpath ($ORIGIN).
@@ -9,8 +9,8 @@
 #                     functions are renamed (vlcx_av…) in it and in the plugins that call it: Electron's own FFmpeg
 #                     (libffmpeg.so, unversioned symbols) would otherwise answer those calls inside the app.
 #                     Needs glibc 2.36 (Debian 12, Ubuntu 23.04, Fedora 37 and newer); elsewhere the app uses Classic.
-#   bundle.sh module  (Debian 11, glibc 2.31) the vlcview module, which only needs glibc, so it also loads on older
-#                     systems with the system's libVLC (deb, pacman).
+#   bundle.sh module  (Debian 11, glibc 2.31) the vlcview module, which only needs glibc.
+# The system's libVLC is not used: inside Electron its FFmpeg plugins would get Electron's own FFmpeg.
 # Output: $VLC_OUT (default /app/vendor/vlc): lib/, lib/vlc/plugins/, COPYING-VLC.txt, README.txt, VERSION; and
 #         $MOD_OUT (default /app/native/vlcview/build/Release): vlcview.node
 # Run through docker.sh (needs Docker).

@@ -4,8 +4,7 @@
 //   node scripts/fetch-vlc.js             Windows: the win64 zip → vendor/vlc/{libvlc.dll, libvlccore.dll, plugins/}
 //   node scripts/fetch-vlc.js mac-arm64   macOS: VLC.app from the Apple Silicon or Intel dmg → vendor/vlc/{lib/,
 //   node scripts/fetch-vlc.js mac-x64     plugins/} (needs hdiutil, so it runs on a Mac)
-// Linux has no VideoLAN build: see build/vlc-linux/ (bundled for AppImage, rpm and tar.gz; deb and pacman use the
-// system's libVLC).
+// Linux has no VideoLAN build: see build/vlc-linux/ (bundled in every Linux package).
 // Left out: the VLC interface (Qt, skins, Lua), visualizations and service discovery. The DVD plugins (menus, like
 // VLC) are kept; in VideoLAN's builds they contain libdvdcss, which reads copy-protected DVDs.
 const fs = require('fs');

@@ -110,8 +110,7 @@ jobs:
 
       # VLC playback engine: libVLC and the native module that connects it to the app (scripts/vlc-smoke.js checks
       # that they play). Windows and macOS: VideoLAN's official builds, checked against VideoLAN's SHA-256 and trimmed.
-      # Linux: build/vlc-linux (Debian's libVLC with a slim FFmpeg) for AppImage, rpm and tar.gz; deb and pacman use
-      # the system's libVLC instead (see the Linux step).
+      # Linux: build/vlc-linux (Debian's libVLC with a slim FFmpeg), in every Linux package.
       - name: libVLC and the vlcview module (Windows)
         if: runner.os == 'Windows'
         shell: bash
@@ -195,11 +194,7 @@ jobs:
         run: |
           # productName without a space: the packages install to /opt/<productName>, and Chromium's fallback
           # sandbox (used where user namespaces are blocked, e.g. Ubuntu 24.04) cuts paths at spaces
-          # deb and pacman depend on the system's libVLC: built without the bundled one
-          mv vendor/vlc vendor/vlc-bundled
-          npx electron-builder --linux deb pacman -c.productName=vlc-redesign --publish never
-          mv vendor/vlc-bundled vendor/vlc
-          npx electron-builder --linux rpm tar.gz -c.productName=vlc-redesign --publish never
+          npx electron-builder --linux deb rpm pacman tar.gz -c.productName=vlc-redesign --publish never
           # AppImage with gzip instead of xz: AppImageHub and older AppImage runtimes cannot mount xz
           npx electron-builder --linux AppImage -c.compression=normal -c.productName=vlc-redesign --publish never
 
