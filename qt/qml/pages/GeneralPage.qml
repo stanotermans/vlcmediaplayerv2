@@ -31,6 +31,10 @@ Column {
     title: "Diagnostics"
     last: true
     SettingRow { label: "Save a log"; info: "Write ffmpeg and playback messages to a file."; Toggle { path: "logOn" } }
+    SettingRow { label: "Log file"
+      Row { spacing: 6
+        TextField { width: 260; text: Settings.values.logFile || ctl.library.logFile(); input.readOnly: true; input.color: Theme.muted }
+        Button { text: qsTr("Open"); kind: "ghost"; onClicked: ctl.library.openPath(Settings.values.logFile || ctl.library.logFile()) } } }
     SettingRow { label: "Log details"; Select { path: "logLevel"; options: [["error", "Errors only"], ["info", "All"]] } }
   }
 }

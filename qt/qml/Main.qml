@@ -290,14 +290,9 @@ C.ApplicationWindow {
   function removeFolder(f) { Settings.set("mediaFolders", (Settings.values.mediaFolders || []).filter(x => x !== f)); nav.dir = ({}); }
   function resetVideoFilters() { const vf = Settings.defaultValue("vf"); Settings.set("vf", vf); }
   function shortcuts() { dialog("dialogs/Shortcuts.qml", { pb: pb }); }
-  // Make VLC Redesign the app that opens videos and music. The system decides how; registering the file types
-  // (so it is listed there) comes with the installer (phase 7).
-  function setDefaultPlayer() {
-    if (Qt.platform.os === "windows") { Qt.openUrlExternally("ms-settings:defaultapps");
-      return qsTr("Windows Settings is open on Default apps. Search for a file type such as .mp4 and choose VLC Redesign. (The portable version does not appear there; use the installer for that.)"); }
-    if (Qt.platform.os === "osx") return qsTr("In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.");
-    return qsTr("That did not work here (xdg-mime is missing). Choose VLC Redesign under Default applications in your system settings.");
-  }
+  // Make VLC Redesign the app that opens videos and music. The system decides how (System.setDefaultPlayer); the
+  // installer registers the file types so it is listed there.
+  function setDefaultPlayer() { return System.setDefaultPlayer(); }
   property Item onboarding: null
   function showOnboarding() {
     closeSettings(); showBrowser();
@@ -371,8 +366,13 @@ C.ApplicationWindow {
       if (p === "language") I18n.setLanguage(Settings.values.language || "");
       if (p === "uiScale" || p === "passthrough") osd(qsTr("Restart the app to apply this"));
     } }
+  Engine { id: en; ctl: win }
+  property alias en: en
   VlcPlayer {
     id: player
+    startArgs: en.startArgs
+    logAll: Settings.values.logLevel === "info"
+    logFile: Settings.values.logOn ? (Settings.values.logFile || library.logFile()) : ""
     videoSink: playerView.video.videoSink
     // the mini player and picture-in-picture get the same frames
     extraSink: win.pipOpen ? pip.video.videoSink : mini.visible ? mini.video.videoSink : null
@@ -405,11 +405,30 @@ C.ApplicationWindow {
   }
   property alias pb: pb
   PipWindow { id: pip; ctl: win; onClosing: win.pipOpen = false }
+  // files opened while the app runs ("Open with", a double-click), media keys and the system's media overlay
+  Connections {
+    target: System
+    function onOpenPaths(paths) { player.log("opened by another start: " + paths.join(", ")); win.raiseMain(); if (paths.length) { win.queueList = null; win.addSources(paths); } }
+    function onMediaButton(b) {
+      if (b === "play" || b === "pause") pb.runAction("playPause", true);
+      else if (b === "next") pb.runAction("next", true);
+      else if (b === "previous") pb.runAction("prev", true);
+      else if (b === "stop") pb.runAction("stop", true);
+    }
+    function onUpdateChanged() { if (System.update.state === "available" && !System.update.manual && Settings.values.skipVersion !== System.update.info.latest) updateBanner.shown = true; }
+  }
+  Connections { target: player; function onStateChanged() { System.mediaState(!win.current ? "closed" : player.playing ? "playing" : player.active ? "paused" : "stopped"); } }
+  onCurrentChanged: if (current) { const i = library.item(current.src); System.mediaInfo(current.name.replace(/\.[^.]+$/, ""), i.artist || "", i.album || "", current.type === "audio"); } else System.mediaState("closed")
+  Timer { id: updateTimer; interval: 5000; onTriggered: { System.checkUpdates(false); Settings.set("lastUpdateCheck", Date.now()); } }
   WindowFrame { id: frame; maximizeButton: maxBtn }
   Component.onCompleted: {
     I18n.setLanguage(Settings.values.language || "");
     subs.loadFonts(Settings.values.customFonts || []);
+    const opened = System.startPaths();
     if (!Settings.values.onboarded && !shotPath && !autoPlay) Qt.callLater(showOnboarding);
+    System.mediaAttach(win);
+    if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
+    if (Settings.values.autoUpdate !== false && !shotPath) updateTimer.start();
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
     library.load();
     library.scanFolders(Settings.values.mediaFolders || []);
@@ -458,6 +477,13 @@ C.ApplicationWindow {
     else if (k === "onboarding") { showOnboarding(); if (v) onboarding.step = +v; }
     else if (k === "settingsq") { openSettings("general"); timerAt(300, () => SettingsSearch.q = v); }
     else if (k === "shortcuts") shortcuts();
+    else if (k === "set") { const i = v.indexOf("="); Settings.set(v.slice(0, i), JSON.parse(v.slice(i + 1))); }
+    else if (k === "rec") en.toggleRecord();
+    else if (k === "update") System.checkUpdates(true);
+    else if (k === "dvdkey") en.dvdKey(v);
+    else if (k === "dvdmenu") en.showDvdMenu();
+    else if (k === "playfile") playItem(library.item(library.addSources([v], true)[0]));
+    else if (k === "log") player.log(eval(v));
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });
       else if (v === "network") dialog("dialogs/Network.qml", {});
@@ -568,6 +594,11 @@ C.ApplicationWindow {
         z: 4
       }
 
+      UpdateBanner {
+        id: updateBanner
+        anchors { right: parent.right; bottom: parent.bottom; margins: 16 }
+        z: 8
+      }
       QuickPanel {
         id: quick
         ctl: win
@@ -596,6 +627,7 @@ C.ApplicationWindow {
       { label: qsTr("Stop"), icon: "stop", accent: true, kbd: "S", action: () => pb.stop(), disabled: !it },
       { label: qsTr("Previous"), icon: "prev", accent: true, kbd: "P", action: () => pb.prev(), disabled: !it },
       { label: qsTr("Next"), icon: "next", accent: true, kbd: "N", action: () => pb.step(1), disabled: !it },
+      { label: player.recording ? qsTr("Stop recording") : qsTr("Record"), icon: "record", accent: true, kbd: "R", action: () => en.toggleRecord(), disabled: !it },
       { label: hideUi ? qsTr("Show interface") : qsTr("Hide interface"), icon: "hide", kbd: "Ctrl + \\", action: toggleHideUi },
       { sep: true },
       { label: qsTr("Playback"), icon: "playback", sub: () => [{ header: qsTr("Speed") }].concat(
@@ -615,17 +647,24 @@ C.ApplicationWindow {
           { label: qsTr("A-B repeat off"), action: () => pb.abClear(), disabled: ab.a === null },
           { label: qsTr("Next chapter / bookmark"), kbd: "Shift + N", action: () => pb.jumpMark(1), disabled: !it || !pb.markTimes().length },
           { label: qsTr("Previous chapter / bookmark"), kbd: "Shift + P", action: () => pb.jumpMark(-1), disabled: !it || !pb.markTimes().length }
-        ]) },
+        ], player.isDvd ? [{ sep: true }, { header: qsTr("DVD") }, { label: qsTr("DVD menu"), kbd: "Shift + M", action: () => en.showDvdMenu() }].concat(
+          player.titles().map((x, i) => i && !x.menu ? { label: qsTr("Title %1").arg(i) + (x.duration ? "  ·  " + Lib.shortFmt(x.duration / 1000) : ""), checked: player.title === i, action: () => player.setTitle(i) } : null)) : []) },
       { label: qsTr("Video"), icon: "video", sub: () => [
           { label: qsTr("Fullscreen"), icon: "fullscreen", kbd: "F", action: toggleFs },
           { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !it },
           { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !it },
           { sep: true }, { header: qsTr("Aspect ratio") }
-        ].concat([["", "Default"], ["fill", "Fill"], ["stretch", "Stretch"]].map(([v, l]) => ({ label: qsTr(l), checked: (Settings.values.aspect || "") === v, action: () => Settings.set("aspect", v) }))) },
+        ].concat([["", "Default"], ["fill", "Fill"], ["stretch", "Stretch"]].map(([v, l]) => ({ label: qsTr(l), checked: (Settings.values.aspect || "") === v, action: () => Settings.set("aspect", v) })), [
+          { sep: true },
+          { label: qsTr("Rotate 90°"), icon: "rotate", action: () => Settings.set("vf.rotate", ((Settings.values.vf.rotate || 0) + 90) % 360) },
+          { label: qsTr("Mirror"), checked: !!Settings.values.vf.mirror, action: () => Settings.set("vf.mirror", !Settings.values.vf.mirror) },
+          { label: qsTr("Video filters…"), icon: "settings", action: () => quick.toggle("video") }]) },
       { label: qsTr("Audio"), icon: "audio", sub: () => [{ header: qsTr("Audio track") }].concat(
           player.audioTracks().filter(t => t.id >= 0).map(t => ({ label: t.name, checked: player.audioTrack() === t.id, action: () => player.setAudioTrack(t.id) })), [
           { sep: true },
-          { label: player.muted ? qsTr("Unmute") : qsTr("Mute"), icon: player.muted ? "volume" : "mute", kbd: "M", action: () => pb.toggleMute() }]) },
+          { label: player.muted ? qsTr("Unmute") : qsTr("Mute"), icon: player.muted ? "volume" : "mute", kbd: "M", action: () => pb.toggleMute() },
+          { label: qsTr("Equalizer"), checked: !!Settings.values.eqOn, action: () => Settings.set("eqOn", !Settings.values.eqOn) },
+          { label: qsTr("Audio effects…"), icon: "settings", action: () => quick.toggle("audio") }]) },
       { label: qsTr("Subtitle"), icon: "subtitle", sub: subtitleMenu },
       { label: qsTr("More settings"), icon: "settings", sub: () => [
           { label: qsTr("Quick settings"), icon: "settings", action: () => quick.toggle() },
@@ -649,6 +688,7 @@ C.ApplicationWindow {
       { label: qsTr("Add current to playlist…"), icon: "plus", action: () => addToPlaylist([current.src]), disabled: !current },
       { sep: true },
       { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !current },
+      { label: player.recording ? qsTr("Stop recording") : qsTr("Record"), icon: "record", kbd: "R", action: () => en.toggleRecord(), disabled: !current },
       { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !current },
       { label: qsTr("Media information"), icon: "info", kbd: "Ctrl + I", action: mediaInfo, disabled: !current },
       { sep: true },
@@ -756,6 +796,7 @@ C.ApplicationWindow {
       if (name === "F11") { win.toggleFs(); return true; }
       if (name === "F1") { win.shortcuts(); return true; }
       if (name === "Escape" && quick.open) { quick.open = false; return true; }
+      if (win.inPlayer && !name.includes("+") && en.dvdKey(name)) return true;   // the DVD menu's buttons
       if (pb.key(name, repeat, code)) return true;
       if (name === "Escape") {
         if (win.hideUi) win.toggleHideUi();

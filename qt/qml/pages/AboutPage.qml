@@ -12,12 +12,31 @@ Column {
             source: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="' + Theme.accent + '"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#ddd"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="' + Theme.accent + '"/><path d="M3 18h18l1 3H2z" fill="' + Theme.accent + '"/></svg>') }
     Column { anchors.verticalCenter: parent.verticalCenter; spacing: 2
       T { text: "VLC Redesign"; px: 22; font.weight: Font.DemiBold; color: Theme.text }
-      T { text: qsTr("Version %1").arg(Qt.application.version) + " · " + Qt.platform.os + " · Qt " + page.ctl.qtVersion + " · libVLC " + page.ctl.player.version; color: Theme.muted } }
+      T { text: qsTr("Version %1").arg(System.version) + (System.portable ? " · portable" : "") + " · " + Qt.platform.os + " · Qt " + page.ctl.qtVersion + " · libVLC " + page.ctl.player.version; color: Theme.muted } }
   }
   Rectangle {   // .about-note
     width: parent.width; height: an.implicitHeight + 20; radius: 8; color: Theme.panel2
     T { id: an; x: 12; y: 10; width: parent.width - 24; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.muted
         text: qsTr("Unofficial fan project. Not made by or affiliated with VideoLAN, the makers of VLC media player.") }
+  }
+  Section {
+    title: "Updates"
+    SettingRow { label: "Check for updates automatically"; Toggle { path: "autoUpdate" } }
+    T {   // .upd-status
+      readonly property var u: System.update
+      readonly property var info: u.info || {}
+      visible: text !== ""; topPadding: 6; px: 13
+      color: u.state === "available" || u.state === "page" ? Theme.accent : u.state === "error" ? "#ff6b5b" : Theme.muted
+      text: ({ checking: qsTr("Checking for updates…"), latest: qsTr("You have the latest version (%1).").arg("v" + (info.current || System.version)),
+               available: qsTr("Version %1 is available.").arg("v" + info.latest), page: qsTr("Version %1 is available.").arg("v" + info.latest),
+               downloading: qsTr("Downloading update… %1%").arg(Math.round((u.progress || 0) * 100)), installing: qsTr("The update is being installed. The app will restart."),
+               downloaded: qsTr("The update has been downloaded."), error: qsTr("Could not check for updates.") + (u.error ? " (" + u.error + ")" : "") })[u.state] || ""
+    }
+    Row { spacing: 8; topPadding: 10; bottomPadding: 10
+      Button { text: qsTr("Check for updates"); kind: "ghost"; onClicked: System.checkUpdates(true) }
+      Button { visible: System.update.state === "available"; kind: "primary"
+               text: (System.update.info || {}).mode === "install" ? qsTr("Install update") : (System.update.info || {}).mode === "download" ? qsTr("Download update") : qsTr("Open download page")
+               onClicked: System.installUpdate() } }
   }
   Section {
     title: "Credits"

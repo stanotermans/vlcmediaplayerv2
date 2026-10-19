@@ -459,6 +459,11 @@ void Library::reveal(const QString &path) const {
 #endif
 }
 QString Library::videosDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)); }
+bool Library::makeDir(const QString &dir) const { return QDir().mkpath(dir); }
+QString Library::builtinSoundfont() const {
+  if (qEnvironmentVariableIsSet("VLCR_SOUNDFONT")) return qEnvironmentVariable("VLCR_SOUNDFONT");
+  return QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/assets/FluidR3Mono_GM.sf3");
+}
 void Library::clearRecent() { m_recent.clear(); emit recentChanged(); m_saveTimer.start(); }
 void Library::clearPositions() { m_positions.clear(); m_watched.clear(); emit positionsChanged(); emit watchedChanged(); m_saveTimer.start(); }
 void Library::clearThumbs() {

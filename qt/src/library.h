@@ -3,6 +3,7 @@
 // Files are read with `ffmpeg -i` (duration, video or audio, artist/album) and get a thumbnail from the slim FFmpeg,
 // two at a time in the background; the file you are about to play skips the line (hurry).
 #pragma once
+#include <QDir>
 #include <QHash>
 #include <QObject>
 #include <QSet>
@@ -70,6 +71,9 @@ public:
   Q_INVOKABLE QString picturesDir() const;                    // snapshots go here unless set otherwise
   Q_INVOKABLE QString videosDir() const;                      // recordings, the first media folder suggestion
   Q_INVOKABLE void clearRecent();
+  Q_INVOKABLE bool makeDir(const QString &dir) const;
+  Q_INVOKABLE QString logFile() const { return QDir::toNativeSeparators(dataDir() + "/vlc-redesign.log"); }
+  Q_INVOKABLE QString builtinSoundfont() const;               // FluidR3 Mono, next to the program
   Q_INVOKABLE void clearPositions();                          // and the watched marks
   Q_INVOKABLE void clearThumbs();
   Q_INVOKABLE QString toLocal(const QVariant &url) const;     // file:///… (drops, file dialogs) → a path

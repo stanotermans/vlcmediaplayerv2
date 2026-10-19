@@ -27,7 +27,15 @@ class VlcPlayer : public QObject {
   Q_PROPERTY(double rate READ rate WRITE setRate NOTIFY rateChanged)
   Q_PROPERTY(QSize videoSize READ videoSize NOTIFY videoSizeChanged) // the picture's size on screen (pixel aspect applied)
   Q_PROPERTY(bool keepSpu MEMBER m_keepSpu)
-  Q_PROPERTY(QString version READ version CONSTANT)
+  Q_PROPERTY(QString version READ version NOTIFY versionChanged)
+  Q_PROPERTY(QStringList startArgs MEMBER m_startArgs)
+  // Settings → General → Save a log: libVLC's messages (errors only, or all) go to this file ("" = no log)
+  Q_PROPERTY(QString logFile READ logFile WRITE setLogFile NOTIFY logChanged)
+  Q_PROPERTY(bool logAll READ logAll WRITE setLogAll NOTIFY logChanged)              // more libVLC start options (passthrough), before the first file
+  Q_PROPERTY(bool isDvd READ isDvd NOTIFY stateChanged)
+  Q_PROPERTY(QSize frameSize READ frameSize NOTIFY videoSizeChanged)   // the picture in pixels (before the pixel aspect)
+  Q_PROPERTY(int title READ title NOTIFY titleChanged)               // DVD: the title that plays (menus are titles too)
+  Q_PROPERTY(bool recording READ recording NOTIFY recordingChanged)
   Q_PROPERTY(QString error READ error NOTIFY errorChanged)
   Q_PROPERTY(int framesShown READ framesShown NOTIFY timeChanged)
 public:
@@ -50,11 +58,19 @@ public:
   void setRate(double r);
   QSize videoSize() const { return m_videoSize; }
   QString version() const { return m_version; }
+  bool isDvd() const { return m_dvd; }
+  QString logFile() const;
+  void setLogFile(const QString &f);
+  bool logAll() const { return m_logAll; }
+  void setLogAll(bool a);
+  QSize frameSize() const { return m_frameSize; }
+  int title() const { return m_title; }
+  bool recording() const { return m_recording; }
   QString error() const { return m_error; }
   int framesShown() const { return m_frames.load(); }
 
   // a file, or a URL (http…, dvd://…); startMs: where to begin
-  Q_INVOKABLE void open(const QString &src, qint64 startMs = 0);
+  Q_INVOKABLE void open(const QString &src, qint64 startMs = 0, const QStringList &options = {});   // options: ":soundfont=…"
   Q_INVOKABLE void play();
   Q_INVOKABLE void pause();
   Q_INVOKABLE void togglePause() { m_playing ? pause() : play(); }
@@ -72,6 +88,24 @@ public:
   Q_INVOKABLE void setSpuDelay(double seconds);       // the picture on screen, as PNG or JPEG
   Q_INVOKABLE void log(const QString &line);                  // testing: appends a line to VLCR_LOG
 
+  // audio: VLC's own 10-band equalizer ([preamp, 10 bands] in dB, or null: off), its audio filters (compressor,
+  // spatializer, stereo widener; "" = none) with their settings [[name, "f"|"i"|"b", value]], surround → stereo,
+  // the sound earlier/later than the picture, and "fast seek" (keyframes) from the next file on
+  Q_INVOKABLE void setEqualizer(const QVariant &bands);
+  Q_INVOKABLE bool setAudioFx(const QString &filters, const QVariantList &params);
+  Q_INVOKABLE void setStereo(bool downmix);
+  Q_INVOKABLE void setAudioDelay(double ms);
+  Q_INVOKABLE void setFastSeek(bool on) { m_fastSeek = on; }
+  // DVD menus (libdvdnav): navigate 0 OK, 1 up, 2 down, 3 left, 4 right; the disc's menu; titles; the mouse over a
+  // menu in video pixels (moves the highlight; click presses it)
+  Q_INVOKABLE void navigate(int mode);
+  Q_INVOKABLE bool dvdMenu();
+  Q_INVOKABLE QVariantList titles() const;                    // [{ duration, name, menu, interactive }]
+  Q_INVOKABLE void setTitle(int i);
+  Q_INVOKABLE int dvdMouse(int x, int y, bool click);
+  // VLC's Record: the playing streams saved unchanged (with sound) into folder until record(false)
+  Q_INVOKABLE bool record(bool on, const QString &folder = {});
+
 signals:
   void videoSinkChanged();
   void timeChanged();
@@ -83,6 +117,10 @@ signals:
   void errorChanged();
   void ended();          // played to the end
   void failed();         // libVLC could not play it
+  void versionChanged();
+  void logChanged();
+  void titleChanged();
+  void recordingChanged();
 
 private:
   // libVLC video callbacks (on libVLC's video thread)
@@ -102,11 +140,18 @@ private:
   bool m_playing = false, m_loading = false, m_muted = false;
   int m_volume = 80, m_state = 0;
   double m_rate = 1;
+  QStringList m_startArgs;
+  bool m_logAll = false;
+  bool m_dvd = false, m_recording = false, m_fastSeek = false;
+  int m_title = -1;
+  void *holdChild(const char *type) const;
+  void applyFx(void *o) const;
+  void applyStereo() const;
   double m_sar = 0;                       // pixel aspect ratio of the video track (0: not read yet)
   int m_spu = -1;
   qint64 m_spuDelay = 0;
   bool m_keepSpu = false, m_spuApplied = false;
-  QSize m_videoSize;
+  QSize m_videoSize, m_frameSize;
   QString m_version, m_error;
   std::atomic<int> m_frames{0};
   // frames libVLC writes into: a fixed ring, reused (the sink only keeps the newest one or two, so a frame is written

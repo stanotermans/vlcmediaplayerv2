@@ -9,6 +9,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <QQmlEngine>
+#include "system.h"
 
 // Settings → General → Interface size: the whole interface is scaled by Qt, so it is read before the app starts
 static void applyInterfaceSize() {
@@ -30,8 +32,18 @@ int main(int argc, char *argv[]) {
 #ifdef Q_OS_WIN
   QFont f("Segoe UI Variable Text"); f.setPixelSize(13); app.setFont(f);   // v2.x: 13px "Segoe UI Variable Text"
 #endif
+  // one running app: files opened while it runs ("Open with", a double-click) go to it
+  System sys;
+  const QStringList paths = System::pathsFromArgs(app.arguments());
+  const bool testing = qEnvironmentVariableIsSet("VLCR_SHOT");
+  if (!testing && System::forwardToRunning(paths)) return 0;
+  if (!testing) sys.listen();
+  sys.setStartPaths(paths);
+
+
   QQmlApplicationEngine engine;
   engine.rootContext()->setContextProperty("qtVersion", QString(qVersion()));
+  engine.rootContext()->setContextProperty("System", &sys);
   auto *ctx = engine.rootContext();
   ctx->setContextProperty("startFolder", qEnvironmentVariable("VLCR_FOLDER"));
   ctx->setContextProperty("autoPlay", qEnvironmentVariable("VLCR_PLAY"));

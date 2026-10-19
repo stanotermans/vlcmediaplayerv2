@@ -23,20 +23,82 @@ Rectangle {
     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
     height: parent.height * 0.27; color: Theme.floor
   }
-  Item {   // the picture in its real shape (pixel aspect applied), fitted, filled or stretched (Video → Aspect ratio)
+  Item {   // the picture in its real shape (pixel aspect applied), fitted, filled or stretched (Video → Aspect ratio),
+            // cropped, zoomed, rotated and mirrored, with the video filters (Video → Filters) on the graphics card
+    id: stage
     anchors.fill: parent
     visible: root.showVideo
     clip: true
-    readonly property real ar: root.ctl.player.videoSize.width > 0 ? root.ctl.player.videoSize.width / root.ctl.player.videoSize.height : 16 / 9
+    readonly property var vf: Settings.values.vf || {}
+    readonly property var crop: vf.crop || { t: 0, b: 0, l: 0, r: 0 }
+    readonly property size full: root.ctl.player.videoSize
+    readonly property real sx: root.ctl.player.frameSize.width > 0 ? full.width / root.ctl.player.frameSize.width : 1   // crop is in the picture's pixels
+    readonly property real cw: Math.max(1, full.width - (crop.l + crop.r) * sx)
+    readonly property real ch: Math.max(1, full.height - crop.t - crop.b)
+    readonly property real ar: full.width > 0 ? cw / ch : 16 / 9
     readonly property string mode: Settings.values.aspect || ""
     readonly property bool wide: width / height > ar
-    VideoOutput {
-      id: video
+    // the box the visible (cropped) part fills
+    readonly property real bw: mode === "stretch" ? width : (wide !== (mode === "fill")) ? height * ar : width
+    readonly property real bh: mode === "stretch" ? height : (wide !== (mode === "fill")) ? height : width / ar
+    Item {
+      id: box
       anchors.centerIn: parent
-      fillMode: VideoOutput.Stretch
-      width: parent.mode === "stretch" ? parent.width : (parent.wide !== (parent.mode === "fill")) ? parent.height * parent.ar : parent.width
-      height: parent.mode === "stretch" ? parent.height : (parent.wide !== (parent.mode === "fill")) ? parent.height : parent.width / parent.ar
+      width: stage.bw; height: stage.bh
+      clip: stage.crop.t || stage.crop.b || stage.crop.l || stage.crop.r
+      rotation: stage.vf.rotate || 0
+      transform: Scale { origin.x: box.width / 2; origin.y: box.height / 2; xScale: (stage.vf.zoom || 1) * (stage.vf.mirror ? -1 : 1); yScale: stage.vf.zoom || 1 }
+      VideoOutput {
+        id: video
+        fillMode: VideoOutput.Stretch
+        width: box.width * (stage.full.width > 0 ? stage.full.width / stage.cw : 1)
+        height: box.height * (stage.full.height > 0 ? stage.full.height / stage.ch : 1)
+        x: -stage.crop.l * stage.sx * box.width / stage.cw
+        y: -stage.crop.t * box.height / stage.ch
+        readonly property bool filtered: stage.vf.brightness !== 100 || stage.vf.contrast !== 100 || stage.vf.saturate !== 100 || !!stage.vf.hue || !!stage.vf.sepia
+                                         || !!stage.vf.gray || !!stage.vf.negate || !!stage.vf.posterize || (stage.vf.gamma ?? 1) !== 1 || !!stage.vf.sharpen || !!stage.vf.grain
+        layer.enabled: filtered
+        layer.effect: ShaderEffect {
+          readonly property real brightness: (stage.vf.brightness ?? 100) / 100
+          readonly property real contrast: (stage.vf.contrast ?? 100) / 100
+          readonly property real saturate: (stage.vf.saturate ?? 100) / 100
+          readonly property real hue: (stage.vf.hue || 0) * Math.PI / 180
+          readonly property real sepia: (stage.vf.sepia || 0) / 100
+          readonly property real gray: stage.vf.gray ? 1 : 0
+          readonly property real negate: stage.vf.negate ? 1 : 0
+          readonly property real posterize: stage.vf.posterize ? 1 : 0
+          readonly property real gamma: stage.vf.gamma ?? 1
+          readonly property real sharpen: stage.vf.sharpen || 0
+          readonly property real grain: stage.vf.grain || 0
+          property real time: 0
+          readonly property size texel: Qt.size(1 / Math.max(1, width), 1 / Math.max(1, height))
+          NumberAnimation on time { running: (stage.vf.grain || 0) > 0 && root.ctl.player.playing; from: 0; to: 100; duration: 100000; loops: Animation.Infinite }
+          fragmentShader: "qrc:/shaders/videofx.frag.qsb"
+        }
+        // DVD menus: the mouse moves the highlight, a click presses the button under it
+        MouseArea {
+          anchors.fill: parent
+          enabled: root.ctl.en.dvdMenu
+          hoverEnabled: enabled
+          onPositionChanged: m => root.ctl.en.dvdMouse(video, m.x, m.y, false)
+          onClicked: m => root.ctl.en.dvdMouse(video, m.x, m.y, true)
+        }
+      }
     }
+  }
+
+  Rectangle {   // #rec: REC and the time while recording
+    visible: root.ctl.player.recording
+    x: 12; y: 12; z: 5
+    width: recRow.implicitWidth + 18; height: 24; radius: 12; color: "#bb000000"
+    property int secs: 0
+    Timer { running: parent.visible; interval: 500; repeat: true; triggeredOnStart: true; onTriggered: parent.secs = Math.floor((Date.now() - root.ctl.en.recStart) / 1000) }
+    Row { id: recRow; anchors.centerIn: parent; spacing: 6
+      Rectangle { width: 9; height: 9; radius: 5; color: "#e5393a"; anchors.verticalCenter: parent.verticalCenter
+        SequentialAnimation on opacity { running: root.ctl.player.recording; loops: Animation.Infinite
+          PropertyAction { value: 1 } PauseAnimation { duration: 500 } PropertyAction { value: 0.2 } PauseAnimation { duration: 500 } } }
+      T { px: 12; color: "#ffffff"; font.features: { "tnum": 1 }; anchors.verticalCenter: parent.verticalCenter
+          text: "REC " + String(Math.floor(parent.parent.secs / 60)).padStart(2, "0") + ":" + String(parent.parent.secs % 60).padStart(2, "0") } }
   }
 
   Item {   // #audioBg: the cover, blurred, dimmed (Settings → Interface → Music background)
@@ -79,6 +141,7 @@ Rectangle {
     onClicked: m => {
       if (m.button === Qt.RightButton) { const p = mapToItem(null, m.x, m.y); root.ctl.menu(root.ctl.playerMenu(), p.x, p.y); return; }
       if (skipClick) { skipClick = false; return; }
+      if (root.ctl.en.dvdMenu) return;            // the menu's buttons take the clicks
       click.restart();
     }
     onDoubleClicked: { click.stop(); if ((Settings.values.dblclick || "fullscreen") === "fullscreen") root.ctl.toggleFs(); else root.ctl.pb.togglePlay(); }

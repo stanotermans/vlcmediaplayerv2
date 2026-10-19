@@ -40,7 +40,7 @@ QtObject {
     const resumeAt = Settings.values.resume && pos && pos < (i.duration || 1e9) - 5 ? pos : 0;
     fit = true;
     player.keepSpu = dvdRe.test(i.src);              // a DVD's menus and subtitles stay libVLC's
-    player.open(mrl(i), resumeAt * 1000);
+    player.open(mrl(i), resumeAt * 1000, ctl.en.options(i.src));
     ctl.sb.setup(i);
     if (resumeAt) osd(qsTr("Resuming from %1").arg(Lib.shortFmt(resumeAt)));
     if (Settings.values.rememberRecent) library.addRecent(i.src);
@@ -62,7 +62,7 @@ QtObject {
     ctl.flashBig(player.playing);
   }
   function stop() {
-    savePos(); abClear(true);
+    savePos(); abClear(true); ctl.en.stopRecord();
     player.stop(); frames.clear(); ctl.sb.clear();
     ctl.current = null; library.playing = "";
     ctl.showBrowser();
@@ -229,7 +229,7 @@ QtObject {
     ["subMinus", "Subtitle delay −", ["g"], () => ctl.sb.nudge(-0.1)],
     ["subPlus", "Subtitle delay +", ["h"], () => ctl.sb.nudge(0.1)],
     ["snapshot", "Snapshot", ["S"], () => snapshot()],
-    ["record", "Record", ["r", "R"], () => {}],
+    ["record", "Record", ["r", "R"], () => ctl.en.toggleRecord()],
     ["slower", "Slower", ["["], () => setSpeed(speed - 0.25)],
     ["faster", "Faster", ["]"], () => setSpeed(speed + 0.25)],
     ["normalSpeed", "Normal speed", ["="], () => setSpeed(1)],
@@ -240,7 +240,7 @@ QtObject {
     ["bookmark", "Add bookmark", ["Ctrl+b"], () => addBookmark()],
     ["abRepeat", "A-B repeat (set A, set B, off)", ["a"], () => abCycle()],
     ["bookmarks", "Chapters and bookmarks", ["Ctrl+B"], () => {}],
-    ["dvdMenu", "DVD menu", ["M"], () => {}],
+    ["dvdMenu", "DVD menu", ["M"], () => ctl.en.showDvdMenu()],
     ["audioEarlier", "Audio delay − (sound earlier)", ["j"], () => nudgeAudio(-50)],
     ["audioLater", "Audio delay + (sound later)", ["J"], () => nudgeAudio(50)]
   ]

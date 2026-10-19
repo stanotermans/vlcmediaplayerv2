@@ -3,7 +3,7 @@ project(vlcredesign3 VERSION 3.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia Svg Network)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia Svg Network ShaderTools)
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(vlcr
@@ -16,6 +16,7 @@ qt_add_executable(vlcr
   src/keyfilter.cpp src/keyfilter.h
   src/subtitles.cpp src/subtitles.h
   src/i18n.cpp src/i18n.h
+  src/system.cpp src/system.h
 )
 set_source_files_properties(qml/Theme.qml qml/SettingsSearch.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(vlcr
@@ -40,14 +41,18 @@ qt_add_qml_module(vlcr
     qml/pages/NetworkPage.qml qml/pages/PerformancePage.qml qml/pages/RecordingPage.qml qml/pages/ExtensionsPage.qml
     qml/pages/AboutPage.qml qml/pages/EffectRows.qml qml/pages/VSlider.qml qml/pages/FontSelect.qml qml/pages/Effects.js
     qml/controls/KeyCaps.qml qml/controls/FolderRow.qml qml/controls/LinkButton.qml
-    qml/player/QuickPanel.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml
+    qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml
   RESOURCES
     src/defaults.json
     lang/de.json lang/es.json lang/fr.json lang/it.json lang/nl.json lang/pl.json lang/pt.json
 )
+qt_add_shaders(vlcr "shaders"
+  PREFIX "/"
+  FILES shaders/videofx.frag
+)
 target_include_directories(vlcr PRIVATE src)
 target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)
 if(WIN32)
-  target_link_libraries(vlcr PRIVATE user32 crypt32)
+  target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject)
 endif()
 set_target_properties(vlcr PROPERTIES WIN32_EXECUTABLE ON MACOSX_BUNDLE ON)
