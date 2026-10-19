@@ -7,7 +7,7 @@ const DEFAULTS = {
   confirmDialogs: true, autoUpdate: true, lastUpdateCheck: 0, skipVersion: '', devMode: false, logOn: false, logFile: '', logLevel: 'error',
   // interface
   uiScale: 100, keys: {}, startView: 'videos', audioLabel: false, audioBg: 'blur', audioBgDim: 65, coverSize: 40, ctl: { prevnext: true, play: true, time: true, volume: true, audio: true, subs: true, settings: true, library: true },
-  navExpanded: false, autoHideSide: true, fitWindow: true, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, hideCursor: true, passthrough: false, engine: 'classic', fastSeek: false, volShape: 'bar', surround: true, dimWatched: true, showBadge: true,
+  navExpanded: false, autoHideSide: true, fitWindow: true, miniPlayer: true, seekPreview: true, showThumbs: true, hideCursorDelay: 2.5, hideCursor: true, passthrough: false, engine: 'vlc', engineV: 2, fastSeek: false, volShape: 'bar', surround: true, dimWatched: true, showBadge: true,
   // privacy
   rememberRecent: true, resume: true,
   // playback
@@ -38,6 +38,9 @@ let data;
 try { data = Object.assign(clone(DEFAULTS), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { data = clone(DEFAULTS); }
 for (const k of ['vf', 'comp', 'reverb', 'widen', 'ctl']) data[k] = Object.assign(clone(DEFAULTS[k]), data[k]);
 data.vf.crop = Object.assign({ t: 0, b: 0, l: 0, r: 0 }, data.vf.crop);
+// The VLC engine became the default (engineV 2). Settings are stored with their defaults, so "classic" from before
+// was nearly always just the old default: switch once; choosing Classic afterwards sticks.
+if (data.engineV !== 2) { data.engine = 'vlc'; data.engineV = 2; try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
 
 const listeners = [];
 let saveT;

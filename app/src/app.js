@@ -1,7 +1,8 @@
 (async () => {
 const { $, $$, esc, el, icon } = UI;
 // Playback engine (Settings → Playback → Engine): the page's <video> (Classic: Chromium + FFmpeg), or libVLC behind
-// a <video>-like stand-in (VLC; Windows, see vlcplayer.js). Chosen at startup.
+// a <video>-like stand-in (VLC, the default; see vlcplayer.js). Chosen at startup; Classic when libVLC is missing or
+// does not start.
 const video = (() => {
   const el = $('#video');
   if (S.get('engine') === 'vlc' && window.VlcVideo && VlcVideo.available()) { try { return new VlcVideo(el); } catch (e) { console.error('VLC engine:', e); } }
@@ -416,7 +417,7 @@ const OK_F = /mov|mp4|matroska|webm|ogg|mp3|flac|wav|aac/;
 api.setSoundfont(S.get('soundfont') || '');
 S.on(async k => { if (k !== 'soundfont') return; await api.setSoundfont(S.get('soundfont') || ''); const it = curItem(); if (it && MIDI_RE.test(it.src)) reloadSource(); });
 const chromiumNeedsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.extra;
-// With the VLC engine nothing is converted, except what goes the Classic way (DVDs, or a file libVLC failed on)
+// With the VLC engine nothing is converted, except what goes the Classic way (a file libVLC failed on: see 'error')
 // What the VLC engine leaves to the Classic path: HDR films on an HDR screen. There Chromium can show real HDR, while
 // the VLC engine's canvas tone-maps to SDR.
 const isHdr = it => !!(it.info && it.info.color && /smpte2084|arib-std-b67/.test(it.info.color.transfer || ''));

@@ -341,9 +341,9 @@ function pages(App) {
     playback: () => [
       // libVLC engine: only offered where the module and the bundled libVLC are there
       window.VlcVideo && VlcVideo.available() ? sec('Engine',
-        row('Playback engine', select([['classic', 'Classic (Chromium + FFmpeg)'], ['vlc', 'VLC (libVLC) – preview']],
+        row('Playback engine', select([['vlc', 'VLC (libVLC)'], ['classic', 'Classic (Chromium + FFmpeg)']],
           { get: () => S.get('engine'), set: v => { S.set('engine', v); App.osd('Restart the app to apply this'); }, path: 'engine' }),
-          { info: 'VLC plays files with VLC’s own engine, including DVD menus (also copy-protected DVDs). Still in preview. Takes effect after restarting the app.' }),
+          { info: 'VLC plays files with VLC’s own engine, including DVD menus (also copy-protected DVDs). Classic uses the player built into the app and converts other formats with FFmpeg. Takes effect after restarting the app.' }),
         row('Fast seek', toggle('fastSeek'), { info: 'VLC engine only, like VLC’s own setting. Jumps to the nearest keyframe instead of the exact moment: quicker in large files, less precise. Applies from the next file on.' })) : null,
       sec('Defaults',
         row('Repeat', select([['off', 'Off'], ['one', 'Current'], ['all', 'All']], 'repeat')),
