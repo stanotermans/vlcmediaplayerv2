@@ -47,6 +47,7 @@ tar -C "$(dirname "$OPT")" --transform "s,^opt,vlc-redesign-$VERSION," -czf "$OU
 # deb, rpm, Arch: nFPM
 get https://github.com/goreleaser/nfpm/releases/download/v2.41.1/nfpm_2.41.1_Linux_x86_64.tar.gz nfpm.tgz
 [ -x "$TOOLS/nfpm" ] || tar -C "$TOOLS" -xzf "$TOOLS/nfpm.tgz" nfpm
-export VERSION OPT AD
-for p in deb rpm archlinux; do nfpm package -f packaging/linux/nfpm.yaml -p $p -t "$OUT/"; done
+# (nFPM does not expand variables in the file list: fill them in first)
+sed -e "s|\${VERSION}|$VERSION|g" -e "s|\${OPT}|$OPT|g" -e "s|\${AD}|$AD|g" packaging/linux/nfpm.yaml > build-linux/nfpm.yaml
+for p in deb rpm archlinux; do nfpm package -f build-linux/nfpm.yaml -p $p -t "$OUT/"; done
 ls -la "$OUT"

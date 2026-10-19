@@ -1,4 +1,4 @@
-# nFPM: the .deb, .rpm and Arch package of VLC Redesign 3 (package.sh sets VERSION, OPT and AD). The app lives in
+# nFPM: the .deb, .rpm and Arch package of VLC Redesign 3 (package.sh fills in VERSION, OPT and AD). The app lives in
 # /opt/vlc-redesign with its own Qt and libVLC; the command, the menu entry and the icon go to the usual places.
 name: vlc-redesign
 arch: amd64
