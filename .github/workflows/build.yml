@@ -8,7 +8,7 @@ name: Build & Release
 on:
   workflow_dispatch:
   push:
-    tags: ['v*']
+    tags: ['v*', '!v3.*']   # v3 (Qt) has its own workflow: qt.yml
 
 jobs:
   # Slim ffmpeg (see app/build/ffmpeg/build.sh). Cached until the build script changes.
