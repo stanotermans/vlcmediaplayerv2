@@ -204,7 +204,7 @@ QtObject {
     const i = t.findIndex(x => x.id === player.audioTrack()), n = t[(i + 1) % t.length];
     player.setAudioTrack(n.id); osd(qsTr("Audio: %1").arg(n.name));
   }
-  // #55: the sound against the picture, in 50 ms steps (the effect itself comes with the audio settings, phase 6)
+  // #55 #58: the sound against the picture, in 10 ms steps (the effect itself comes with the audio settings, phase 6)
   function nudgeAudio(d) { const v = Math.max(-1000, Math.min(1000, (Settings.values.audioDelay || 0) + d)); Settings.set("audioDelay", v); osd(qsTr("Audio delay %1 ms").arg((v > 0 ? "+" : "") + v)); }
 
   // ---------- keyboard: actions with changeable keys (Settings → Controls, #37) ----------
@@ -242,8 +242,8 @@ QtObject {
     ["abRepeat", "A-B repeat (set A, set B, off)", ["a"], () => abCycle()],
     ["bookmarks", "Chapters and bookmarks", ["Ctrl+B"], () => {}],
     ["dvdMenu", "DVD menu", ["M"], () => ctl.en.showDvdMenu()],
-    ["audioEarlier", "Audio delay − (sound earlier)", ["j"], () => nudgeAudio(-50)],
-    ["audioLater", "Audio delay + (sound later)", ["J"], () => nudgeAudio(50)]
+    ["audioEarlier", "Audio delay − (sound earlier)", ["j"], () => nudgeAudio(-10)],
+    ["audioLater", "Audio delay + (sound later)", ["J"], () => nudgeAudio(10)]
   ]
   // Give one action new keys (taken away from any other action that had them); [] removes its keys.
   function setKeys(id, list) {

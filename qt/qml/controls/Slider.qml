@@ -15,6 +15,7 @@ Column {
   property int ticks: 0
   property bool center: false
   property bool box: false          // the value in an editable box (v2.x's valbox): type a number, Enter sets it
+  property bool editing: false      // #58: a click on the value of any slider opens the same box
   property real value: path !== "" ? (Settings.values, Number(Settings.get(path))) : 0
   signal moved(real v)
   property bool controlled: false   // value comes from a binding and is changed by the owner (on moved)
@@ -35,11 +36,12 @@ Column {
   readonly property real c: Math.min(1, Math.max(0, (0 - min) / (max - min)))
 
   Item {
-    width: root.width; height: root.box ? val.implicitHeight + 10 : Math.max(lbl.implicitHeight, val.implicitHeight)
-    T { id: lbl; text: qsTr(root.label); color: Theme.text2; width: parent.width - (root.box ? 120 : val.implicitWidth + 10); anchors.verticalCenter: parent.verticalCenter }
-    T { id: val; anchors.right: parent.right; text: root.fmt(root.value); color: Theme.muted; font.features: { "tnum": 1 }; visible: !root.box }
+    width: root.width; height: root.box || root.editing ? val.implicitHeight + 10 : Math.max(lbl.implicitHeight, val.implicitHeight)
+    T { id: lbl; text: qsTr(root.label); color: Theme.text2; width: parent.width - (root.box || root.editing ? 120 : val.implicitWidth + 10); anchors.verticalCenter: parent.verticalCenter }
+    T { id: val; anchors.right: parent.right; text: root.fmt(root.value); color: Theme.muted; font.features: { "tnum": 1 }; visible: !root.box && !root.editing
+         MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.IBeamCursor; onClicked: { root.editing = true; edit.selectAll(); edit.forceActiveFocus(); } } }
     Rectangle {
-      visible: root.box
+      visible: root.box || root.editing
       anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
       width: 110; height: edit.implicitHeight + 10; radius: Theme.radius; color: Theme.track
       border.width: 1; border.color: edit.activeFocus ? Theme.accent : Theme.line
@@ -55,8 +57,9 @@ Column {
           text = root.fmt(root.value);
         }
         onAccepted: { commit(); focus = false; }
-        onEditingFinished: commit()
-        Keys.onEscapePressed: { text = root.fmt(root.value); focus = false; }
+        onEditingFinished: { commit(); root.editing = false; }
+        onActiveFocusChanged: if (!activeFocus) root.editing = false
+        Keys.onEscapePressed: { text = root.fmt(root.value); focus = false; root.editing = false; }
       }
     }
   }

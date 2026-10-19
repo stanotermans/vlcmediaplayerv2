@@ -97,8 +97,9 @@ def playback(c):
 @test
 def keys(c):   # #37: the skip keys, mute, speed
     c.vals, _ = run(c.name, ['set:jump=5'] + PLAY('video.mp4', 1500) + ['pause', 'seek:2', 'wait:600', 'key:ArrowRight', 'wait:700', 'log:"t="+player.time',
-                    'key:ArrowLeft', 'wait:700', 'log:"t="+player.time', 'key:m', 'log:"muted="+player.muted', 'key:]', 'log:"rate="+player.rate'])
-    c.near('t', 7000, 400, 0); c.near('t', 2000, 400, 1); c.eq('muted', 'true'); c.more('rate', 1.01)
+                    'key:ArrowLeft', 'wait:700', 'log:"t="+player.time', 'key:m', 'log:"muted="+player.muted', 'key:]', 'log:"rate="+player.rate',
+                    'key:j', 'key:j', 'log:"delay="+Settings.values.audioDelay'])
+    c.near('t', 7000, 400, 0); c.near('t', 2000, 400, 1); c.eq('muted', 'true'); c.more('rate', 1.01); c.eq('delay', -20)   # #58: 10 ms steps
 
 @test
 def ab_repeat(c):   # #42
@@ -188,6 +189,13 @@ def settings_kept(c):   # settings and positions survive a restart
     c.vals, _ = run(c.name, ['log:"accent="+Settings.values.accent', 'log:"jump="+Settings.values.jump',
                              'log:"pos="+Math.round(library.positions[vis.find(i => i.name === "video.mp4").src] || 0)'], profile=prof)
     c.eq('accent', '#3b82f6'); c.eq('jump', 30); c.near('pos', 6, 1)
+
+@test
+def probe_cache(c):   # #59: the next start shows the library complete at once, without FFmpeg reading every file again
+    _, prof = run(c.name, ['view:videos', 'wait:4000'])
+    c.vals, _ = run(c.name, ['view:videos', 'log:"dur="+Math.round(vis.find(i => i.name === "video.mp4").duration)', 'log:"busy="+library.busy'],
+                    extra_env={'VLCR_FFMPEG': os.path.join(OUT, 'no-ffmpeg-here')}, profile=prof)
+    c.eq('dur', 12); c.eq('busy', 0)
 
 @test
 def migration(c):   # v2.x → v3: export-for-v3.json in v2.x's data folder

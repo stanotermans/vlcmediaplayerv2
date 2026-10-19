@@ -169,7 +169,14 @@ QString Library::dataDir() const {
 void Library::changed() { if (!m_notify.isActive()) m_notify.start(); if (!m_loading) m_saveTimer.start(); }
 
 // ---------- persistence: library.json ----------
+QString Library::cacheKey(const QString &src) {
+  const QFileInfo fi(src);
+  return fi.isFile() ? QString::number(fi.size()) + ":" + QString::number(fi.lastModified().toMSecsSinceEpoch()) : QString();
+}
 void Library::load() {
+  { QFile c(dataDir() + "/probe-cache.json");
+    if (c.open(QIODevice::ReadOnly)) { const QJsonObject o = QJsonDocument::fromJson(c.readAll()).object();
+      for (auto it = o.begin(); it != o.end(); ++it) m_probeCache[it.key()] = it.value().toObject().toVariantMap(); } }
   QFile f(dataDir() + "/library.json");
   if (!f.open(QIODevice::ReadOnly)) {   // first start: v2.x's two example playlists
     m_playlists = { QVariantMap{ { "name", "Cool Songs" }, { "srcs", QStringList() }, { "cover", QString() } },
@@ -199,6 +206,10 @@ void Library::save() {
   o["bookmarks"] = QJsonObject::fromVariantMap(m_bookmarks);
   QSaveFile f(dataDir() + "/library.json");
   if (f.open(QIODevice::WriteOnly)) { f.write(QJsonDocument(o).toJson(QJsonDocument::Compact)); f.commit(); }
+  QJsonObject cache;   // only the files that are still in the library
+  for (auto it = m_probeCache.cbegin(); it != m_probeCache.cend(); ++it) if (m_index.contains(it.key())) cache[it.key()] = QJsonObject::fromVariantMap(it.value());
+  QSaveFile c(dataDir() + "/probe-cache.json");
+  if (c.open(QIODevice::WriteOnly)) { c.write(QJsonDocument(cache).toJson(QJsonDocument::Compact)); c.commit(); }
 }
 
 // ---------- adding media ----------
@@ -342,6 +353,17 @@ void Library::remove(const QStringList &srcs) {
 }
 
 void Library::probe(const QString &src) {
+  const QVariantMap cached = m_probeCache.value(src);
+  if (!cached.isEmpty() && !isRemote(src) && cached["key"].toString() == cacheKey(src)) {
+    QVariantMap info = cached["info"].toMap();
+    const QString thumb = info["thumb"].toString();
+    if (thumb.isEmpty() || (m_thumbs && QFileInfo::exists(QUrl(thumb).toLocalFile()))) {
+      if (!m_thumbs) info.remove("thumb");
+      m_busy++; emit busyChanged();
+      QMetaObject::invokeMethod(this, [this, src, info]() { probed(src, info); }, Qt::QueuedConnection);
+      return;
+    }
+  }
   auto *job = new ProbeJob(this, src, m_thumbs, dataDir() + "/thumbs");
   QDir().mkpath(job->thumbDir);
   m_waiting[src] = job;
@@ -371,6 +393,7 @@ void Library::probed(const QString &src, const QVariantMap &info) {
   }
   for (auto k = info.cbegin(); k != info.cend(); ++k) it[k.key()] = k.value();
   it["type"] = info["vcodec"].isNull() ? "audio" : "video";
+  if (!it["remote"].toBool()) { const QString key = cacheKey(src); if (!key.isEmpty() && m_probeCache.value(src)["key"] != key) { m_probeCache[src] = QVariantMap{ { "key", key }, { "info", info } }; m_saveTimer.start(); } }
   it["ready"] = true;
   m_items[i] = it;
   changed();
@@ -534,6 +557,7 @@ void Library::clearRecent() { m_recent.clear(); emit recentChanged(); m_saveTime
 void Library::clearPositions() { m_positions.clear(); m_watched.clear(); emit positionsChanged(); emit watchedChanged(); m_saveTimer.start(); }
 void Library::clearThumbs() {
   QDir(dataDir() + "/thumbs").removeRecursively(); QDir(dataDir() + "/frames").removeRecursively();
+  m_probeCache.clear(); m_saveTimer.start();
   for (int i = 0; i < m_items.size(); i++) { QVariantMap it = m_items[i].toMap(); it["thumb"] = QString(); m_items[i] = it; }
   changed();
 }

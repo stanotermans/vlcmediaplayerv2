@@ -120,5 +120,9 @@ private:
   int m_busy = 0;
   QThreadPool m_pool;
   QHash<QString, ProbeJob *> m_waiting;
+  // what FFmpeg found per file (#59): with the same size and time the next start shows it at once, without reading
+  // the file again; probe-cache.json next to library.json
+  QHash<QString, QVariantMap> m_probeCache;   // src → { key, info }
+  static QString cacheKey(const QString &src);
   QTimer m_notify, m_saveTimer;
 };
