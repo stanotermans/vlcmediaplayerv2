@@ -31,7 +31,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq --no-install-recommends libvlc5 libvlccore9 vlc-plugin-base vlc-plugin-video-output vlc-bin patchelf \
+apt-get install -y -qq --no-install-recommends libvlc5 libvlccore9 vlc-plugin-base vlc-plugin-video-output vlc-plugin-fluidsynth vlc-bin patchelf \
   build-essential nasm pkg-config libdav1d-dev curl ca-certificates xz-utils >/dev/null
 
 # FFmpeg 5.1 (libavcodec.so.59 …, like Debian 12), checked against the release's SHA-256 (signed by FFmpeg's release key)
@@ -64,8 +64,8 @@ find "$OUT/lib/vlc/plugins" \( -name 'libsvg*_plugin.so' -o -name 'libsdl_image_
   -o -name 'libpostproc_plugin.so' -o -name 'libstream_out_chromaprint_plugin.so' -o -name 'libstream_out_chromecast_plugin.so' \) -delete
 
 # Libraries every desktop system has (and that must match the system: glibc, graphics drivers, sound server), after
-# the AppImage project's excludelist
-EXCLUDE='^(ld-linux.*|libc|libm|libdl|libpthread|librt|libresolv|libutil|libanl|libnsl|libcrypt|libstdc\+\+|libgcc_s|libGL.*|libEGL|libGLX|libGLdispatch|libOpenGL|libgbm|libdrm.*|libva.*|libvdpau|libX.*|libxcb.*|libxkbcommon.*|libwayland-.*|libasound|libjack|libfontconfig|libfreetype|libharfbuzz|libexpat|libz|libuuid|libdbus-1|libsystemd|libudev|libselinux|libgpg-error|libgcrypt|libcom_err|libkeyutils|libkrb5.*|libgssapi_krb5|libk5crypto)\.so'
+# the AppImage project's excludelist; libjack is bundled (MIDI: FluidSynth links it, VLC never plays through it)
+EXCLUDE='^(ld-linux.*|libc|libm|libdl|libpthread|librt|libresolv|libutil|libanl|libnsl|libcrypt|libstdc\+\+|libgcc_s|libGL.*|libEGL|libGLX|libGLdispatch|libOpenGL|libgbm|libdrm.*|libva.*|libvdpau|libX.*|libxcb.*|libxkbcommon.*|libwayland-.*|libasound|libfontconfig|libfreetype|libharfbuzz|libexpat|libz|libuuid|libdbus-1|libsystemd|libudev|libselinux|libgpg-error|libgcrypt|libcom_err|libkeyutils|libkrb5.*|libgssapi_krb5|libk5crypto)\.so'
 copy_deps() {   # copies the not-excluded libraries $1 needs into lib/ (ours first: the slim FFmpeg)
   LD_LIBRARY_PATH="$OUT/lib" ldd "$1" 2>/dev/null | awk '/=> \//{print $3}' | while read -r dep; do
     name=$(basename "$dep")

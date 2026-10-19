@@ -106,7 +106,23 @@ FunctionEnd
   !insertmacro ${T} ".pls" "VLCRedesign.pls" "Playlist"
 !macroend
 
+; v2.x installed elsewhere (electron-builder, its key is a UUIDv5 of the appId): removed quietly first, before the
+; shortcuts (same names) are made, but only once it has written its data for v3 (v2.2 and later). Its uninstaller
+; keeps %APPDATA%\VLC Redesign, so the app takes the settings and library over on its first start.
+!define V2KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\{913a180f-8dd3-525b-971c-da381db998ef}"
+!macro RemoveV2 ROOT
+  ReadRegStr $0 ${ROOT} "${V2KEY}" "QuietUninstallString"
+  StrCmp $0 "" v2done_${ROOT}
+  IfFileExists "$APPDATA\VLC Redesign\export-for-v3.json" 0 v2done_${ROOT}
+  ReadRegStr $1 ${ROOT} "${V2KEY}" "DisplayVersion"
+  DetailPrint "Removing VLC Redesign $1"
+  ExecWait $0
+  v2done_${ROOT}:
+!macroend
+
 Section "Install"
+  !insertmacro RemoveV2 HKCU
+  !insertmacro RemoveV2 HKLM
   ; v2.x (Electron) installed here too: its files go, its settings stay (the app takes them over on first start)
   IfFileExists "$INSTDIR\resources\app.asar" 0 +3
     RMDir /r "$INSTDIR\resources"
