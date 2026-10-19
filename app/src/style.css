@@ -645,7 +645,8 @@ input.bmname{flex:1;min-width:0}
 #vshield{position:absolute;inset:0;pointer-events:none;display:none;background:rgba(0,0,0,.01)}
 .fullscreen.in-player:not(.hidecursor) #player.playing-video #vshield{display:block}
 /* onboarding: default player step */
-.ob-default{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.ob-default{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.ob-default h1{font-size:30px;font-weight:300}
 .ob-default .ob-lead{max-width:460px}
 .ob-bigbtn{padding:10px 22px;font-size:15px}
 .ob-result{max-width:480px;margin:0;color:var(--text2);font-size:13.5px;line-height:1.45}
