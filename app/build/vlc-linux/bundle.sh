@@ -5,7 +5,9 @@
 #                     until 2028) with the libraries they need, minus the ones every desktop system has (glibc, the C++
 #                     runtime, graphics, X11, ALSA, fonts). The libraries find each other through their rpath ($ORIGIN).
 #                     FFmpeg is our own slim build of the same 5.1 series (same library versions, so VLC's plugins use
-#                     it): decoders and demuxers only, instead of Debian's full one with encoders (75 MB less).
+#                     it): decoders and demuxers only, instead of Debian's full one with encoders (75 MB less). Its
+#                     functions are renamed (vlcx_av…) in it and in the plugins that call it: Electron's own FFmpeg
+#                     (libffmpeg.so, unversioned symbols) would otherwise answer those calls inside the app.
 #                     Needs glibc 2.36 (Debian 12, Ubuntu 23.04, Fedora 37 and newer); elsewhere the app uses Classic.
 #   bundle.sh module  (Debian 11, glibc 2.31) the vlcview module, which only needs glibc, so it also loads on older
 #                     systems with the system's libVLC (deb, pacman).
@@ -79,6 +81,28 @@ while [ -n "$todo" ]; do
   for f in $todo; do next="$next $(copy_deps "$f")"; done
   todo=$(echo $next)
 done
+# Rename FFmpeg's functions (patchelf 0.18 rewrites names and hash tables; Debian 12 has 0.14)
+PE_SHA256=ce84f2447fb7a8679e58bc54a20dc2b01b37b5802e12c57eece772a6f14bf3f0
+curl -sSL -o /tmp/patchelf.tar.gz https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz
+echo "$PE_SHA256  /tmp/patchelf.tar.gz" | sha256sum -c - >/dev/null
+mkdir -p /tmp/patchelf && tar -xzf /tmp/patchelf.tar.gz -C /tmp/patchelf
+PE=/tmp/patchelf/bin/patchelf
+FFLIBS="libavcodec.so.59 libavformat.so.59 libavutil.so.57 libswscale.so.6 libswresample.so.4"
+for l in $FFLIBS; do
+  objdump -T "$OUT/lib/$l" | awk 'NF >= 2 && !/\*UND\*/ && $(NF-1) ~ /^LIB(AVCODEC|AVFORMAT|AVUTIL|SWSCALE|SWRESAMPLE)_/ && $NF != $(NF-1) {print $NF}'
+done | sort -u > /tmp/ffsyms
+awk '{print $1" vlcx_"$1}' /tmp/ffsyms > /tmp/ffmap
+renamed=0
+for f in $(find "$OUT/lib" -name '*.so*' -type f); do
+  name=$(basename "$f")
+  if [[ " $FFLIBS " == *" $name "* ]] || objdump -T "$f" | awk '/\*UND\*/{print $NF}' | grep -qxFf /tmp/ffsyms; then
+    $PE --rename-dynamic-symbols /tmp/ffmap "$f"; renamed=$((renamed + 1))
+  fi
+done
+left=$(for f in $(find "$OUT/lib" -name '*.so*' -type f); do objdump -T "$f" | awk '/\*UND\*/{print $NF}'; done | grep -cxFf /tmp/ffsyms || true)
+echo "FFmpeg: $(wc -l < /tmp/ffsyms) functions renamed in $renamed files, $left calls to the old names left"
+[ "$left" = 0 ] || exit 1
+
 # rpaths: lib/ for everything, so the system's copies are not used instead
 for f in "$OUT"/lib/*.so*; do [ -L "$f" ] || patchelf --set-rpath '$ORIGIN' "$f"; done
 find "$OUT/lib/vlc/plugins" -name '*.so' -exec patchelf --set-rpath '$ORIGIN/../../..' {} \;
