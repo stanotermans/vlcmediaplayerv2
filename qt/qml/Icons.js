@@ -1,6 +1,9 @@
 // Icons of VLC Redesign v2.x (app/src/ui.js, 24x24 strokes), used by Icon.qml
 .pragma library
 var paths = {
+ "ph_video": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"M10 9l5 3-5 3z\"/>",
+ "ph_audio": "<circle cx=\"8\" cy=\"17\" r=\"3\"/><path d=\"M11 17V5l8 2\"/>",
+ "row_video": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/>",
  "play": "<path d=\"M7 4l13 8-13 8z\"/>",
  "pause": "<path d=\"M7 5v14M17 5v14\"/>",
  "stop": "<rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" rx=\"1\"/>",

@@ -7,10 +7,12 @@ Rectangle {
   property string text: ""
   property string kind: ""           // "", "primary", "ghost"
   property string icon: ""
+  property bool danger: false        // red text (Remove …)
+  property bool compact: false       // 6px 12px (#selbar .btn)
   signal clicked()
   readonly property bool hovered: area.containsMouse
-  implicitWidth: row.implicitWidth + 32
-  implicitHeight: 32
+  implicitWidth: row.implicitWidth + (compact ? 24 : 32)
+  implicitHeight: compact ? 30 : 32
   radius: Theme.radius
   color: kind === "primary" ? (hovered ? Theme.accent2 : Theme.accent) : kind === "ghost" ? (hovered ? Theme.panel2 : "transparent") : hovered ? Theme.panel3 : Theme.panel2
   border.width: 1
@@ -26,7 +28,7 @@ Rectangle {
     Icon { visible: root.icon !== ""; name: root.icon; width: 15; height: 15; anchors.verticalCenter: parent.verticalCenter
            color: label.color }
     T { id: label; text: root.text; anchors.verticalCenter: parent.verticalCenter
-        color: root.kind === "primary" ? Theme.accentText : root.kind === "ghost" ? Theme.text2 : Theme.text
+        color: root.danger ? "#e5534b" : root.kind === "primary" ? Theme.accentText : root.kind === "ghost" ? Theme.text2 : Theme.text
         font.weight: root.kind === "" ? Font.Normal : Font.DemiBold }
   }
   MouseArea { id: area; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.clicked() }

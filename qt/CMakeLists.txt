@@ -18,7 +18,9 @@ qt_add_qml_module(vlcr
   URI VLCR
   VERSION 1.0
   QML_FILES
-    qml/Main.qml qml/Theme.qml qml/Icons.js
+    qml/Main.qml qml/Theme.qml qml/Icons.js qml/Lib.js
+    qml/library/Rail.qml qml/library/SidePanel.qml qml/library/Browser.qml qml/library/Card.qml qml/library/ListRow.qml
+    qml/dialogs/Ask.qml qml/dialogs/NewPlaylist.qml qml/dialogs/Network.qml qml/dialogs/MediaInfo.qml
     qml/controls/T.qml qml/controls/Icon.qml qml/controls/IconButton.qml qml/controls/Button.qml
     qml/controls/Toggle.qml qml/controls/Segmented.qml qml/controls/Swatches.qml qml/controls/Slider.qml
     qml/controls/TextField.qml qml/controls/Select.qml qml/controls/ColorField.qml
