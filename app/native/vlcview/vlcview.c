@@ -1,13 +1,38 @@
 // vlcview: plays media with libVLC (VLC's engine) for the "VLC" playback engine (Settings → Playback → Engine).
-// libvlc.dll is loaded at runtime from the folder passed to init(), so no import library is needed and the app still
-// starts when libVLC is missing (the Classic engine is used then).
+// libVLC is loaded at runtime (Windows: libvlc.dll from the folder passed to init(); Linux/macOS: <folder>/lib, or the
+// system's libVLC when the folder is ""), so no import library is needed and the app still starts when libVLC is
+// missing (the Classic engine is used then).
 // Video: libVLC writes every decoded frame (I420) straight into one of three slots of an ArrayBuffer that the app
 // allocated; the preload script uploads the newest slot to WebGL. Audio goes from libVLC to the sound card itself.
+#ifndef _WIN32
+#define _GNU_SOURCE                               // RTLD_DEFAULT in glibc's dlfcn.h
+#endif
 #include <node_api.h>
-#include <windows.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <windows.h>
+typedef HMODULE lib_t;
+#define SYM(h, name) ((void *)GetProcAddress((h), (name)))
+#else
+#include <dlfcn.h>
+typedef void *lib_t;
+#define SYM(h, name) dlsym((h), (name))
+typedef int32_t LONG; typedef int64_t LONG64;   // the frame bookkeeping below uses the Windows names
+#define InterlockedExchange(p, v) __atomic_exchange_n((p), (v), __ATOMIC_SEQ_CST)
+#define InterlockedExchange64(p, v) __atomic_exchange_n((p), (v), __ATOMIC_SEQ_CST)
+#define InterlockedIncrement64(p) __atomic_add_fetch((p), 1, __ATOMIC_SEQ_CST)
+#endif
+#ifdef __APPLE__
+#define LIBVLC "libvlc.dylib"
+#define LIBVLCCORE "libvlccore.dylib"
+#else
+#define LIBVLC "libvlc.so.5"
+#define LIBVLCCORE "libvlccore.so.9"
+#endif
 
 typedef struct libvlc_instance_t libvlc_instance_t;
 typedef struct libvlc_media_t libvlc_media_t;
@@ -74,7 +99,7 @@ static struct {
   int (*set_spu_delay)(libvlc_media_player_t *, int64_t);
 } vlc;
 
-static HMODULE dll;
+static lib_t dll;
 static libvlc_instance_t *inst;
 static libvlc_media_player_t *mp;
 static libvlc_equalizer_t *eq;                  // VLC's 10-band equalizer; NULL = off (kept across files)
@@ -151,18 +176,43 @@ static napi_value str(napi_env env, const char *s) { napi_value r; napi_create_s
 static void set(napi_env env, napi_value o, const char *k, double v) { napi_set_named_property(env, o, k, num(env, v)); }
 static void throw_(napi_env env, const char *m) { napi_throw_error(env, NULL, m); }
 
-#define LOAD(field, sym) if (!(*(FARPROC *)&vlc.field = GetProcAddress(dll, sym))) { throw_(env, "libvlc: missing " sym); return NULL; }
+#define LOAD(field, sym) if (!(*(void **)&vlc.field = SYM(dll, sym))) { throw_(env, "libvlc: missing " sym); return NULL; }
+// libVLC itself: Windows <dir>\libvlc.dll; Linux/macOS <dir>/lib/libvlc…, or the system's when dir is ""
+static lib_t open_libvlc(const char *d8) {
+#ifdef _WIN32
+  wchar_t dir[1024]; MultiByteToWideChar(CP_UTF8, 0, d8, -1, dir, 1024);
+  SetDllDirectoryW(dir);                                         // libvlc.dll finds libvlccore.dll and plugins\ next to it
+  wchar_t path[1100]; swprintf(path, 1100, L"%s\\libvlc.dll", dir);
+  return LoadLibraryW(path);
+#else
+  if (!d8[0]) return dlopen(LIBVLC, RTLD_NOW | RTLD_GLOBAL);
+  char path[1200]; snprintf(path, sizeof path, "%s/lib/" LIBVLC, d8);
+#ifdef __APPLE__
+  // VLC.app's layout: lib/ and plugins/ side by side (libVLC itself would look in lib/vlc/plugins)
+  char plugins[1200]; snprintf(plugins, sizeof plugins, "%s/plugins", d8); setenv("VLC_PLUGIN_PATH", plugins, 1);
+#endif
+  lib_t h = dlopen(path, RTLD_NOW | RTLD_GLOBAL);                  // bundled libs find each other through their rpath
+#ifdef __APPLE__
+  if (!h) { snprintf(path, sizeof path, "%s/lib/libvlc.5.dylib", d8); h = dlopen(path, RTLD_NOW | RTLD_GLOBAL); }   // VLC.app's versioned name
+#endif
+  return h;
+#endif
+}
 // init(vlcFolder, frameBuffer, extraArgs) → libVLC version; extraArgs: more libVLC options (e.g. passthrough)
 FN(Init) {
   ARGS(3);
   if (inst) return str(env, vlc.get_version());
-  wchar_t dir[1024]; char d8[1024]; size_t n;
+  char d8[1024]; size_t n;
   napi_get_value_string_utf8(env, argv[0], d8, sizeof d8, &n);
-  MultiByteToWideChar(CP_UTF8, 0, d8, -1, dir, 1024);
-  SetDllDirectoryW(dir);                                         // libvlc.dll finds libvlccore.dll and plugins\ next to it
-  wchar_t path[1100]; swprintf(path, 1100, L"%s\\libvlc.dll", dir);
-  dll = LoadLibraryW(path);
-  if (!dll) { throw_(env, "libvlc.dll not found"); return NULL; }
+  dll = open_libvlc(d8);
+  if (!dll) {
+#ifdef _WIN32
+    throw_(env, "libvlc.dll not found");
+#else
+    char m[600]; snprintf(m, sizeof m, "libVLC not found: %s", dlerror()); throw_(env, m);
+#endif
+    return NULL;
+  }
   LOAD(new_, "libvlc_new") LOAD(get_version, "libvlc_get_version")
   LOAD(media_new_path, "libvlc_media_new_path") LOAD(media_new_location, "libvlc_media_new_location")
   LOAD(media_release, "libvlc_media_release") LOAD(media_add_option, "libvlc_media_add_option") LOAD(mp_new_from_media, "libvlc_media_player_new_from_media")
@@ -187,15 +237,26 @@ FN(Init) {
   LOAD(mp_get_media, "libvlc_media_player_get_media") LOAD(tracks_get, "libvlc_media_tracks_get")
   LOAD(tracks_release_, "libvlc_media_tracks_release") LOAD(video_get_track, "libvlc_video_get_track")
   LOAD(spu_tracks, "libvlc_video_get_spu_description") LOAD(set_spu_delay, "libvlc_video_set_spu_delay")
-  HMODULE cdll = GetModuleHandleW(L"libvlccore.dll"), crt = LoadLibraryW(L"msvcrt.dll");
-  if (cdll && crt) {
-    *(FARPROC *)&core.var_Create = GetProcAddress(cdll, "var_Create");
-    *(FARPROC *)&core.var_SetChecked = GetProcAddress(cdll, "var_SetChecked");
-    *(FARPROC *)&core.list_children = GetProcAddress(cdll, "vlc_list_children");
-    *(FARPROC *)&core.obj_hold = GetProcAddress(cdll, "vlc_object_hold");
-    *(FARPROC *)&core.obj_release = GetProcAddress(cdll, "vlc_object_release");
-    *(FARPROC *)&core.free_ = GetProcAddress(crt, "free");       // libVLC is built against msvcrt
-    *(FARPROC *)&core.var_Trigger = GetProcAddress(cdll, "var_TriggerCallback");
+#ifdef _WIN32
+  lib_t cdll = GetModuleHandleW(L"libvlccore.dll"), crt = LoadLibraryW(L"msvcrt.dll");
+  if (crt) *(void **)&core.free_ = SYM(crt, "free");             // libVLC is built against msvcrt
+#else
+  // libvlccore came along with libVLC; this only gets a handle to it (bundled: next to libVLC, else the system's)
+  char core_path[1200]; snprintf(core_path, sizeof core_path, "%s%s" LIBVLCCORE, d8, d8[0] ? "/lib/" : "");
+  lib_t cdll = dlopen(core_path, RTLD_NOW | RTLD_GLOBAL);
+#ifdef __APPLE__
+  if (!cdll && d8[0]) { snprintf(core_path, sizeof core_path, "%s/lib/libvlccore.9.dylib", d8); cdll = dlopen(core_path, RTLD_NOW | RTLD_GLOBAL); }
+#endif
+  if (!cdll) cdll = RTLD_DEFAULT;
+  core.free_ = free;
+#endif
+  if (cdll) {
+    *(void **)&core.var_Create = SYM(cdll, "var_Create");
+    *(void **)&core.var_SetChecked = SYM(cdll, "var_SetChecked");
+    *(void **)&core.list_children = SYM(cdll, "vlc_list_children");
+    *(void **)&core.obj_hold = SYM(cdll, "vlc_object_hold");
+    *(void **)&core.obj_release = SYM(cdll, "vlc_object_release");
+    *(void **)&core.var_Trigger = SYM(cdll, "var_TriggerCallback");
   }
   static char extra[8][1024]; const char *args[16] = { "--no-video-title-show", "--quiet", "--no-osd", "--no-snapshot-preview", "--no-stats", "--no-lua", "--no-sub-autodetect-file" };
   int na = 7; uint32_t ne = 0;

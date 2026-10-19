@@ -18,7 +18,7 @@ class VlcVideo extends EventTarget {
     this.canvas.id = 'vlcView'; this.canvas.className = el.className;
     el.after(this.canvas);
     // passthrough (Settings → Audio): Dolby/DTS go to the receiver as they are; a libVLC start option
-    this.version = window.vlcEngine.start('vlcView', S.get('passthrough') ? ['--mmdevice-passthrough=2'] : []);
+    this.version = window.vlcEngine.start('vlcView', S.get('passthrough') ? [navigator.userAgent.includes('Windows') ? '--mmdevice-passthrough=2' : '--spdif'] : []);   // Windows: WASAPI incl. HD formats; elsewhere VLC's S/PDIF option
     this.classic = false;                                     // true while an item plays through the <video>
     this._src = ''; this._rate = 1; this._volume = 1; this._muted = false;
     this._reset();

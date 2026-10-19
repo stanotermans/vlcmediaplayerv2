@@ -301,7 +301,13 @@
         "Name": "VLC Redesign",
         "StartupWMClass": "vlc-redesign"
       },
-      "artifactName": "vlc-redesign-${version}-${arch}.${ext}"
+      "artifactName": "vlc-redesign-${version}-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "vendor/vlc",
+          "to": "vlc"
+        }
+      ]
     },
     "deb": {
       "depends": [
@@ -313,7 +319,9 @@
         "xdg-utils",
         "libatspi2.0-0",
         "libuuid1",
-        "libsecret-1-0"
+        "libsecret-1-0",
+        "libvlc5",
+        "vlc-plugin-base"
       ],
       "afterInstall": "build/linux/after-install.tpl",
       "afterRemove": "build/linux/after-remove.tpl"
@@ -360,6 +368,12 @@
         "pt_BR",
         "pt_PT",
         "pl"
+      ],
+      "extraResources": [
+        {
+          "from": "vendor/vlc",
+          "to": "vlc"
+        }
       ]
     },
     "copyright": "© 2026 Stan Otermans. Unofficial fan project – not affiliated with VideoLAN. Design © Juxtopposed.",
@@ -379,7 +393,25 @@
     ],
     "pacman": {
       "afterInstall": "build/linux/after-install.tpl",
-      "afterRemove": "build/linux/after-remove.tpl"
+      "afterRemove": "build/linux/after-remove.tpl",
+      "depends": [
+        "gtk3",
+        "libnotify",
+        "nss",
+        "libxss",
+        "libxtst",
+        "xdg-utils",
+        "at-spi2-core",
+        "util-linux-libs",
+        "libsecret",
+        "alsa-lib",
+        "mesa",
+        "libvlc",
+        "vlc-plugins-base",
+        "vlc-plugin-ffmpeg",
+        "vlc-plugin-dvd",
+        "vlc-plugin-pulse"
+      ]
     }
   },
   "dependencies": {

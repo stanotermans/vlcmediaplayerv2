@@ -108,15 +108,23 @@ jobs:
           esac
           chmod +x node_modules/ffmpeg-static/ffmpeg* && ls -l node_modules/ffmpeg-static/
 
-      # VLC playback engine (Windows): libVLC from the official VLC build (checked against VideoLAN's SHA-256, trimmed,
-      # without the DVD plugins that contain libdvdcss) and the native module that connects it to the app
-      - name: libVLC and the vlcview module
+      # VLC playback engine: libVLC and the native module that connects it to the app (scripts/vlc-smoke.js checks
+      # that they play). Windows and macOS: VideoLAN's official builds, checked against VideoLAN's SHA-256 and trimmed.
+      # Linux: build/vlc-linux (Debian's libVLC with a slim FFmpeg) for AppImage, rpm and tar.gz; deb and pacman use
+      # the system's libVLC instead (see the Linux step).
+      - name: libVLC and the vlcview module (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           node scripts/fetch-vlc.js
           npx --yes node-gyp@11 rebuild -C native/vlcview --arch=x64
-          ls -l native/vlcview/build/Release/vlcview.node vendor/vlc
+          node scripts/vlc-smoke.js
+      - name: libVLC and the vlcview module (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          bash build/vlc-linux/docker.sh
+          sudo chown -R "$(id -u):$(id -g)" vendor native/vlcview
+          node scripts/vlc-smoke.js
 
       # Windows in two signing rounds: first the app itself (so the installed .exe is signed),
       # then the installer and portable .exe that wrap it.
@@ -169,11 +177,17 @@ jobs:
 
       - name: macOS Apple Silicon
         if: runner.os == 'macOS'
-        run: npx electron-builder --mac --arm64 --publish never
-      - name: macOS Intel (with Intel FFmpeg)
+        run: |
+          node scripts/fetch-vlc.js mac-arm64
+          npx --yes node-gyp@11 rebuild -C native/vlcview --arch=arm64
+          node scripts/vlc-smoke.js
+          npx electron-builder --mac --arm64 --publish never
+      - name: macOS Intel (with Intel FFmpeg and libVLC)
         if: runner.os == 'macOS'
         run: |
           cp ../ffbin/ffmpeg-mac-x64/ffmpeg node_modules/ffmpeg-static/ffmpeg && chmod +x node_modules/ffmpeg-static/ffmpeg
+          node scripts/fetch-vlc.js mac-x64
+          npx --yes node-gyp@11 rebuild -C native/vlcview --arch=x64
           npx electron-builder --mac --x64 --publish never
 
       - name: Linux (AppImage, deb, rpm, pacman, tar.gz)
@@ -181,7 +195,11 @@ jobs:
         run: |
           # productName without a space: the packages install to /opt/<productName>, and Chromium's fallback
           # sandbox (used where user namespaces are blocked, e.g. Ubuntu 24.04) cuts paths at spaces
-          npx electron-builder --linux deb rpm pacman tar.gz -c.productName=vlc-redesign --publish never
+          # deb and pacman depend on the system's libVLC: built without the bundled one
+          mv vendor/vlc vendor/vlc-bundled
+          npx electron-builder --linux deb pacman -c.productName=vlc-redesign --publish never
+          mv vendor/vlc-bundled vendor/vlc
+          npx electron-builder --linux rpm tar.gz -c.productName=vlc-redesign --publish never
           # AppImage with gzip instead of xz: AppImageHub and older AppImage runtimes cannot mount xz
           npx electron-builder --linux AppImage -c.compression=normal -c.productName=vlc-redesign --publish never
 
