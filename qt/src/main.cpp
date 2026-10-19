@@ -2,6 +2,13 @@
 #include <QFont>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include "vlcplayer.h"
+#include <cstdio>
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 #include <QQmlContext>
 #include <QQuickStyle>
 
@@ -49,10 +56,10 @@ int main(int argc, char *argv[]) {
   sys.setStartPaths(paths);
 
 
-  QQmlApplicationEngine engine;
-  engine.rootContext()->setContextProperty("qtVersion", QString(qVersion()));
-  engine.rootContext()->setContextProperty("System", &sys);
-  auto *ctx = engine.rootContext();
+  auto *engine = new QQmlApplicationEngine;
+  engine->rootContext()->setContextProperty("qtVersion", QString(qVersion()));
+  engine->rootContext()->setContextProperty("System", &sys);
+  auto *ctx = engine->rootContext();
   ctx->setContextProperty("startFolder", qEnvironmentVariable("VLCR_FOLDER"));
   ctx->setContextProperty("autoPlay", qEnvironmentVariable("VLCR_PLAY"));
   // testing: VLCR_OPEN=settings[:<page>] opens a window at start; VLCR_SHOT=<file.png> saves the window after
@@ -60,7 +67,11 @@ int main(int argc, char *argv[]) {
   ctx->setContextProperty("openAtStart", qEnvironmentVariable("VLCR_OPEN"));
   ctx->setContextProperty("shotPath", qEnvironmentVariable("VLCR_SHOT"));
   ctx->setContextProperty("shotMs", qEnvironmentVariableIsSet("VLCR_SHOT_MS") ? qEnvironmentVariableIntValue("VLCR_SHOT_MS") : 6000);
-  QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(1); }, Qt::QueuedConnection);
-  engine.loadFromModule("VLCR", "Main");
-  return app.exec();
+  QObject::connect(engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(1); }, Qt::QueuedConnection);
+  engine->loadFromModule("VLCR", "Main");
+  const int code = app.exec();
+  delete engine;   // the library and the settings are saved here
+  // a network stream that stalls can keep libVLC's stop busy: end now instead of unloading libVLC under it
+  if (VlcPlayer::stopsPending()) { fflush(nullptr); _exit(code); }
+  return code;
 }

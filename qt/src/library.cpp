@@ -14,6 +14,8 @@
 #include <QJsonObject>
 #include <QMimeDatabase>
 #include <QProcess>
+#include <atomic>
+#include <QElapsedTimer>
 #include <QRegularExpression>
 #include <QRunnable>
 #include <QSaveFile>
@@ -53,6 +55,8 @@ QString Library::itemName(const QString &src) {
 }
 
 // ---------- reading a file: `ffmpeg -i` (main.js probe) and a 320px JPEG (main.js thumbnail) ----------
+static std::atomic<bool> g_quitting{ false };   // the app closes: running FFmpeg reads stop at once
+
 class ProbeJob : public QRunnable {
 public:
   ProbeJob(Library *lib, QString src, bool thumbs, QString thumbDir) : lib(lib), src(std::move(src)), thumbs(thumbs), thumbDir(std::move(thumbDir)) {}
@@ -60,7 +64,10 @@ public:
   static QByteArray run(const QStringList &args, int ms, QByteArray *err = nullptr) {
     QProcess p; p.start(ffmpeg(), args);
     if (!p.waitForStarted(5000)) return {};
-    if (!p.waitForFinished(ms)) { p.kill(); p.waitForFinished(1000); }
+    QElapsedTimer t; t.start();
+    while (!p.waitForFinished(100))
+      if (g_quitting || t.elapsed() > ms || p.state() == QProcess::NotRunning) { if (p.state() != QProcess::NotRunning) { p.kill(); p.waitForFinished(1000); } break; }
+    if (g_quitting) return {};
     if (err) *err = p.readAllStandardError();
     return p.readAllStandardOutput();
   }
@@ -76,7 +83,7 @@ public:
     static const QRegularExpression tag(R"(^\s{4}(album|artist|album_artist)\s*:\s*(.+)$)", QRegularExpression::CaseInsensitiveOption);
     static const QRegularExpression title(R"(^\s+title\s*:\s*(.+)$)");
     static const QRegularExpression chap(R"(^\s*Chapter #\d+:\d+: start (-?[\d.]+), end (-?[\d.]+))");
-    QVariantList audio, subs, chapters; QVariantMap tags; bool inStreams = false, cover = false; QVariantMap *cur = nullptr;
+    QVariantList audio, subs; QList<QVariantMap> chapters; QVariantMap tags; bool inStreams = false, cover = false; QVariantMap *cur = nullptr;
     QList<QVariantMap> streams;
     for (const QString &line : txt.split(QRegularExpression("\r?\n"))) {
       const auto t = tag.match(line);
@@ -90,7 +97,7 @@ public:
         cur = &streams.last(); continue;
       }
       const auto c = chap.match(line);
-      if (c.hasMatch()) { chapters.append(QVariantMap{ { "start", qMax(0.0, c.captured(1).toDouble()) }, { "end", c.captured(2).toDouble() }, { "title", QString() } }); cur = nullptr; continue; }
+      if (c.hasMatch()) { chapters.append(QVariantMap{ { "start", qMax(0.0, c.captured(1).toDouble()) }, { "end", c.captured(2).toDouble() }, { "title", QString() } }); cur = &chapters.last(); continue; }   // its title follows
       if (QRegularExpression(R"(^\s*(Input|Output) #)").match(line).hasMatch()) { cur = nullptr; continue; }
       const auto ti = title.match(line);
       if (ti.hasMatch() && cur && cur->value("title").toString().isEmpty()) (*cur)["title"] = ti.captured(1).trimmed();
@@ -116,7 +123,7 @@ public:
     info["width"] = sz.hasMatch() ? sz.captured(1).toInt() : 0; info["height"] = sz.hasMatch() ? sz.captured(2).toInt() : 0;
     info["audio"] = audio; info["subs"] = subs; info["cover"] = cover;
     info["album"] = tags.value("album"); info["artist"] = tags.contains("artist") ? tags["artist"] : tags.value("album_artist");
-    if (chapters.size() > 1) info["chapters"] = chapters;
+    if (chapters.size() > 1) { QVariantList l; for (const QVariantMap &c : chapters) l << c; info["chapters"] = l; }
     return info;
   }
   void run() override {
@@ -153,7 +160,7 @@ Library::Library(QObject *parent) : QObject(parent) {
   m_saveTimer.setSingleShot(true); m_saveTimer.setInterval(400);
   connect(&m_saveTimer, &QTimer::timeout, this, &Library::save);
 }
-Library::~Library() { m_pool.clear(); m_pool.waitForDone(20000); if (m_saveTimer.isActive()) save(); }
+Library::~Library() { g_quitting = true; m_pool.clear(); m_pool.waitForDone(5000); if (m_saveTimer.isActive()) save(); }
 
 QString Library::dataDir() const {
   const QString d = qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));

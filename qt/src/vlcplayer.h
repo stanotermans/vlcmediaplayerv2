@@ -122,7 +122,12 @@ signals:
   void titleChanged();
   void recordingChanged();
 
+public:
+  // a stalled network stream can keep libVLC's stop busy for long: the app then ends without unloading libVLC
+  static bool stopsPending();
+
 private:
+  static void release(void *mp, int waitMs);   // stop and release on a worker thread, waiting at most waitMs
   // libVLC video callbacks (on libVLC's video thread)
   static unsigned onFormat(void **opaque, char *chroma, unsigned *w, unsigned *h, unsigned *pitches, unsigned *lines);
   static void onCleanup(void *opaque);

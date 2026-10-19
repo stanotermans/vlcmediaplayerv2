@@ -839,5 +839,5 @@ C.ApplicationWindow {
           onTriggered: { player.log("hit test over the maximise button: " + (maxBtn ? frame.hitTestAt(Math.round((maxBtn.mapToItem(null, 22, 18).x) * Screen.devicePixelRatio), Math.round(18 * Screen.devicePixelRatio)) : -1));
                          player.log("items " + library.items.length + ", busy " + library.busy + ", view " + nav.view + ", cards " + pg.cards.length +
                                     ", player " + (current ? current.name : "-") + " t=" + (player.time / 1000).toFixed(1) + " rate=" + player.rate + " vol=" + player.volume + " size=" + player.videoSize.width + "x" + player.videoSize.height + " subs=" + sb.tracks.length + "/" + sb.active + " cues=" + (sb.cues ? sb.cues.length : -1) + " now=" + JSON.stringify(sb.now));
-                         frame.grab(shotPath); Qt.quit(); } }
+                         frame.grab(shotPath); win.quit(); } }   // like Ctrl+Q: the position is kept
 }

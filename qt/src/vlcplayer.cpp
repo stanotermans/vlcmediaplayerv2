@@ -4,6 +4,9 @@
 #include <QFile>
 #include <QMetaObject>
 #include <cstring>
+#include <atomic>
+#include <future>
+#include <thread>
 #include <QImage>
 #include <QDateTime>
 #include <cstdarg>
@@ -209,9 +212,18 @@ VlcPlayer::VlcPlayer(QObject *parent) : QObject(parent) {
   connect(&m_timer, &QTimer::timeout, this, &VlcPlayer::poll);
   m_timer.start();
 }
+static libvlc_media_player_t *MP(void *p) { return static_cast<libvlc_media_player_t *>(p); }
+static std::atomic<int> g_stopping{ 0 };
+bool VlcPlayer::stopsPending() { return g_stopping > 0; }
+void VlcPlayer::release(void *mp, int waitMs) {
+  auto done = std::make_shared<std::promise<void>>();
+  auto fut = done->get_future();
+  g_stopping++;
+  std::thread([mp, done]() { vlc.mp_stop(MP(mp)); vlc.mp_release(MP(mp)); g_stopping--; done->set_value(); }).detach();
+  fut.wait_for(std::chrono::milliseconds(waitMs));   // usually at once; a stalled stream finishes on its own later
+}
 VlcPlayer::~VlcPlayer() { stop(); }
 
-static libvlc_media_player_t *MP(void *p) { return static_cast<libvlc_media_player_t *>(p); }
 
 void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &options) {
   if (!load()) return;
@@ -289,8 +301,8 @@ bool VlcPlayer::snapshot(const QString &file) const {
 void VlcPlayer::stop() {
   if (!m_mp) return;
   if (m_recording) record(false);
-  auto *mp = MP(m_mp); m_mp = nullptr;
-  vlc.mp_stop(mp); vlc.mp_release(mp);
+  void *mp = m_mp; m_mp = nullptr;
+  release(mp, 1500);
   m_playing = m_loading = false; m_state = 0; m_time = m_length = 0; m_last = QVideoFrame();
   if (m_videoSize.isValid()) { m_videoSize = m_frameSize = QSize(); emit videoSizeChanged(); }
   emit stateChanged(); emit timeChanged(); emit lengthChanged();
