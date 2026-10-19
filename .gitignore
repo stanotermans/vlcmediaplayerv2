@@ -7,3 +7,7 @@ Thumbs.db
 app/keys.json
 app/vendor/
 app/native/*/build/
+
+# Qt version (qt/): build output
+qt/build/
+qt/deploy/

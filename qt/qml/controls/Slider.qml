@@ -1,0 +1,75 @@
+// The v2.x slider: label and value on top, a thick 20px track (2px track-coloured border) filled with the dark accent
+// up to the value (from 0 with center: true), an 8×24 accent thumb, optional tick marks. Double-click resets a
+// centred slider to 0. Arrow keys step.
+import QtQuick
+import VLCR
+
+Column {
+  id: root
+  property string label: ""
+  property real min: 0
+  property real max: 100
+  property real step: 1
+  property string path: ""
+  property var fmt: v => String(v)
+  property int ticks: 0
+  property bool center: false
+  property real value: path !== "" ? (Settings.values, Number(Settings.get(path))) : 0
+  signal moved(real v)
+  spacing: 8
+  topPadding: 6; bottomPadding: 6
+  width: parent ? parent.width : 300
+
+  function setValue(v) {
+    v = Math.min(max, Math.max(min, Math.round((v - min) / step) * step + min));
+    v = Number(v.toFixed(6));
+    if (path !== "") Settings.set(path, v); else value = v;
+    moved(v);
+  }
+  readonly property real p: (value - min) / (max - min)
+  readonly property real c: Math.min(1, Math.max(0, (0 - min) / (max - min)))
+
+  Item {
+    width: root.width; height: Math.max(lbl.implicitHeight, val.implicitHeight)
+    T { id: lbl; text: qsTr(root.label); color: Theme.text2; width: parent.width - val.implicitWidth - 10 }
+    T { id: val; anchors.right: parent.right; text: root.fmt(root.value); color: Theme.muted; font.features: { "tnum": 1 } }
+  }
+  Item {
+    id: trackBox
+    width: root.width; height: 24
+    activeFocusOnTab: true
+    Accessible.role: Accessible.Slider; Accessible.name: root.label
+    Keys.onPressed: e => {
+      if (e.key === Qt.Key_Left || e.key === Qt.Key_Down) { root.setValue(root.value - root.step); e.accepted = true; }
+      else if (e.key === Qt.Key_Right || e.key === Qt.Key_Up) { root.setValue(root.value + root.step); e.accepted = true; }
+    }
+    Rectangle {   // track: 20px, 6px rounded, 2px border in the track colour
+      id: track
+      anchors.verticalCenter: parent.verticalCenter
+      width: parent.width; height: 20; radius: 6; color: Theme.track; clip: true
+      Rectangle {
+        readonly property real a: root.center ? Math.min(root.p, root.c) : 0
+        readonly property real b: root.center ? Math.max(root.p, root.c) : root.p
+        x: 2 + (parent.width - 4) * a; y: 2; width: (parent.width - 4) * (b - a); height: parent.height - 4
+        radius: root.center ? 0 : 4; color: Theme.accentDark
+      }
+      Repeater {   // tick marks: a 2px line at the end of each part
+        model: root.ticks > 1 ? root.ticks - 1 : 0
+        Rectangle { required property int index; x: 2 + (track.width - 4) * (index + 1) / root.ticks - 2; y: 2; width: 2; height: track.height - 4; color: "#14ffffff" }
+      }
+    }
+    Rectangle {   // thumb 8×24
+      x: 2 + (track.width - 4) * root.p - width / 2; anchors.verticalCenter: parent.verticalCenter
+      width: 8; height: 24; radius: 4; color: Theme.accent
+      border.width: trackBox.activeFocus ? 3 : 1; border.color: trackBox.activeFocus ? Theme.accentSoft : "#44000000"
+    }
+    MouseArea {
+      anchors.fill: parent
+      cursorShape: Qt.PointingHandCursor
+      function at(x) { root.setValue(root.min + Math.min(1, Math.max(0, (x - 2) / (width - 4))) * (root.max - root.min)); }
+      onPressed: m => { trackBox.forceActiveFocus(); at(m.x); }
+      onPositionChanged: m => { if (pressed) at(m.x); }
+      onDoubleClicked: if (root.center) root.setValue(0)
+    }
+  }
+}
