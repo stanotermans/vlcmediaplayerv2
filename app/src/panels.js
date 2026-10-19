@@ -478,7 +478,7 @@ function pages(App) {
           row('Design', el('span.about-val', {}, 'Juxtopposed – “I Redesigned VLC After 25 Years”')),
           el('div.btnrow', {}, link('Watch the video', 'https://www.youtube.com/watch?v=ERFeOgqk324', 'play'), link('Figma file', 'https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-')),
           row('Code', el('span.about-val', {}, '© 2026 Stan Otermans · ' + t('MIT license'))),
-          row('Built with', el('span.about-val', {}, `Electron ${info.electron || ''} · Chromium ${info.chrome || ''} · FFmpeg (LGPL/GPL)`)),
+          row('Built with', el('span.about-val', {}, `Electron ${info.electron || ''} · Chromium ${info.chrome || ''} · libVLC (LGPL/GPL) · FFmpeg (LGPL/GPL)`)),
           row('MIDI', el('span.about-val', {}, 'SpessaSynth (Apache-2.0) · FluidR3 Mono SoundFont (MIT)'))),
         sec('Links', el('div.btnrow', {},
           link('GitHub', 'https://github.com/stanotermans/vlcmediaplayerv2', 'github'),

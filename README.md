@@ -5,7 +5,7 @@
 # VLC Redesign
 
 **An unofficial, modern desktop media player built from the VLC redesign by [Juxtopposed](https://www.youtube.com/@juxtopposed).**
-For Windows, macOS and Linux · plays almost anything thanks to built-in FFmpeg.
+For Windows, macOS and Linux · plays almost anything with VLC's own engine (libVLC).
 
 [**⬇️ Download**](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest) ·
 [Download page](https://stanotermans.github.io/vlcmediaplayerv2/) ·
@@ -74,7 +74,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 
 ## ✨ Features
 
-- **Plays almost anything.** MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more, plus old game and cutscene formats like TGV, Bink and Smacker. Files you open yourself are always tried, whatever the extension. Anything Chromium can't play natively is converted on the fly by the built-in FFmpeg.
+- **Plays almost anything, with VLC's engine.** Since 2.0 the app plays through libVLC, the engine of VLC media player itself: MP4, MKV, AVI, MOV, WMV, FLV, WebM, MP3, FLAC, AC3/DTS and more, DVDs with their menus (also copy-protected ones), image subtitles (PGS, VobSub), VLC's equalizer and audio effects, surround and passthrough to an AV receiver, VLC's Record and frame-accurate seeking. Files you open yourself are always tried, whatever the extension. The **Classic** engine (Chromium with on-the-fly FFmpeg conversion, also for old game and cutscene formats like TGV, Bink and Smacker) stays available under *Settings → Playback → Engine*, and takes over for HDR films on HDR screens and for anything libVLC can't open.
 - **DVDs:** open a DVD `.iso` image or a DVD folder (`VIDEO_TS`). A disc with several titles (episodes, extras) is added as *Title 1, Title 2, …* in disc order and plays them one after another (titles that repeat the same video, like "episode with intro" next to "episode" or a "play all" title, are listed once); DVD menus themselves are not shown. Copy-protected (CSS-encrypted) retail DVDs are not supported.
 - **MIDI:** `.mid`, `.midi`, `.kar` and `.rmi` files play with a built-in General MIDI SoundFont (FluidR3 Mono), with no extra download, and start right away while the rest is rendered. Pick your own `.sf2`/`.sf3` SoundFont under *Settings → Audio → MIDI*.
 - **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
@@ -155,14 +155,31 @@ bash app/build/ffmpeg/build.sh mac-arm64     # or mac-x64 (on a Mac, with nasm +
 
 The result lands in `app/build/ffmpeg/out/<target>/`. Copy it over `app/node_modules/ffmpeg-static/ffmpeg[.exe]` before running `electron-builder`. During development the full `ffmpeg-static` binary is used.
 
+### libVLC (the VLC engine)
+
+The VLC engine is libVLC 3 loaded at runtime by a small native module ([`app/native/vlcview`](app/native/vlcview), N-API, so it isn't tied to an Electron version), which hands every video frame to a WebGL canvas in the app. The release workflow puts libVLC next to the app:
+
+- **Windows and macOS:** [`app/scripts/fetch-vlc.js`](app/scripts/fetch-vlc.js) takes libVLC and its plugins from VideoLAN's official VLC builds (checked against VideoLAN's SHA-256) and leaves out what the app doesn't use (VLC's interface, Lua, visualizations).
+- **Linux:** VideoLAN publishes no Linux builds, so [`app/build/vlc-linux`](app/build/vlc-linux) bundles Debian 12's libVLC with a slim FFmpeg (decoders and demuxers only) in every Linux package. Its FFmpeg functions are renamed, because Electron's own FFmpeg would otherwise answer VLC's calls.
+
+```bash
+cd app
+node scripts/fetch-vlc.js                     # Windows; on a Mac: node scripts/fetch-vlc.js mac-arm64 (or mac-x64)
+bash build/vlc-linux/docker.sh                # Linux (needs Docker)
+npx node-gyp@12 rebuild -C native/vlcview     # the native module
+node scripts/vlc-smoke.js                     # plays a test clip through libVLC
+```
+
+Without libVLC the app simply uses the Classic engine.
+
 ### Making a release
 
 The workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) builds the app on GitHub's servers for Windows, macOS and Linux, and creates a release with a download table automatically:
 
 ```bash
-# first set the version in app/package.json, e.g. "version": "1.17.0"
-git tag v1.17.0
-git push origin v1.17.0
+# first set the version in app/package.json, e.g. "version": "2.0.0"
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
 You can also run the workflow manually (*Actions → Build & Release → Run workflow*). The files then appear under *Artifacts*.
@@ -203,6 +220,10 @@ app/
     lang/*.js      Translations (nl, de, fr, es, it, pt; English is built in)
     app.js         Library, player, subtitles, keyboard shortcuts
   build/icon.png   App icon (generated by build/make-icon.js)
+  src/vlcplayer.js The VLC engine: a <video>-like player on libVLC, drawn on a canvas
+  native/vlcview/  Native module that loads libVLC and passes frames to the app
+  scripts/fetch-vlc.js  libVLC from VideoLAN's builds (Windows, macOS)
+  build/vlc-linux/ libVLC bundle for Linux
   build/ffmpeg/    Recipe for the slim FFmpeg used in releases
 docs/              Download page for GitHub Pages
 ```
@@ -224,5 +245,6 @@ The app runs on [Electron](https://www.electronjs.org), which only supports Wind
 - **Code:** [MIT](LICENSE) © Stan Otermans
 - **Design:** © [Juxtopposed](https://www.youtube.com/@juxtopposed), used with attribution based on the publicly shared Figma community file.
 - Includes [FFmpeg](https://ffmpeg.org) with [x264](https://www.videolan.org/developers/x264.html), licensed under the GPL. Release builds use the slim build from [`app/build/ffmpeg/build.sh`](app/build/ffmpeg/build.sh) (source: the FFmpeg and x264 versions pinned there); development uses [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static).
+- Includes [libVLC](https://www.videolan.org/vlc/libvlc.html) 3 by VideoLAN (LGPL 2.1 or later; some plugins GPL), from VideoLAN's official builds on Windows and macOS and from Debian 12 on Linux (see `resources/vlc/README.txt` and `COPYING-VLC.txt` in the app). On Windows and macOS its DVD plugins include [libdvdcss](https://www.videolan.org/developers/libdvdcss.html) (GPL), which reads copy-protected DVDs. Source: [download.videolan.org](https://download.videolan.org/pub/videolan/vlc/).
 - MIDI playback uses [SpessaSynth](https://github.com/spessasus/spessasynth_core) (Apache-2.0) and the [FluidR3 Mono](https://github.com/musescore/MuseScore/tree/master/share/sound) General MIDI SoundFont (MIT, see [`app/assets/FluidR3Mono_License.md`](app/assets/FluidR3Mono_License.md)).
 - "VLC" and the cone logo are trademarks of [VideoLAN](https://www.videolan.org). This project is not affiliated with VideoLAN.
