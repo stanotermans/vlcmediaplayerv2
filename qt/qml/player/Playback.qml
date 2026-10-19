@@ -244,6 +244,12 @@ QtObject {
     ["audioEarlier", "Audio delay − (sound earlier)", ["j"], () => nudgeAudio(-50)],
     ["audioLater", "Audio delay + (sound later)", ["J"], () => nudgeAudio(50)]
   ]
+  // Give one action new keys (taken away from any other action that had them); [] removes its keys.
+  function setKeys(id, list) {
+    const c = Object.assign({}, Settings.values.keys || {});
+    for (const k of list) for (const a of actions) if (a[0] !== id && keysFor(a[0]).indexOf(k) >= 0) c[a[0]] = keysFor(a[0]).filter(x => x !== k);
+    c[id] = list; Settings.set("keys", c);
+  }
   function keysFor(id) { const c = Settings.values.keys || {}; const a = actions.find(x => x[0] === id); return c[id] || (a ? a[2] : []); }
   readonly property var keyMap: { const m = {}; Settings.values.keys; for (const a of actions) for (const k of keysFor(a[0])) if (!(k in m)) m[k] = a[0]; return m; }
   property real lastMedia: 0

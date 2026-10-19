@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFontDatabase>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
@@ -262,3 +263,23 @@ void Subs::logout() {
   QFile::remove(dataDir() + "/opensubtitles.json");
   emit userChanged();
 }
+
+// ---------- subtitle fonts ----------
+QVariantList Subs::addFonts(const QVariantList &files) {
+  QVariantList out;
+  const QString dir = dataDir() + "/fonts"; QDir().mkpath(dir);
+  for (const QVariant &v : files) {
+    QString src = v.toString(); if (src.startsWith("file:")) src = QUrl(src).toLocalFile();
+    QString dst = dir + "/" + QFileInfo(src).fileName(); int n = 1;
+    while (QFileInfo::exists(dst)) dst = dir + "/" + QFileInfo(src).completeBaseName() + QString("-%1.").arg(n++) + QFileInfo(src).suffix();
+    if (!QFile::copy(src, dst)) continue;
+    const int id = QFontDatabase::addApplicationFont(dst);
+    const QStringList fam = id < 0 ? QStringList() : QFontDatabase::applicationFontFamilies(id);
+    if (fam.isEmpty()) { QFile::remove(dst); continue; }
+    out << QVariantMap{ { "name", fam.first() }, { "file", QDir::toNativeSeparators(dst) } };
+  }
+  return out;
+}
+void Subs::loadFonts(const QVariantList &fonts) { for (const QVariant &f : fonts) QFontDatabase::addApplicationFont(f.toMap()["file"].toString()); }
+void Subs::removeFont(const QString &file) { QFile::remove(file); }
+QStringList Subs::systemFonts() const { return QFontDatabase::families(); }

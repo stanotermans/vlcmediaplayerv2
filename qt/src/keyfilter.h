@@ -18,6 +18,7 @@ public:
   QJSValue handler() const { return m_handler; }
   void setHandler(const QJSValue &h) { m_handler = h; }
   static QString name(int key, Qt::KeyboardModifiers mods, const QString &text);
+  Q_INVOKABLE QString nameOf(int key, int mods, const QString &text) const { return name(key, Qt::KeyboardModifiers(mods), text); }
 signals:
   void released(int code);
 protected:

@@ -9,7 +9,9 @@ Rectangle {
   property string offLabel: "Expand settings"
   default property alias rows: body.data
   width: parent ? parent.width : 400
-  height: head.height + (open ? body.height + 10 : 0)
+  readonly property bool searching: SettingsSearch.q !== ""
+  visible: !searching || SettingsSearch.any(body)
+  height: head.height + (open || searching ? body.height + 10 : 0)
   radius: 8; color: Theme.alpha(Theme.panel2, 0.5)
   clip: true
   Item {
@@ -20,5 +22,5 @@ Rectangle {
            rotation: root.open ? 90 : 0; Behavior on rotation { NumberAnimation { duration: 150 } } }
     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.open = !root.open }
   }
-  Column { id: body; x: 12; y: head.height; width: root.width - 24; visible: root.open }
+  Column { id: body; x: 12; y: head.height; width: root.width - 24; visible: root.open || root.searching }
 }

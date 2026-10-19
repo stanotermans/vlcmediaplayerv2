@@ -68,6 +68,10 @@ public:
   Q_INVOKABLE void reveal(const QString &path) const;         // "Show in folder"
   Q_INVOKABLE void openPath(const QString &path) const;
   Q_INVOKABLE QString picturesDir() const;                    // snapshots go here unless set otherwise
+  Q_INVOKABLE QString videosDir() const;                      // recordings, the first media folder suggestion
+  Q_INVOKABLE void clearRecent();
+  Q_INVOKABLE void clearPositions();                          // and the watched marks
+  Q_INVOKABLE void clearThumbs();
   Q_INVOKABLE QString toLocal(const QVariant &url) const;     // file:///… (drops, file dialogs) → a path
   Q_INVOKABLE QStringList expandMedia(const QStringList &paths) const { QStringList l; for (const QString &p : paths) l << toLocal(p); return expand(l); }
 

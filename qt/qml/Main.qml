@@ -39,7 +39,7 @@ C.ApplicationWindow {
   property alias library: library
   readonly property var ctx: ({ items: library.items, playlists: library.playlists, recent: library.recent, watched: library.watched,
     positions: library.positions, folders: Settings.values.mediaFolders || [], view: nav.view, dir: nav.dir, query: nav.query,
-    sort: nav.sort, sortDesc: nav.sortDesc, pl: nav.pl, musicLabel: !!Settings.values.audioLabel, tr: s => qsTranslate("Lib", s) })
+    sort: nav.sort, sortDesc: nav.sortDesc, pl: nav.pl, musicLabel: !!Settings.values.audioLabel, tr: s => qsTranslate("Lib", s), lang: I18n.language })
   readonly property var pg: Lib.page(ctx)
   readonly property var vis: nav.view === "home" && !nav.query ? Lib.visibleItems(ctx) : pg.list      // what Ctrl+A selects
   readonly property var sideData: Lib.side(ctx, pg, nav.sideMode === "queue" ? pb.queue() : null)
@@ -273,7 +273,40 @@ C.ApplicationWindow {
     onAccepted: library.setPlaylistCover(target, library.readImage(selectedFile)) }
 
   function toggleMax() { win.visibility === Window.Maximized ? win.showNormal() : win.showMaximized(); }
-  function openSettings(page) { const w = Qt.createComponent("pages/SettingsWindow.qml").createObject(C.Overlay.overlay, { current: page || "interface" }); dialogs++; w.closed.connect(() => { dialogs--; w.destroy(); }); w.open(); }
+  property var settingsWin: null
+  property bool devPages: openAtStart.indexOf("components") >= 0   // the design system page (testing)
+  function openSettings(page) {
+    if (settingsWin) settingsWin.close();
+    const w = Qt.createComponent("pages/SettingsWindow.qml").createObject(C.Overlay.overlay, { current: page || "general", ctl: win });
+    settingsWin = w; dialogs++;
+    w.closed.connect(() => { dialogs--; if (settingsWin === w) settingsWin = null; w.destroy(); });
+    w.open();
+  }
+  function closeSettings() { if (settingsWin) settingsWin.close(); }
+  function confirm(title, text, ok, fn) {
+    if (Settings.values.confirmDialogs === false) return fn();
+    dialog("dialogs/Ask.qml", { title: title, text: qsTr(text), okLabel: ok }, v => { if (v) fn(); });
+  }
+  function removeFolder(f) { Settings.set("mediaFolders", (Settings.values.mediaFolders || []).filter(x => x !== f)); nav.dir = ({}); }
+  function resetVideoFilters() { const vf = Settings.defaultValue("vf"); Settings.set("vf", vf); }
+  function shortcuts() { dialog("dialogs/Shortcuts.qml", { pb: pb }); }
+  // Make VLC Redesign the app that opens videos and music. The system decides how; registering the file types
+  // (so it is listed there) comes with the installer (phase 7).
+  function setDefaultPlayer() {
+    if (Qt.platform.os === "windows") { Qt.openUrlExternally("ms-settings:defaultapps");
+      return qsTr("Windows Settings is open on Default apps. Search for a file type such as .mp4 and choose VLC Redesign. (The portable version does not appear there; use the installer for that.)"); }
+    if (Qt.platform.os === "osx") return qsTr("In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.");
+    return qsTr("That did not work here (xdg-mime is missing). Choose VLC Redesign under Default applications in your system settings.");
+  }
+  property Item onboarding: null
+  function showOnboarding() {
+    closeSettings(); showBrowser();
+    if (onboarding) return;
+    onboarding = Qt.createComponent("Onboarding.qml").createObject(win.contentItem, { ctl: win, y: 36, width: win.width, height: win.height - 36, z: 60 });
+    onboarding.width = Qt.binding(() => win.width); onboarding.height = Qt.binding(() => win.height - 36);
+    dialogs++;
+    onboarding.done.connect(() => { dialogs--; onboarding.destroy(); onboarding = null; });
+  }
   property int dialogs: 0              // open dialogs and menus (the keys wait)
   function osd(text) { osdText.text = text; osdBox.opacity = 1; osdTimer.restart(); }
 
@@ -332,7 +365,12 @@ C.ApplicationWindow {
     remember: Settings.values.rememberRecent !== false
     onMessage: t => win.osd(t)
   }
-  Connections { target: Settings; function onChanged(p) { if (p === "mediaFolders") { library.scanFolders(Settings.values.mediaFolders || []); } } }
+  Connections { target: Settings
+    function onChanged(p) {
+      if (p === "mediaFolders") library.scanFolders(Settings.values.mediaFolders || []);
+      if (p === "language") I18n.setLanguage(Settings.values.language || "");
+      if (p === "uiScale" || p === "passthrough") osd(qsTr("Restart the app to apply this"));
+    } }
   VlcPlayer {
     id: player
     videoSink: playerView.video.videoSink
@@ -346,6 +384,8 @@ C.ApplicationWindow {
   Subs { id: subs }
   Subtitles { id: sb; ctl: win; subs: subs }
   property alias sb: sb
+  property alias quick: quick
+  property alias keys: keys
   property alias subs: subs
   FileDialog { id: subDlg; title: qsTr("Add subtitle file"); nameFilters: [qsTr("Subtitles") + " (*.srt *.vtt *.ass *.ssa *.sub *.lrc)", qsTr("All files") + " (*)"]
     onAccepted: sb.addFile(library.toLocal(selectedFile), true) }
@@ -367,6 +407,9 @@ C.ApplicationWindow {
   PipWindow { id: pip; ctl: win; onClosing: win.pipOpen = false }
   WindowFrame { id: frame; maximizeButton: maxBtn }
   Component.onCompleted: {
+    I18n.setLanguage(Settings.values.language || "");
+    subs.loadFonts(Settings.values.customFonts || []);
+    if (!Settings.values.onboarded && !shotPath && !autoPlay) Qt.callLater(showOnboarding);
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
     library.load();
     library.scanFolders(Settings.values.mediaFolders || []);
@@ -409,6 +452,12 @@ C.ApplicationWindow {
     else if (k === "subfile") sb.addFile(v, true);
     else if (k === "search") searchSubtitles();
     else if (k === "submenu") menu(subtitleMenu(), 900, 400);
+    else if (k === "quick") quick.toggle(v);
+    else if (k === "lang") Settings.set("language", v);
+    else if (k === "theme") Settings.set("theme", v);
+    else if (k === "onboarding") { showOnboarding(); if (v) onboarding.step = +v; }
+    else if (k === "settingsq") { openSettings("general"); timerAt(300, () => SettingsSearch.q = v); }
+    else if (k === "shortcuts") shortcuts();
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });
       else if (v === "network") dialog("dialogs/Network.qml", {});
@@ -519,6 +568,13 @@ C.ApplicationWindow {
         z: 4
       }
 
+      QuickPanel {
+        id: quick
+        ctl: win
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; margins: 12 }
+        z: 7
+      }
+
       Rectangle {   // #osd
         id: osdBox
         anchors.horizontalCenter: parent.horizontalCenter; y: 16
@@ -572,8 +628,10 @@ C.ApplicationWindow {
           { label: player.muted ? qsTr("Unmute") : qsTr("Mute"), icon: player.muted ? "volume" : "mute", kbd: "M", action: () => pb.toggleMute() }]) },
       { label: qsTr("Subtitle"), icon: "subtitle", sub: subtitleMenu },
       { label: qsTr("More settings"), icon: "settings", sub: () => [
+          { label: qsTr("Quick settings"), icon: "settings", action: () => quick.toggle() },
           { label: qsTr("Global settings…"), icon: "general", kbd: "Ctrl + P", action: () => openSettings() },
-          { label: qsTr("Media information"), icon: "info", kbd: "Ctrl + I", action: () => mediaInfo(), disabled: !it }] },
+          { label: qsTr("Media information"), icon: "info", kbd: "Ctrl + I", action: () => mediaInfo(), disabled: !it },
+          { label: qsTr("Keyboard shortcuts"), icon: "keyboard", kbd: "F1", action: shortcuts }].concat() },
       { label: qsTr("Playlist"), icon: "playlist", sub: () => [
           { label: qsTr("Show queue"), icon: "queue", kbd: "Q", action: toggleQueue },
           { label: qsTr("Add current to playlist…"), icon: "plus", action: () => addToPlaylist([current.src]), disabled: !it },
@@ -595,6 +653,8 @@ C.ApplicationWindow {
       { label: qsTr("Media information"), icon: "info", kbd: "Ctrl + I", action: mediaInfo, disabled: !current },
       { sep: true },
       { label: qsTr("Settings…"), icon: "settings", kbd: "Ctrl + P", action: () => openSettings() },
+      { label: qsTr("Keyboard shortcuts"), icon: "keyboard", kbd: "F1", action: shortcuts },
+      { label: qsTr("Welcome screen"), icon: "info", action: showOnboarding },
       { sep: true },
       { label: qsTr("Quit VLC"), icon: "quit", kbd: "Ctrl + Q", action: quit }]), x, y);
   }
@@ -614,6 +674,15 @@ C.ApplicationWindow {
 
   // In fullscreen the top bar and the controls stay hidden; they slide in while the mouse is near the top or bottom
   // edge. The cursor hides after a moment without movement while a video plays (Settings → Interface).
+  // a click outside the quick settings closes them (the click still does what it does)
+  PointHandler {
+    acceptedButtons: Qt.AllButtons
+    onActiveChanged: if (active && quick.open) {
+      const p = quick.mapFromItem(null, point.position.x, point.position.y);
+      const onBar = point.position.y > win.height - controls.height && point.position.x > win.width - 200;   // its own buttons
+      if (!(p.x >= 0 && p.y >= 0 && p.x <= quick.width && p.y <= quick.height) && !onBar && win.dialogs === 0) quick.open = false;
+    }
+  }
   HoverHandler {
     id: hover
     onPointChanged: {
@@ -685,6 +754,8 @@ C.ApplicationWindow {
         return false;
       }
       if (name === "F11") { win.toggleFs(); return true; }
+      if (name === "F1") { win.shortcuts(); return true; }
+      if (name === "Escape" && quick.open) { quick.open = false; return true; }
       if (pb.key(name, repeat, code)) return true;
       if (name === "Escape") {
         if (win.hideUi) win.toggleHideUi();

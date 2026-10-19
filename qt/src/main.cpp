@@ -5,8 +5,25 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QStandardPaths>
+
+// Settings → General → Interface size: the whole interface is scaled by Qt, so it is read before the app starts
+static void applyInterfaceSize() {
+  QCoreApplication::setApplicationName("VLC Redesign 3"); QCoreApplication::setOrganizationName("VLC Redesign");
+  const QString dir = qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+  QFile f(dir + "/settings.json");
+  if (!f.open(QIODevice::ReadOnly)) return;
+  const double s = QJsonDocument::fromJson(f.readAll()).object()["uiScale"].toDouble(100);
+  if (s >= 75 && s <= 150 && s != 100 && !qEnvironmentVariableIsSet("QT_SCALE_FACTOR")) qputenv("QT_SCALE_FACTOR", QByteArray::number(s / 100));
+}
+
 int main(int argc, char *argv[]) {
+  applyInterfaceSize();
   QGuiApplication app(argc, argv);
+  app.setApplicationVersion("3.0.0");
   app.setApplicationName("VLC Redesign 3");
   app.setOrganizationName("VLC Redesign");
   QQuickStyle::setStyle("Basic");                      // popups and scrollbars only; everything is drawn by our components
@@ -14,6 +31,7 @@ int main(int argc, char *argv[]) {
   QFont f("Segoe UI Variable Text"); f.setPixelSize(13); app.setFont(f);   // v2.x: 13px "Segoe UI Variable Text"
 #endif
   QQmlApplicationEngine engine;
+  engine.rootContext()->setContextProperty("qtVersion", QString(qVersion()));
   auto *ctx = engine.rootContext();
   ctx->setContextProperty("startFolder", qEnvironmentVariable("VLCR_FOLDER"));
   ctx->setContextProperty("autoPlay", qEnvironmentVariable("VLCR_PLAY"));

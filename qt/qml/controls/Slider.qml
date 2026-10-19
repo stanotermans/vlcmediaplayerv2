@@ -16,6 +16,10 @@ Column {
   property bool center: false
   property real value: path !== "" ? (Settings.values, Number(Settings.get(path))) : 0
   signal moved(real v)
+  property bool controlled: false   // value comes from a binding and is changed by the owner (on moved)
+  property bool shown: true
+  readonly property string searchLabel: label
+  visible: shown && SettingsSearch.match(label)
   spacing: 8
   topPadding: 6; bottomPadding: 6
   width: parent ? parent.width : 300
@@ -23,7 +27,7 @@ Column {
   function setValue(v) {
     v = Math.min(max, Math.max(min, Math.round((v - min) / step) * step + min));
     v = Number(v.toFixed(6));
-    if (path !== "") Settings.set(path, v); else value = v;
+    if (path !== "") Settings.set(path, v); else if (!controlled) value = v;
     moved(v);
   }
   readonly property real p: (value - min) / (max - min)

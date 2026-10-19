@@ -22,6 +22,11 @@ public:
   Q_INVOKABLE void load(int req, const QString &src, int stream); // → loaded(req, webvtt); stream -1: src is a subtitle file
   Q_INVOKABLE QStringList langCodes(const QString &text) const;   // "English, Nederlands, ger" → ["en", "nl", "de"]
   Q_INVOKABLE QString query(const QString &name) const;           // a search title from a file name
+  // subtitle fonts: your own font files (copied into the app's data folder) and the fonts of the system
+  Q_INVOKABLE QVariantList addFonts(const QVariantList &files);   // → [{ name, file }] of the valid ones
+  Q_INVOKABLE void loadFonts(const QVariantList &fonts);          // at startup: Settings customFonts
+  Q_INVOKABLE void removeFont(const QString &file);
+  Q_INVOKABLE QStringList systemFonts() const;
 
   bool online() const { return !m_key.isEmpty(); }
   QString user() const { return m_user; }

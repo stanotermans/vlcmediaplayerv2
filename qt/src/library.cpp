@@ -458,6 +458,14 @@ void Library::reveal(const QString &path) const {
   QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
 #endif
 }
+QString Library::videosDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)); }
+void Library::clearRecent() { m_recent.clear(); emit recentChanged(); m_saveTimer.start(); }
+void Library::clearPositions() { m_positions.clear(); m_watched.clear(); emit positionsChanged(); emit watchedChanged(); m_saveTimer.start(); }
+void Library::clearThumbs() {
+  QDir(dataDir() + "/thumbs").removeRecursively(); QDir(dataDir() + "/frames").removeRecursively();
+  for (int i = 0; i < m_items.size(); i++) { QVariantMap it = m_items[i].toMap(); it["thumb"] = QString(); m_items[i] = it; }
+  changed();
+}
 QString Library::picturesDir() const { return QStandardPaths::writableLocation(QStandardPaths::PicturesLocation); }
 void Library::openPath(const QString &path) const { QDesktopServices::openUrl(QUrl::fromLocalFile(path)); }
 QString Library::toLocal(const QVariant &url) const {

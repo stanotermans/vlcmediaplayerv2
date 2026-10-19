@@ -15,13 +15,14 @@ qt_add_executable(vlcr
   src/frames.cpp src/frames.h
   src/keyfilter.cpp src/keyfilter.h
   src/subtitles.cpp src/subtitles.h
+  src/i18n.cpp src/i18n.h
 )
-set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/Theme.qml qml/SettingsSearch.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(vlcr
   URI VLCR
   VERSION 1.0
   QML_FILES
-    qml/Main.qml qml/Theme.qml qml/Icons.js qml/Lib.js
+    qml/Main.qml qml/Theme.qml qml/SettingsSearch.qml qml/Icons.js qml/Lib.js
     qml/library/Rail.qml qml/library/SidePanel.qml qml/library/Browser.qml qml/library/Card.qml qml/library/ListRow.qml
     qml/player/Playback.qml qml/player/PlayerView.qml qml/player/ControlBar.qml qml/player/SeekBar.qml
     qml/player/MiniPlayer.qml qml/player/PipWindow.qml qml/player/PixelCat.qml
@@ -34,8 +35,15 @@ qt_add_qml_module(vlcr
     qml/controls/MenuBackground.qml qml/controls/MenuItem.qml qml/controls/ContextMenu.qml
     qml/controls/DialogBox.qml qml/controls/ScrollBar.qml
     qml/pages/SettingsWindow.qml qml/pages/InterfacePage.qml qml/pages/ComponentsPage.qml
+    qml/pages/GeneralPage.qml qml/pages/PrivacyPage.qml qml/pages/ControlsPage.qml qml/pages/PlaybackPage.qml
+    qml/pages/VideoPage.qml qml/pages/AudioPage.qml qml/pages/SubtitlesPage.qml qml/pages/LibraryPage.qml
+    qml/pages/NetworkPage.qml qml/pages/PerformancePage.qml qml/pages/RecordingPage.qml qml/pages/ExtensionsPage.qml
+    qml/pages/AboutPage.qml qml/pages/EffectRows.qml qml/pages/VSlider.qml qml/pages/FontSelect.qml qml/pages/Effects.js
+    qml/controls/KeyCaps.qml qml/controls/FolderRow.qml qml/controls/LinkButton.qml
+    qml/player/QuickPanel.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml
   RESOURCES
     src/defaults.json
+    lang/de.json lang/es.json lang/fr.json lang/it.json lang/nl.json lang/pl.json lang/pt.json
 )
 target_include_directories(vlcr PRIVATE src)
 target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)

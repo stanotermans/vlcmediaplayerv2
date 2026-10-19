@@ -8,6 +8,7 @@ Column {
   property bool last: false
   default property alias rows: body.data
   width: parent ? parent.width : 400
+  visible: SettingsSearch.q === "" || SettingsSearch.any(body)
   topPadding: 6; bottomPadding: 10
   T { visible: root.title !== ""; text: qsTr(root.title); px: 15; font.weight: Font.DemiBold; color: Theme.text
       topPadding: 14; bottomPadding: 6 }

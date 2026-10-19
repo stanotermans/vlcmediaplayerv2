@@ -9,6 +9,9 @@ Column {
   property string info: ""
   default property alias control: holder.data
   property bool infoOpen: false
+  property bool shown: true                       // false: not on this system
+  readonly property string searchLabel: label
+  visible: shown && SettingsSearch.match(label)
   width: parent ? parent.width : 400
   Item {
     width: root.width
