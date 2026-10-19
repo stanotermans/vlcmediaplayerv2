@@ -144,8 +144,23 @@ function textInput(binding, placeholder = '') {
 function row(label, control, { info, stacked, cls } = {}) {
   label = tr(label); info = tr(info);
   const l = el('span.rlabel', {}, label);
-  if (info) l.append(el('span.info', { title: info, html: icon('info') }));
-  return el('div.frow' + (stacked ? '.stacked' : '') + (cls ? '.' + cls : ''), { dataset: { search: (typeof label === 'string' ? label : '') + ' ' + (info || '') } }, l, control);
+  const r = el('div.frow' + (stacked ? '.stacked' : '') + (cls ? '.' + cls : ''), { dataset: { search: (typeof label === 'string' ? label : '') + ' ' + (info || '') } }, l, control);
+  // ⓘ: a click (or Enter / Space) opens the explanation in a panel right under the setting (#56: a hover tooltip ends
+  // up under a large cursor); a second click or Escape closes it
+  if (info) {
+    const b = el('span.info', { role: 'button', tabindex: '0', 'aria-label': tr('More information'), 'aria-expanded': 'false', html: icon('info') });
+    let note = null;
+    const toggle = e => {
+      e.preventDefault(); e.stopPropagation();
+      if (note) { note.remove(); note = null; b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); return; }
+      note = el('div.frow-note', { role: 'note' }, info); r.after(note);
+      b.classList.add('on'); b.setAttribute('aria-expanded', 'true');
+    };
+    b.addEventListener('click', toggle);
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ' || (e.key === 'Escape' && note)) toggle(e); });
+    l.append(b);
+  }
+  return r;
 }
 function collapse(children, { open = false, onLabel = 'Collapse settings', offLabel = 'Expand settings' } = {}) {
   const body = el('div.cbody', {}, children);

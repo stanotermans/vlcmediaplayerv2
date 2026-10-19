@@ -35,8 +35,9 @@ class VlcVideo extends EventTarget {
       if (/^(comp|reverb|widen)/.test(k)) this._applyFx();            // VLC rebuilds its filters right away
       if (k === 'surround') window.vlcEngine.stereo(S.get('surround') === false);
       if (k === 'fastSeek') window.vlcEngine.fastSeek(S.get('fastSeek'));   // from the next file on
+      if (k === 'audioDelay') window.vlcEngine.audioDelay(S.get('audioDelay'));
     });
-    this._applyEq(); this._applyFx(); window.vlcEngine.stereo(S.get('surround') === false); window.vlcEngine.fastSeek(S.get('fastSeek'));
+    this._applyEq(); this._applyFx(); window.vlcEngine.stereo(S.get('surround') === false); window.vlcEngine.fastSeek(S.get('fastSeek')); window.vlcEngine.audioDelay(S.get('audioDelay'));
   }
   _reset() { this._st = { state: 0, time: 0, length: 0, width: 0, height: 0, frames: 0 }; this._meta = false; this._ended = false; this._seekTo = null; this._error = null; this._playAt = 0; this._clock = null; this._shown = 0; this._spuOff = false; this._title = null; this.dvdMenu = false; }
   // Audio settings → VLC. Equalizer: VLC's own 10 bands (the app's presets are VLC's). Compressor, spatial audio and

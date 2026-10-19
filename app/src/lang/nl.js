@@ -705,5 +705,20 @@ I18N.add('nl', {
  "No DVD is playing": "Er speelt geen dvd",
  "Passthrough (Dolby / DTS to receiver)": "Passthrough (Dolby / DTS naar receiver)",
  "VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.": "Alleen met de VLC-engine. Stuurt Dolby Digital, Dolby TrueHD (Atmos), DTS en DTS-HD onveranderd via HDMI of S/PDIF naar een AV-receiver of soundbar, die ze decodeert. De equalizer, effecten en het volume van de app gelden niet voor dat geluid. Werkt na een herstart van de app.",
- "VLC (libVLC {v})": "VLC (libVLC {v})"
+ "VLC (libVLC {v})": "VLC (libVLC {v})",
+ "More information": "Meer informatie",
+ "Audio delay": "Audiovertraging",
+ "Audio sync": "Audiosynchronisatie",
+ "Sound late, for example with Bluetooth headphones? Move it to the left so the sound comes earlier; to the right makes it later. Also in the quick settings (Audio) and with J / Shift + J. The Classic engine can only make the sound later.": "Komt het geluid te laat, bijvoorbeeld met een bluetooth-koptelefoon? Schuif naar links, dan komt het geluid eerder; naar rechts komt het later. Ook in de snelle instellingen (Audio) en met J / Shift + J. De Klassieke engine kan het geluid alleen later laten komen.",
+ "Audio delay − (sound earlier)": "Audiovertraging − (geluid eerder)",
+ "Audio delay + (sound later)": "Audiovertraging + (geluid later)",
+ "Audio delay {v} ms": "Audiovertraging {v} ms",
+ "Add {n} items to a playlist…": "{n} items aan een afspeellijst toevoegen…",
+ "Remove {n} items from playlist": "{n} items uit afspeellijst verwijderen",
+ "Remove {n} items from library": "{n} items uit bibliotheek verwijderen",
+ "{n} selected": "{n} geselecteerd",
+ "Select all": "Alles selecteren",
+ "Clear selection": "Selectie opheffen",
+ "Select": "Selecteren",
+ "Deselect": "Deselecteren"
 });

@@ -70,6 +70,7 @@ const AUDIO_RE = /\.(mp3|mp2|mpa|m4a|m4b|aac|flac|wav|w64|ogg|oga|opus|spx|wma|a
 // A DVD folder is opened through its VIDEO_TS.IFO; show the folder's name instead ("My DVD", not "VIDEO_TS.IFO").
 // One title of a DVD is "<disc>#t<n>n<i>" (#35): title n on the disc, shown as "My DVD – Title i" where i counts
 // the listed titles 1, 2, 3 … (repeated titles are left out, so the disc's own numbers can skip). Older items: "#t<n>".
+const SEL = new Set(); let selAnchor = null;   // library items selected with Ctrl/Shift+click (#49; see below)
 const DVD_RE = /(\.iso|[\\/]VIDEO_TS\.IFO)(#t\d+(?:n\d+)?)?$/i;
 const itemName = src => {
   const tm = /#t(\d+)(?:n(\d+))?$/.exec(src), file = tm ? src.slice(0, tm.index) : src;
@@ -265,6 +266,7 @@ function navigate(patch, push = true) {
   if (push) { history.back.push({ view: state.view, dir: { ...state.dir }, pl: state.activePlaylist }); history.fwd = []; }
   Object.assign(state, patch);
   state.query = ''; $('#search').value = ''; state.gridLimit = 240; state.sideLimit = 400;
+  SEL.clear(); selAnchor = null; renderSelBar();   // another view or folder: nothing selected
   showBrowser(); render();
 }
 function goBack() { if (mode === 'player') return showBrowser(); const h = history.back.pop(); if (!h) return; history.fwd.push({ view: state.view, dir: { ...state.dir }, pl: state.activePlaylist }); state.view = h.view; state.dir = h.dir; state.activePlaylist = h.pl; render(); }
@@ -276,7 +278,7 @@ function cardHTML(it) {
   const idx = idxOf(it);
   const w = isWatched(it), pct = w ? 100 : it.duration ? Math.min(100, it.progress / it.duration * 100) : 0;
   const thumb = S.get('showThumbs') && it.thumb;
-  return `<div class="card ${isAudio(it) ? 'audio' : ''} ${idx === state.current ? 'on' : ''} ${w && S.get('dimWatched') ? 'watched' : ''}" data-idx="${idx}" title="${esc(it.src)}">
+  return `<div class="card ${isAudio(it) ? 'audio' : ''} ${idx === state.current ? 'on' : ''} ${w && S.get('dimWatched') ? 'watched' : ''} ${SEL.has(it.src) ? 'sel' : ''}" data-idx="${idx}" title="${esc(it.src)}">
     <div class="thumb">${thumb ? `<img src="${it.thumb}" alt="">` : `<div class="ph">${isAudio(it) ? '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="17" r="3"/><path d="M11 17V5l8 2"/></svg>' : '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>'}</div>`}
       ${pct > 1 ? `<div class="prog" style="width:${pct}%"></div>` : ''}
       ${it.duration ? `<span class="dur">${shortFmt(it.duration)}</span>` : ''}
@@ -1231,13 +1233,76 @@ async function addToPlaylist(it) {
   const p = state.playlists[i]; if (!p.srcs.includes(it.src)) p.srcs.push(it.src);
   savePlaylists(); osd(t('Added to {name}', { name: p.name })); render();
 }
-function removeItem(it) {
-  const idx = idxOf(it);
-  if (idx === state.current) stopPlayback();
-  state.items.splice(idx, 1);
-  if (state.current > idx) state.current--;
-  saveLibrary(); render();
+function removeItem(it) { removeItems([it]); }
+function removeItems(list) {
+  const cur = state.items[state.current];
+  if (cur && list.includes(cur)) stopPlayback();
+  const gone = new Set(list), playing = state.items[state.current];
+  state.items = state.items.filter(i => !gone.has(i));
+  state.current = playing ? state.items.indexOf(playing) : -1;
+  for (const i of list) SEL.delete(i.src);
+  saveLibrary(); render(); renderSelBar();
 }
+
+/* ---------- selecting several items (#49) ----------
+   Ctrl+click adds or removes a card, Shift+click selects a range, Ctrl+A everything shown, Esc clears, Delete
+   removes; a plain click still plays. "Select" in a card's menu starts it with the mouse. While something is
+   selected, a bar offers the actions for all of them (also in the right-click menu of a selected card). */
+const selectedItems = () => visibleItems().filter(i => SEL.has(i.src));
+const inPlaylist = () => state.view === 'playlists' && state.activePlaylist && !state.activePlaylist.all;
+function selectClick(it, range) {
+  const vis = visibleItems();
+  if (range && selAnchor && vis.some(i => i.src === selAnchor)) {
+    const a = vis.findIndex(i => i.src === selAnchor), b = vis.indexOf(it);
+    for (let k = Math.min(a, b); k <= Math.max(a, b); k++) SEL.add(vis[k].src);
+  } else { SEL.has(it.src) ? SEL.delete(it.src) : SEL.add(it.src); selAnchor = it.src; }
+  paintSelection();
+}
+function selectAll() { visibleItems().forEach(i => SEL.add(i.src)); paintSelection(); }
+function clearSelection() { SEL.clear(); selAnchor = null; paintSelection(); }
+function paintSelection() {
+  $('#grid').querySelectorAll('.card[data-idx]').forEach(c => { const it = state.items[+c.dataset.idx]; c.classList.toggle('sel', !!it && SEL.has(it.src)); });
+  renderSelBar();
+}
+function selActions(list) {
+  const n = list.length, allWatched = list.every(isWatched);
+  return [
+    { label: 'Play', icon: 'play', accent: true, action: () => { state.queueList = list; clearSelection(); playItem(idxOf(list[0])); } },
+    { label: t('Add {n} items to a playlist…', { n }), icon: 'playlist', action: () => addManyToPlaylist(list) },
+    { label: allWatched ? 'Mark as unwatched' : 'Mark as watched', icon: 'eye', action: () => { list.forEach(i => allWatched ? watched.delete(i.src) : watched.add(i.src)); saveWatched(); render(); } },
+    { sep: true },
+    inPlaylist()
+      ? { label: t('Remove {n} items from playlist', { n }), icon: 'trash', danger: true, action: () => { const p = state.activePlaylist, gone = new Set(list.map(i => i.src)); p.srcs = p.srcs.filter(s => !gone.has(s)); gone.forEach(s => SEL.delete(s)); savePlaylists(); render(); renderSelBar(); } }
+      : { label: t('Remove {n} items from library', { n }), icon: 'trash', danger: true, action: () => removeItems(list) },
+  ];
+}
+async function addManyToPlaylist(list) {
+  if (!state.playlists.length) { const p = await Panels.newPlaylist(App); if (!p) return; }
+  const i = await UI.choose('Add to playlist', state.playlists.map(p => p.name), 'Add');
+  if (i == null) return;
+  const p = state.playlists[i]; for (const it of list) if (!p.srcs.includes(it.src)) p.srcs.push(it.src);
+  savePlaylists(); osd(t('Added to {name}', { name: p.name })); render();
+}
+function renderSelBar() {
+  let bar = $('#selbar');
+  if (!bar) { bar = el('div', { id: 'selbar', role: 'toolbar' }); $('#browser').append(bar); }
+  const list = selectedItems();
+  bar.classList.toggle('show', list.length > 0);
+  if (!list.length) return bar.replaceChildren();
+  const btn = (label, ic, fn, cls = '') => { const b = el('button.btn' + cls, { type: 'button', html: (ic ? icon(ic) : '') + '<span></span>' }); b.querySelector('span').textContent = t(label); b.onclick = fn; return b; };
+  const acts = selActions(list).filter(a => a && !a.sep);
+  bar.replaceChildren(el('span.selcount', {}, t('{n} selected', { n: list.length })),
+    ...acts.map(a => btn(a.label, a.icon, a.action, a.danger ? '.danger' : '')),
+    btn('Select all', null, selectAll), btn('Clear selection', 'x', clearSelection));
+}
+document.addEventListener('keydown', e => {
+  if (mode !== 'browser' || UI.dialogOpen() || e.target.matches?.('input,select,textarea')) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 'a' && $('#grid .card[data-idx]')) { e.preventDefault(); e.stopImmediatePropagation(); return selectAll(); }
+  if (!SEL.size) return;
+  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); return clearSelection(); }
+  if (e.key === 'Delete') { e.preventDefault(); e.stopImmediatePropagation(); const a = selActions(selectedItems()); return a[a.length - 1].action(); }
+}, true);
 
 /* ---------- library interactions ---------- */
 $('#rail').addEventListener('click', e => {
@@ -1275,6 +1340,8 @@ $('#grid').addEventListener('click', e => {
   if (c.dataset.dir) return navigate({ dir: { ...state.dir, [state.view]: c.dataset.dir } });
   if (c.dataset.pl) return navigate({ activePlaylist: plByKey(c.dataset.pl) });
   if (c.dataset.act) return doAct(c.dataset.act);
+  if (c.dataset.idx != null && (e.ctrlKey || e.metaKey || e.shiftKey)) return selectClick(state.items[+c.dataset.idx], e.shiftKey);
+  if (SEL.size) clearSelection();
   state.queueList = state.view === 'home' ? null : visibleItems();
   playItem(+c.dataset.idx);
 });
@@ -1355,12 +1422,14 @@ document.addEventListener('contextmenu', e => {
   const dir = e.target.closest('[data-dir]');
   if (card) {
     const it = state.items[+card.dataset.idx];
+    if (SEL.size > 1 && SEL.has(it.src) && card.matches('.card')) return UI.menu([{ header: t('{n} selected', { n: selectedItems().length }) }, ...selActions(selectedItems())], e.clientX, e.clientY);
     UI.menu([
       { label: 'Play', icon: 'play', accent: true, action: () => playItem(idxOf(it)) },
       { label: 'Add to playlist…', icon: 'playlist', action: () => addToPlaylist(it) },
       { label: isWatched(it) ? 'Mark as unwatched' : 'Mark as watched', icon: 'eye', action: () => { isWatched(it) ? watched.delete(it.src) : watched.add(it.src); saveWatched(); render(); } },
       !it.remote ? { label: 'Show in folder', icon: 'folder', action: () => api.reveal(it.src) } : null,
       { label: 'Media information', icon: 'info', action: () => mediaInfo(it) },
+      card.matches('.card') ? { label: SEL.has(it.src) ? 'Deselect' : 'Select', icon: 'check', kbd: 'Ctrl + click', action: () => selectClick(it, false) } : null,
       ...(state.view === 'playlists' && state.activePlaylist && !state.activePlaylist.all ? (() => {
         const p = state.activePlaylist, i = p.srcs.indexOf(it.src);
         return [{ sep: true },
@@ -1580,8 +1649,12 @@ const KEY_ACTIONS = [
   ['abRepeat', 'A-B repeat (set A, set B, off)', ['a'], () => abCycle()],
   ['bookmarks', 'Chapters and bookmarks', ['Ctrl+B'], () => Panels.bookmarks(App)],
   ['dvdMenu', 'DVD menu', ['M'], () => dvdMenu()],
+  ['audioEarlier', 'Audio delay − (sound earlier)', ['j'], () => nudgeAudio(-50)],
+  ['audioLater', 'Audio delay + (sound later)', ['J'], () => nudgeAudio(50)],
 ];
 // VLC engine: the disc's menu (in a menu the arrow keys, Enter and clicks work the menu's buttons, see below)
+// #55: audio against the picture, in 50 ms steps (Bluetooth headphones play the sound late)
+function nudgeAudio(d) { const v = Math.max(-1000, Math.min(1000, (S.get('audioDelay') || 0) + d)); S.set('audioDelay', v); osd(t('Audio delay {v} ms', { v: (v > 0 ? '+' : '') + v })); }
 function dvdMenu() { if (!video.isDvd) return osd('No DVD is playing'); video.dvdMenuShow(); osd('DVD menu'); }
 function frameStep(dir) { if (!curItem()) return; if (video.isVlc && !video.classic && dir > 0) return video.nextFrame(); video.pause(); if (P.tx) seekTo(curTime() + dir * 0.04); else video.currentTime = Math.max(0, video.currentTime + dir / 30); }
 const keyOf = e => {

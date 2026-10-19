@@ -198,6 +198,6 @@ contextBridge.exposeInMainWorld('vlcEngine', {
   navigate: m => vlc.navigate(m | 0), menu: () => vlc.menu(), mouse: (x, y, click) => vlc.mouse(+x, +y, !!click),
   titles: () => [...vlc.titles()], setTitle: i => vlc.setTitle(i | 0),
   // subtitles libVLC draws itself (image subtitles): ids in stream order, choose one (-1 none), delay in ms
-  record: (on, dir) => vlc.record(!!on, String(dir || '')), fastSeek: b => vlc.fastSeek(!!b),
+  record: (on, dir) => vlc.record(!!on, String(dir || '')), fastSeek: b => vlc.fastSeek(!!b), audioDelay: ms => vlc.audioDelay(+ms || 0),
   spuTracks: () => [...vlc.spuTracks()], setSpu: id => vlc.setSpu(id | 0), spuDelay: ms => vlc.spuDelay(+ms || 0),
 });

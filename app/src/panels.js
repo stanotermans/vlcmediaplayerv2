@@ -155,7 +155,8 @@ function quickPanel(App) {
     ],
     audio: () => [sec('Defaults',
       row('Audio track', select(() => App.audioTracks(), { get: () => App.audioTrack(), set: v => App.setAudioTrack(+v), path: '_atrack' })),
-      slider({ label: 'Volume boost', min: 0, max: 200, binding: 'gain', fmt: v => v + '%', ticks: 2 })),
+      slider({ label: 'Volume boost', min: 0, max: 200, binding: 'gain', fmt: v => v + '%', ticks: 2 }),
+      slider({ label: 'Audio delay', min: -1000, max: 1000, step: 10, binding: 'audioDelay', fmt: v => (v > 0 ? '+' : '') + v + ' ms', center: true, ticks: 2 })),
       sec('Equalizer', row('Equalizer', toggle('eqOn')), row('Preset', eqPresetSelect()), collapse(eqBlock(false))),
       sec('Effects',
         row('Compressor', toggle('compOn')), collapse(compBlock()),
@@ -374,6 +375,9 @@ function pages(App) {
         window.VlcVideo && VlcVideo.available() ? row('Passthrough (Dolby / DTS to receiver)', toggle({ get: () => S.get('passthrough'), set: v => { S.set('passthrough', v); App.osd('Restart the app to apply this'); }, path: 'passthrough' }),
           { info: 'VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.' }) : null),
       sec('Volume', slider({ label: 'Volume boost', min: 0, max: 200, binding: 'gain', fmt: v => v + '%', ticks: 2 })),
+      // #55: Bluetooth headphones play the sound a little late; also in the quick settings (Audio) and on J / Shift+J
+      sec('Audio sync', slider({ label: 'Audio delay', min: -1000, max: 1000, step: 10, binding: 'audioDelay', fmt: v => (v > 0 ? '+' : '') + v + ' ms', center: true, ticks: 2 }),
+        el('p.note', {}, t('Sound late, for example with Bluetooth headphones? Move it to the left so the sound comes earlier; to the right makes it later. Also in the quick settings (Audio) and with J / Shift + J. The Classic engine can only make the sound later.'))),
       sec('MIDI', ...(() => {
         const inp = el('input.txt.path', { readonly: true });
         const draw = () => inp.value = S.get('soundfont') || t('Built-in (FluidR3 Mono)');

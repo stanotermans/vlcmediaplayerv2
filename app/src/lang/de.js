@@ -705,5 +705,20 @@ I18N.add('de', {
  "No DVD is playing": "Es läuft keine DVD",
  "Passthrough (Dolby / DTS to receiver)": "Passthrough (Dolby / DTS zum Receiver)",
  "VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.": "Nur mit der VLC-Engine. Sendet Dolby Digital, Dolby TrueHD (Atmos), DTS und DTS-HD unverändert über HDMI oder S/PDIF an einen AV-Receiver oder eine Soundbar, die sie dekodiert. Equalizer, Effekte und Lautstärke der App gelten für diesen Ton nicht. Wirkt nach einem Neustart der App.",
- "VLC (libVLC {v})": "VLC (libVLC {v})"
+ "VLC (libVLC {v})": "VLC (libVLC {v})",
+ "More information": "Mehr Informationen",
+ "Audio delay": "Audioverzögerung",
+ "Audio sync": "Audio-Synchronisation",
+ "Sound late, for example with Bluetooth headphones? Move it to the left so the sound comes earlier; to the right makes it later. Also in the quick settings (Audio) and with J / Shift + J. The Classic engine can only make the sound later.": "Ton zu spät, zum Beispiel mit Bluetooth-Kopfhörern? Nach links schieben, dann kommt der Ton früher; nach rechts später. Auch in den Schnelleinstellungen (Audio) und mit J / Umschalt + J. Die klassische Engine kann den Ton nur später kommen lassen.",
+ "Audio delay − (sound earlier)": "Audioverzögerung − (Ton früher)",
+ "Audio delay + (sound later)": "Audioverzögerung + (Ton später)",
+ "Audio delay {v} ms": "Audioverzögerung {v} ms",
+ "Add {n} items to a playlist…": "{n} Elemente zu einer Wiedergabeliste hinzufügen…",
+ "Remove {n} items from playlist": "{n} Elemente aus der Wiedergabeliste entfernen",
+ "Remove {n} items from library": "{n} Elemente aus der Mediathek entfernen",
+ "{n} selected": "{n} ausgewählt",
+ "Select all": "Alle auswählen",
+ "Clear selection": "Auswahl aufheben",
+ "Select": "Auswählen",
+ "Deselect": "Auswahl entfernen"
 });

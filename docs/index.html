@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VLC Redesign · Download</title>
-<meta name="description" content="Unofficial VLC media player built from the redesign by Juxtopposed. Download for Windows, macOS and Linux.">
+<meta name="description" content="Unofficial VLC media player built from the redesign by Juxtopposed, playing with VLC's own engine (libVLC). Download for Windows, macOS and Linux.">
 <meta property="og:title" content="VLC Redesign">
 <meta property="og:description" content="A working version of Juxtopposed's VLC redesign. Download for Windows, macOS and Linux.">
 <meta property="og:image" content="https://stanotermans.github.io/vlcmediaplayerv2/screenshots/library.png">
@@ -73,7 +73,7 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);fon
   <div class="hero">
     <div>
       <h1>VLC, <span>reimagined</span>.</h1>
-      <p class="lead">A modern media player built from the VLC redesign by Juxtopposed. Plays almost anything thanks to built-in FFmpeg, with a library, playlists, subtitles, an equalizer and accent colors.</p>
+      <p class="lead">A modern media player built from the VLC redesign by Juxtopposed. Since 2.0 it plays with <b>VLC's own engine</b> (libVLC), with a library, playlists, subtitles, an equalizer and accent colors.</p>
       <a class="dl" id="mainDl" href="https://github.com/stanotermans/vlcmediaplayerv2/releases/latest">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M4 20h16"/></svg>
         <span><span id="mainLabel">Download</span><small id="mainSmall">latest version</small></span>
@@ -112,13 +112,13 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);fon
       <p class="note">Chrome OS: turn on the Linux development environment and open the <code>.deb</code> file.</p>
     </div>
   </div>
-  <p class="unsupported">Not available: iOS, Apple TV, Android and Windows Phone (this app runs on Electron, which only supports desktop systems). FreeBSD/OpenBSD users can <a href="https://github.com/stanotermans/vlcmediaplayerv2#bsd">run it from source</a>.</p>
+  <p class="unsupported">Not available: iOS, Apple TV, Android and Windows Phone (the app's interface runs on Electron, which only supports desktop systems). FreeBSD/OpenBSD users can <a href="https://github.com/stanotermans/vlcmediaplayerv2#bsd">run it from source</a>.</p>
 </div></section>
 
 <section id="features"><div class="wrap">
   <h2>Features</h2>
   <div class="feat">
-    <div><b>Plays almost anything</b><p>MP4, MKV, AVI, MOV, WMV, FLAC, AC3/DTS and more. Anything the player can't handle natively is converted on the fly by built-in FFmpeg.</p></div>
+    <div><b>VLC's engine inside</b><p>Plays through libVLC, the engine of VLC media player itself: MP4, MKV, AVI, MOV, WMV, FLAC, AC3/DTS and more, DVD menus, image subtitles, surround and passthrough to your receiver.</p></div>
     <div><b>Library with folders</b><p>Browse your media folders with breadcrumbs, see what you've already watched, and continue where you left off.</p></div>
     <div><b>Subtitles</b><p>Embedded and external .srt/.ass/.vtt subtitles, with delay, speed, font and color settings.</p></div>
     <div><b>Audio effects</b><p>10-band equalizer with presets, compressor, reverb, stereo widener and volume boost.</p></div>
@@ -144,7 +144,7 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);fon
 
 <footer><div class="wrap">
   Unofficial fan project. Not affiliated with or endorsed by VideoLAN. "VLC" and the cone logo are trademarks of VideoLAN.
-  Design © Juxtopposed. Code: MIT license. Uses <a href="https://ffmpeg.org">FFmpeg</a> and <a href="https://www.electronjs.org">Electron</a>.<br>
+  Design © Juxtopposed. Code: MIT license. Plays with <a href="https://www.videolan.org/vlc/libvlc.html">libVLC</a> by VideoLAN; also uses <a href="https://ffmpeg.org">FFmpeg</a> and, for the interface, <a href="https://www.electronjs.org">Electron</a>.<br>
   Windows code signing: free code signing provided by <a href="https://about.signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a> · <a href="https://github.com/stanotermans/vlcmediaplayerv2/blob/main/CODE_SIGNING.md">Code signing policy</a>.
 </div></footer>
 

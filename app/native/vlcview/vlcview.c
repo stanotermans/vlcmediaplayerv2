@@ -97,12 +97,14 @@ static struct {
   int (*video_get_track)(libvlc_media_player_t *);
   libvlc_track_description_t *(*spu_tracks)(libvlc_media_player_t *);
   int (*set_spu_delay)(libvlc_media_player_t *, int64_t);
+  int (*audio_set_delay)(libvlc_media_player_t *, int64_t);
 } vlc;
 
 static lib_t dll;
 static libvlc_instance_t *inst;
 static libvlc_media_player_t *mp;
 static libvlc_equalizer_t *eq;                  // VLC's 10-band equalizer; NULL = off (kept across files)
+static int64_t audio_delay = 0;                  // µs; negative: sound earlier (Bluetooth headphones), kept across files
 static int fast_seek = 0;                       // VLC's "Fast seek": seeks land on keyframes (default: the exact frame)
 static int stereo_mode = 0;                     // libVLC stereo mode: 0 = as the file is, 1 = stereo (downmix)
 
@@ -241,6 +243,7 @@ FN(Init) {
   LOAD(mp_get_media, "libvlc_media_player_get_media") LOAD(tracks_get, "libvlc_media_tracks_get")
   LOAD(tracks_release_, "libvlc_media_tracks_release") LOAD(video_get_track, "libvlc_video_get_track")
   LOAD(spu_tracks, "libvlc_video_get_spu_description") LOAD(set_spu_delay, "libvlc_video_set_spu_delay")
+  LOAD(audio_set_delay, "libvlc_audio_set_delay")
 #ifdef _WIN32
   lib_t cdll = GetModuleHandleW(L"libvlccore.dll"), crt = LoadLibraryW(L"msvcrt.dll");
   if (crt) *(void **)&core.free_ = SYM(crt, "free");             // libVLC is built against msvcrt
@@ -337,6 +340,7 @@ FN(Open) {
   apply_fx(mp); apply_fx_live();                   // libVLC makes the audio output with the player, so set it there too
   if (core_ok()) { vlc_value_t f; memset(&f, 0, sizeof f); f.b_bool = fast_seek; set_var(mp, "input-fast-seek", VAR_BOOL, f); }   // the input inherits it
   int r = vlc.mp_play(mp);
+  if (audio_delay) vlc.audio_set_delay(mp, audio_delay);   // the input exists once play() returns
   return num(env, r);
 }
 FN(Play) { if (mp) vlc.mp_set_pause(mp, 0); return NULL; }
@@ -471,6 +475,8 @@ FN(Menu) {
   int r = core.var_Trigger(in, "menu-title"); core.obj_release(in);
   return num(env, r == 0);
 }
+// audioDelay(ms): the sound later (positive) or earlier (negative) than the picture, now and for the next files
+FN(AudioDelay) { ARGS(1); double ms = 0; napi_get_value_double(env, argv[0], &ms); audio_delay = (int64_t)(ms * 1000); if (mp) vlc.audio_set_delay(mp, audio_delay); return NULL; }
 // fastSeek(on): from the next file on (and when a file is opened again)
 FN(FastSeek) { ARGS(1); bool b = false; napi_get_value_bool(env, argv[0], &b); fast_seek = b; return NULL; }
 // record(on, folder): VLC's Record button. libVLC saves the playing streams unchanged (with sound, no re-encoding) as
@@ -522,7 +528,7 @@ static napi_value Init_(napi_env env, napi_value exports) {
     P("equalizer", Equalizer), P("stereo", Stereo), P("audioFx", AudioFx),
     P("navigate", Navigate), P("titles", Titles), P("setTitle", SetTitle), P("setChapter", SetChapter),
     P("chapterCount", ChapterCount), P("mouse", Mouse), P("menu", Menu),
-    P("record", Record), P("fastSeek", FastSeek), P("spuTracks", SpuTracks), P("setSpu", SetSpu), P("spuDelay", SpuDelay),
+    P("record", Record), P("fastSeek", FastSeek), P("audioDelay", AudioDelay), P("spuTracks", SpuTracks), P("setSpu", SetSpu), P("spuDelay", SpuDelay),
   };
   napi_define_properties(env, exports, sizeof p / sizeof *p, p);
   return exports;

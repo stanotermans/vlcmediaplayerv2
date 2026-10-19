@@ -47,6 +47,8 @@ function ensure() {
       // reverb
       rIn: g(), rOut: g(), rWet: g(), rDry: g(), conv: ctx.createConvolver(),
       boost: g(),
+      // audio delay (#55; ms, later only: Chromium cannot play the sound ahead of the picture)
+      avDelay: ctx.createDelay(2),
     };
     const n = nodes;
     n.wIn.connect(n.wDry); n.wDry.connect(n.wOut);
@@ -67,7 +69,7 @@ function ensure() {
 }
 function needsGraph() {
   const s = S.all();
-  return s.eqOn || s.compOn || s.reverbOn || s.widenOn || s.gain !== 100;
+  return s.eqOn || s.compOn || s.reverbOn || s.widenOn || s.gain !== 100 || s.audioDelay > 0;
 }
 // Surround through a stereo-only effect: front left/right go through it, the other channels pass by unchanged.
 function frontOnly(tail, inNode, outNode, nch) {
@@ -93,7 +95,7 @@ function pairComp(tail, nch) {
 function rewire() {
   if (!ctx) return;
   const n = nodes, s = S.all(), nch = S.get('surround') === false ? 2 : chans;
-  src.disconnect(); n.pre.disconnect(); n.eq[n.eq.length - 1].disconnect(); n.makeup.disconnect(); n.wOut.disconnect(); n.rOut.disconnect(); n.boost.disconnect(); n.comp.disconnect();
+  src.disconnect(); n.pre.disconnect(); n.eq[n.eq.length - 1].disconnect(); n.makeup.disconnect(); n.wOut.disconnect(); n.rOut.disconnect(); n.boost.disconnect(); n.comp.disconnect(); n.avDelay.disconnect();
   for (const w of wrap) w.disconnect(); wrap = []; n.comps = [n.comp];
   n.comp.connect(n.makeup);
   ctx.destination.channelCount = Math.max(2, Math.min(nch, ctx.destination.maxChannelCount || 2));   // fewer speakers: mixed down here ctx.destination.channelInterpretation = 'speakers';
@@ -103,6 +105,7 @@ function rewire() {
   if (s.compOn) { if (nch > 2) { tail = pairComp(tail, nch); to(n.makeup); } else { tail.connect(n.comp); tail = n.makeup; } }
   if (s.widenOn) { if (nch > 2) tail = frontOnly(tail, n.wIn, n.wOut, nch); else { tail.connect(n.wIn); tail = n.wOut; } }
   if (s.reverbOn) { if (nch > 2) tail = frontOnly(tail, n.rIn, n.rOut, nch); else { tail.connect(n.rIn); tail = n.rOut; } }
+  if (s.audioDelay > 0) to(n.avDelay);
   to(n.boost);
   n.boost.connect(ctx.destination);
   applyAudio();
@@ -146,9 +149,11 @@ function applyAudio() {
   impulse(r.size, r.damp, r.width);
   n.rWet.gain.value = r.wet / 10; n.rDry.gain.value = r.dry / 10;
   n.boost.gain.setTargetAtTime(s.gain / 100, t, 0.02);
+  n.avDelay.delayTime.setValueAtTime(Math.max(0, s.audioDelay || 0) / 1000, t);
 }
 S.on(path => {
   if (path === 'surround' && ctx) rewire();
+  if (path === 'audioDelay') { if (!ctx && needsGraph()) ensure(); if (ctx) rewire(); }
   if (/^(eq|comp|reverb|widen|gain|eqOn|compOn|reverbOn|widenOn)/.test(path)) {
     if (!ctx && needsGraph()) ensure();
     if (ctx) { if (/On$/.test(path)) rewire(); applyAudio(); }

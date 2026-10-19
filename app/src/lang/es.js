@@ -705,5 +705,20 @@ I18N.add('es', {
  "No DVD is playing": "No se está reproduciendo ningún DVD",
  "Passthrough (Dolby / DTS to receiver)": "Passthrough (Dolby / DTS al receptor)",
  "VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.": "Solo con el motor VLC. Envía Dolby Digital, Dolby TrueHD (Atmos), DTS y DTS-HD sin cambios por HDMI o S/PDIF a un receptor AV o barra de sonido, que los decodifica. El ecualizador, los efectos y el volumen de la app no se aplican a ese sonido. Se aplica tras reiniciar la app.",
- "VLC (libVLC {v})": "VLC (libVLC {v})"
+ "VLC (libVLC {v})": "VLC (libVLC {v})",
+ "More information": "Más información",
+ "Audio delay": "Retardo de audio",
+ "Audio sync": "Sincronización de audio",
+ "Sound late, for example with Bluetooth headphones? Move it to the left so the sound comes earlier; to the right makes it later. Also in the quick settings (Audio) and with J / Shift + J. The Classic engine can only make the sound later.": "¿El sonido llega tarde, por ejemplo con auriculares Bluetooth? Desliza a la izquierda para que el sonido llegue antes; a la derecha llega más tarde. También en los ajustes rápidos (Audio) y con J / Mayús + J. El motor Clásico solo puede retrasar el sonido.",
+ "Audio delay − (sound earlier)": "Retardo de audio − (sonido antes)",
+ "Audio delay + (sound later)": "Retardo de audio + (sonido después)",
+ "Audio delay {v} ms": "Retardo de audio {v} ms",
+ "Add {n} items to a playlist…": "Añadir {n} elementos a una lista…",
+ "Remove {n} items from playlist": "Quitar {n} elementos de la lista",
+ "Remove {n} items from library": "Quitar {n} elementos de la biblioteca",
+ "{n} selected": "{n} seleccionados",
+ "Select all": "Seleccionar todo",
+ "Clear selection": "Quitar selección",
+ "Select": "Seleccionar",
+ "Deselect": "Deseleccionar"
 });

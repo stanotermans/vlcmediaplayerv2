@@ -705,5 +705,20 @@ I18N.add('fr', {
  "No DVD is playing": "Aucun DVD en lecture",
  "Passthrough (Dolby / DTS to receiver)": "Passthrough (Dolby / DTS vers l’ampli)",
  "VLC engine only. Sends Dolby Digital, Dolby TrueHD (Atmos), DTS and DTS-HD unchanged to an AV receiver or soundbar over HDMI or S/PDIF, which decodes them. The equalizer, effects and volume of the app do not apply to that sound. Takes effect after restarting the app.": "Moteur VLC uniquement. Envoie le Dolby Digital, le Dolby TrueHD (Atmos), le DTS et le DTS-HD tels quels via HDMI ou S/PDIF à un ampli AV ou une barre de son, qui les décode. L’égaliseur, les effets et le volume de l’app ne s’appliquent pas à ce son. Prend effet après le redémarrage de l’app.",
- "VLC (libVLC {v})": "VLC (libVLC {v})"
+ "VLC (libVLC {v})": "VLC (libVLC {v})",
+ "More information": "Plus d’informations",
+ "Audio delay": "Décalage audio",
+ "Audio sync": "Synchronisation audio",
+ "Sound late, for example with Bluetooth headphones? Move it to the left so the sound comes earlier; to the right makes it later. Also in the quick settings (Audio) and with J / Shift + J. The Classic engine can only make the sound later.": "Le son arrive en retard, par exemple avec un casque Bluetooth ? Faites glisser vers la gauche pour que le son arrive plus tôt ; vers la droite il arrive plus tard. Aussi dans les réglages rapides (Audio) et avec J / Maj + J. Le moteur Classique peut seulement retarder le son.",
+ "Audio delay − (sound earlier)": "Décalage audio − (son plus tôt)",
+ "Audio delay + (sound later)": "Décalage audio + (son plus tard)",
+ "Audio delay {v} ms": "Décalage audio {v} ms",
+ "Add {n} items to a playlist…": "Ajouter {n} éléments à une playlist…",
+ "Remove {n} items from playlist": "Retirer {n} éléments de la playlist",
+ "Remove {n} items from library": "Retirer {n} éléments de la bibliothèque",
+ "{n} selected": "{n} sélectionné(s)",
+ "Select all": "Tout sélectionner",
+ "Clear selection": "Annuler la sélection",
+ "Select": "Sélectionner",
+ "Deselect": "Désélectionner"
 });
