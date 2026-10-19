@@ -1,0 +1,41 @@
+# nFPM: the .deb, .rpm and Arch package of VLC Redesign 3 (package.sh sets VERSION, OPT and AD). The app lives in
+# /opt/vlc-redesign with its own Qt and libVLC; the command, the menu entry and the icon go to the usual places.
+name: vlc-redesign
+arch: amd64
+platform: linux
+version: ${VERSION}
+section: video
+priority: optional
+maintainer: Stan Otermans <stanotermans@gmail.com>
+description: |
+  VLC Redesign – unofficial fan-made media player.
+  Library, playlists, subtitles, equalizer; plays with VLC's own engine (libVLC). Design by Juxtopposed.
+vendor: Stan Otermans
+homepage: https://github.com/stanotermans/vlcmediaplayerv2
+license: MIT
+replaces: [vlc-redesign]
+contents:
+  - src: ${OPT}/
+    dst: /opt/vlc-redesign/
+    type: tree
+  - src: /opt/vlc-redesign/bin/vlc-redesign
+    dst: /usr/bin/vlc-redesign
+    type: symlink
+  - src: ${AD}/usr/share/applications/vlc-redesign.desktop
+    dst: /usr/share/applications/vlc-redesign.desktop
+  - src: ${AD}/usr/share/icons/hicolor/512x512/apps/vlc-redesign.png
+    dst: /usr/share/icons/hicolor/512x512/apps/vlc-redesign.png
+overrides:
+  deb:
+    depends: [libasound2t64 | libasound2, libegl1, libgl1, libfontconfig1, libfreetype6, libxkbcommon0, libxkbcommon-x11-0,
+              libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0,
+              libxcb-xinerama0, libxcb-xkb1, libdbus-1-3, libgbm1]
+  rpm:
+    depends: [alsa-lib, libglvnd-egl, libglvnd-glx, fontconfig, freetype, libxkbcommon, libxkbcommon-x11, xcb-util-cursor,
+              xcb-util-wm, xcb-util-image, xcb-util-keysyms, xcb-util-renderutil, dbus-libs, mesa-libgbm]
+  archlinux:
+    depends: [alsa-lib, libglvnd, fontconfig, freetype2, libxkbcommon, libxkbcommon-x11, xcb-util-cursor, xcb-util-wm,
+              xcb-util-image, xcb-util-keysyms, xcb-util-renderutil, dbus, mesa]
+scripts:
+  postinstall: packaging/linux/postinstall.sh
+  postremove: packaging/linux/postinstall.sh

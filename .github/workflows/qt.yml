@@ -1,0 +1,169 @@
+name: Qt build (v3)
+
+# Builds VLC Redesign 3 (Qt/QML + libVLC, qt/) for Windows, macOS (Apple Silicon + Intel) and Linux, packages it
+# (qt/packaging/*/package.sh) and plays a test video and sound with each package (qt/packaging/smoke.py).
+# Run it by hand: "Actions" tab → "Qt build (v3)" → "Run workflow"; the packages appear under "Artifacts".
+# v2.x (Electron, app/) keeps its own workflow (build.yml) and releases.
+on:
+  workflow_dispatch:
+
+jobs:
+  # the slim FFmpeg, as in build.yml (same cache)
+  ffmpeg:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: win-x64,   os: ubuntu-latest }
+          - { target: linux-x64, os: ubuntu-latest }
+          - { target: mac-arm64, os: macos-14 }
+          - { target: mac-x64,   os: macos-14 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: app/build/ffmpeg/out/${{ matrix.target }}
+          key: ffmpeg-${{ matrix.target }}-${{ hashFiles('app/build/ffmpeg/*.sh', 'app/build/ffmpeg/patches/**') }}
+      - name: Build in Docker
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
+        run: bash app/build/ffmpeg/docker.sh ${{ matrix.target }}
+      - name: Build on macOS
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'macOS'
+        run: |
+          brew install nasm pkgconf
+          bash app/build/ffmpeg/build.sh ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ matrix.target }}
+          path: app/build/ffmpeg/out/${{ matrix.target }}/
+          if-no-files-found: error
+
+  windows:
+    needs: ffmpeg
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: 'qtmultimedia qtshadertools qtimageformats'
+          cache: true
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: actions/download-artifact@v4
+        with: { name: ffmpeg-win-x64, path: ffbin }
+      - name: libVLC (VideoLAN's build, checked and trimmed)
+        working-directory: app
+        run: node scripts/fetch-vlc.js
+      - name: API keys (from secrets, never committed)
+        shell: bash
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+        run: node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+      - name: Build
+        shell: bash
+        run: |
+          cmake -S qt -B qt/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build qt/build
+      - name: Package (installer, portable)
+        shell: bash
+        run: bash qt/packaging/windows/package.sh "$GITHUB_WORKSPACE/ffbin/ffmpeg.exe" "$GITHUB_WORKSPACE/qt/dist"
+      - name: Smoke test
+        run: python qt/packaging/smoke.py "qt/deploy/VLC Redesign/VLC Redesign.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vlc3-windows
+          if-no-files-found: error
+          path: |
+            qt/dist/*.exe
+            qt/dist/*.zip
+
+  macos:
+    needs: ffmpeg
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: mac
+          target: desktop
+          arch: clang_64
+          modules: 'qtmultimedia qtshadertools qtimageformats'
+          cache: true
+      - run: brew install ninja
+      - uses: actions/download-artifact@v4
+        with: { name: 'ffmpeg-mac-${{ matrix.arch }}', path: ffbin }
+      - name: libVLC (VideoLAN's build for this processor)
+        working-directory: app
+        run: node scripts/fetch-vlc.js mac-${{ matrix.arch }}
+      - name: API keys
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+        run: node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+      - name: Build and package (app, dmg)
+        run: bash qt/packaging/macos/package.sh ${{ matrix.arch }} "$GITHUB_WORKSPACE/ffbin/ffmpeg" "$GITHUB_WORKSPACE/qt/dist"
+      - name: Smoke test
+        if: matrix.arch == 'arm64'   # the runner is Apple Silicon; the Intel build is only packaged
+        run: python3 qt/packaging/smoke.py "qt/build-mac-arm64/VLC Redesign.app/Contents/MacOS/VLC Redesign"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vlc3-macos-${{ matrix.arch }}
+          if-no-files-found: error
+          path: qt/dist/*.dmg
+
+  linux:
+    needs: ffmpeg
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build tools and X11 libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dev libegl1 libxkbcommon-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-randr0 libxcb-shape0 libfuse2 xvfb \
+            libpulse0 libasound2 libfontconfig1 file
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: linux
+          target: desktop
+          arch: linux_gcc_64
+          modules: 'qtmultimedia qtshadertools qtimageformats'
+          cache: true
+      - uses: actions/download-artifact@v4
+        with: { name: ffmpeg-linux-x64, path: ffbin }
+      - name: libVLC (build/vlc-linux, in Docker)
+        run: |
+          bash app/build/vlc-linux/docker.sh
+          sudo chown -R "$(id -u):$(id -g)" app/vendor app/native/vlcview
+      - name: API keys
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+        run: node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+      - name: Build and package (AppImage, deb, rpm, Arch, tar.gz)
+        run: bash qt/packaging/linux/package.sh "$GITHUB_WORKSPACE/ffbin/ffmpeg" "$GITHUB_WORKSPACE/qt/dist"
+      - name: Smoke test
+        run: xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/packaging/smoke.py qt/build-linux/AppDir/AppRun
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vlc3-linux
+          if-no-files-found: error
+          path: |
+            qt/dist/*.AppImage
+            qt/dist/*.deb
+            qt/dist/*.rpm
+            qt/dist/*.pkg.tar.zst
+            qt/dist/*.tar.gz

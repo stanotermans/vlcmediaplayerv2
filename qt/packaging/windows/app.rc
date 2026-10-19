@@ -1,0 +1,27 @@
+// The program's icon and version details (Explorer, the taskbar, Settings → Apps)
+IDI_ICON1 ICON "icon.ico"
+
+1 VERSIONINFO
+FILEVERSION 3,0,0,0
+PRODUCTVERSION 3,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName", "Stan Otermans"
+      VALUE "FileDescription", "VLC Redesign"
+      VALUE "FileVersion", "3.0.0"
+      VALUE "InternalName", "VLC Redesign"
+      VALUE "LegalCopyright", "© 2026 Stan Otermans. MIT license."
+      VALUE "LegalTrademarks", "VLC is a trademark of VideoLAN. VLC Redesign is an unofficial fan project and is not affiliated with VideoLAN."
+      VALUE "OriginalFilename", "VLC Redesign.exe"
+      VALUE "ProductName", "VLC Redesign"
+      VALUE "ProductVersion", "3.0.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

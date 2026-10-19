@@ -6,6 +6,8 @@
 #include <QQuickStyle>
 
 #include <QFile>
+#include <QDir>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
@@ -23,6 +25,12 @@ static void applyInterfaceSize() {
 }
 
 int main(int argc, char *argv[]) {
+  // the portable Windows version (a file "portable" next to the program) keeps its data in "data" next to it
+  {
+    const QString exe = QString::fromLocal8Bit(argv[0]);
+    const QString dir = exe.contains('\\') || exe.contains('/') ? QFileInfo(exe).absolutePath() : QDir::currentPath();
+    if (QFile::exists(dir + "/portable") && !qEnvironmentVariableIsSet("VLCR_USER_DATA")) qputenv("VLCR_USER_DATA", QString(dir + "/data").toUtf8());
+  }
   applyInterfaceSize();
   QGuiApplication app(argc, argv);
   app.setApplicationVersion("3.0.0");

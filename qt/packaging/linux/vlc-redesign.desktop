@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=VLC Redesign
+GenericName=Media Player
+Comment=Unofficial fan-made VLC-style media player for video, music and streams
+Exec=vlc-redesign %F
+Icon=vlc-redesign
+Terminal=false
+Categories=AudioVideo;Video;Audio;Player;
+StartupWMClass=vlc-redesign
+MimeType=video/mp4;video/x-matroska;video/x-msvideo;video/quicktime;video/webm;video/x-ms-wmv;video/x-flv;video/x-m4v;video/mpeg;video/mp2t;video/3gpp;video/ogg;audio/mpeg;audio/flac;audio/x-wav;audio/mp4;audio/aac;audio/ogg;audio/opus;audio/x-ms-wma;audio/ac3;audio/midi;audio/x-mpegurl;application/vnd.apple.mpegurl;application/xspf+xml;audio/x-scpls;application/x-iso9660-image;

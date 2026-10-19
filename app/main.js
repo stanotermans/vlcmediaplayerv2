@@ -785,6 +785,11 @@ ipcMain.handle('rec-chunk', (_e, file, buf) => { const fd = recs.get(file); if (
 ipcMain.handle('rec-dir', (_e, dir) => { fs.mkdirSync(dir, { recursive: true }); return dir; });   // VLC engine: libVLC writes the file
 ipcMain.handle('rec-stop', (_e, file) => { const fd = recs.get(file); if (fd != null) { fs.closeSync(fd); recs.delete(file); } return file; });
 ipcMain.on('quit', () => app.quit());
+// Everything the app keeps (localStorage: settings, library, playlists, positions …) as a file VLC Redesign 3 (Qt)
+// imports on its first start; Chromium's own storage cannot be read by another app
+ipcMain.on('export-v3', (_e, data) => {
+  try { fs.writeFileSync(path.join(app.getPath('userData'), 'export-for-v3.json'), JSON.stringify({ version: app.getVersion(), data })); } catch {}
+});
 
 /* ---------------- about + updates (GitHub releases) ---------------- */
 const SAFE_HOSTS = /^(github\.com|www\.youtube\.com|youtube\.com|www\.figma\.com|stanotermans\.github\.io|ffmpeg\.org|www\.electronjs\.org|www\.videolan\.org|opensource\.org)$/;

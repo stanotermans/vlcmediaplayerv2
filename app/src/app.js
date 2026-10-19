@@ -1732,7 +1732,10 @@ document.addEventListener('keydown', e => {
     default: if (/^[0-9]$/.test(k) && curDur()) seekTo(curDur() * (+k / 10));
   }
 });
-addEventListener('beforeunload', () => { savePos(); stopRecord(); });
+// for VLC Redesign 3 (Qt): a copy of everything in localStorage, at start and when the app closes
+function exportForV3() { try { const d = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('vlcx-')) d[k] = localStorage.getItem(k); } api.exportForV3(d); } catch {} }
+setTimeout(exportForV3, 5000);
+addEventListener('beforeunload', () => { savePos(); stopRecord(); exportForV3(); });
 
 /* ---------- settings reactions ---------- */
 api.setZoom(S.get('uiScale') / 100);

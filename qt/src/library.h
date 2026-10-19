@@ -72,6 +72,11 @@ public:
   Q_INVOKABLE QString videosDir() const;                      // recordings, the first media folder suggestion
   Q_INVOKABLE void clearRecent();
   Q_INVOKABLE bool makeDir(const QString &dir) const;
+  // moving over from v2.x (Electron): the export v2.x writes (export-for-v3.json in its data folder), as
+  // { settings, listView } for the settings and the rest imported here (library, playlists, recent, watched,
+  // positions, bookmarks); {} when there is none
+  Q_INVOKABLE QVariantMap v2Export() const;
+  Q_INVOKABLE void importV2(const QVariantMap &data);
   Q_INVOKABLE QString logFile() const { return QDir::toNativeSeparators(dataDir() + "/vlc-redesign.log"); }
   Q_INVOKABLE QString builtinSoundfont() const;               // FluidR3 Mono, next to the program
   Q_INVOKABLE void clearPositions();                          // and the watched marks

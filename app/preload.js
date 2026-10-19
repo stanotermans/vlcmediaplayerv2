@@ -4,6 +4,8 @@ const inv = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
 contextBridge.exposeInMainWorld('api', {
   info: () => inv('info'),
   paths: () => inv('paths'),
+  // VLC Redesign 3 (Qt) takes over the settings, library and playlists from this file on its first start
+  exportForV3: data => ipcRenderer.send('export-v3', data),
   openFiles: () => inv('open-files'),
   openFolder: () => inv('open-folder'),
   openSubtitle: src => inv('open-subtitle', src),

@@ -138,7 +138,7 @@ void System::checkUpdates(bool manual) {
     auto find = [&](const QRegularExpression &re) { for (const auto &a : j["assets"].toArray()) if (re.match(a.toObject()["name"].toString()).hasMatch()) return a.toObject(); return QJsonObject(); };
     QJsonObject asset; QString mode = "page";
 #ifdef Q_OS_WIN
-    asset = portable() ? find(QRegularExpression("Portable-.*\\.exe$")) : find(QRegularExpression("Setup-.*x64\\.exe$")); mode = portable() ? "download" : "install";
+    asset = portable() ? find(QRegularExpression("Portable-.*\\.(exe|zip)$")) : find(QRegularExpression("Setup-.*x64\\.exe$")); mode = portable() ? "download" : "install";
 #elif defined(Q_OS_MACOS)
     asset = find(QRegularExpression(QString("mac-%1\\.dmg$").arg(QSysInfo::currentCpuArchitecture() == "arm64" ? "arm64" : "x64"))); mode = "download";
 #else

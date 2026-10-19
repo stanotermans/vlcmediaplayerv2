@@ -460,6 +460,44 @@ void Library::reveal(const QString &path) const {
 }
 QString Library::videosDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)); }
 bool Library::makeDir(const QString &dir) const { return QDir().mkpath(dir); }
+
+// v2.x's data folder: "VLC Redesign" (Linux packages: "vlc-redesign") in the system's app data folder
+QVariantMap Library::v2Export() const {
+  if (qEnvironmentVariable("VLCR_NO_IMPORT") == "1") return {};   // testing
+  QStringList dirs;
+  const QString base = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);   // Linux ~/.config
+#if defined(Q_OS_WIN)
+  dirs << qEnvironmentVariable("APPDATA") + "/VLC Redesign";
+#elif defined(Q_OS_MACOS)
+  dirs << QDir::homePath() + "/Library/Application Support/VLC Redesign";
+#else
+  dirs << base + "/vlc-redesign" << base + "/VLC Redesign";
+#endif
+  if (qEnvironmentVariableIsSet("VLCR_V2_DATA")) dirs.prepend(qEnvironmentVariable("VLCR_V2_DATA"));
+  for (const QString &d : dirs) {
+    QFile f(d + "/export-for-v3.json");
+    if (!f.open(QIODevice::ReadOnly)) continue;
+    const QJsonObject data = QJsonDocument::fromJson(f.readAll()).object()["data"].toObject();
+    QVariantMap out;   // localStorage keeps JSON text per key
+    for (auto it = data.begin(); it != data.end(); ++it) out[it.key().mid(5)] = QJsonDocument::fromJson(("[" + it.value().toString() + "]").toUtf8()).array().first().toVariant();
+    if (!out.isEmpty()) { out["_from"] = d; return out; }
+  }
+  return {};
+}
+void Library::importV2(const QVariantMap &d) {
+  for (const QVariant &v : d.value("library").toList()) { const QVariantMap it = v.toMap(); bool n; addOne(it["src"].toString(), true, qint64(it["added"].toDouble()), &n); }
+  const QVariantList pls = d.value("playlists3", d.value("playlists2")).toList();
+  if (!pls.isEmpty()) {
+    m_playlists.clear();
+    for (const QVariant &v : pls) { const QVariantMap p = v.toMap(); m_playlists << QVariantMap{ { "name", p["name"] }, { "srcs", p["srcs"].toStringList() }, { "cover", p["cover"].toString() } }; }
+  }
+  m_recent = d.value("recent2").toStringList();
+  for (const QVariant &w : d.value("watched").toList()) m_watched[w.toString()] = true;
+  m_positions = d.value("pos").toMap();
+  m_bookmarks = d.value("bookmarks").toMap();
+  emit playlistsChanged(); emit recentChanged(); emit watchedChanged(); emit positionsChanged(); emit bookmarksChanged();
+  changed(); m_saveTimer.start();
+}
 QString Library::builtinSoundfont() const {
   if (qEnvironmentVariableIsSet("VLCR_SOUNDFONT")) return qEnvironmentVariable("VLCR_SOUNDFONT");
   return QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/assets/FluidR3Mono_GM.sf3");

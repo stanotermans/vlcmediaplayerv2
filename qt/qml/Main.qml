@@ -431,12 +431,27 @@ C.ApplicationWindow {
     if (Settings.values.autoUpdate !== false && !shotPath) updateTimer.start();
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
     library.load();
+    importFromV2();
     library.scanFolders(Settings.values.mediaFolders || []);
     if (autoPlay) addSources([autoPlay]);
     // testing: VLCR_OPEN=<step>;<step>… with view:<name>, dir:<n>, list, grid, select:<n>, pl:<n>, expanded,
     // dialog:<newpl|network|info|choose>, menu:<item|folder|playlist|more|player|title>, settings:<page>, play:<n>,
     // seek:<s>, pause, key:<name>, browse, hover:<fraction>, fs, cone, mini
     if (openAtStart) Qt.callLater(() => testSteps(openAtStart.split(";")), 0);
+  }
+  // First start after VLC Redesign 2 (Electron): its settings, library, playlists, positions and bookmarks, from the
+  // file v2.x writes for this (export-for-v3.json); settings of things that are gone (the Classic engine) are left out
+  function importFromV2() {
+    if (Settings.values.importedV2) return;
+    Settings.set("importedV2", true);
+    const d = library.v2Export();
+    if (!d._from) return;
+    const gone = ["engine", "engineV", "classicTypes", "forceTx", "txQuality", "txMaxW", "showBadge", "logFile"];
+    const s = d.settings || {};
+    for (const k in s) if (gone.indexOf(k) < 0 && Settings.defaultValue(k) !== undefined) Settings.set(k, s[k]);
+    if (d.listView !== undefined) Settings.set("listView", !!d.listView);
+    library.importV2(d);
+    Qt.callLater(() => osd(qsTr("Settings and library taken over from VLC Redesign 2")));
   }
   function testSteps(steps) {
     let delay = 600;   // the library is read first

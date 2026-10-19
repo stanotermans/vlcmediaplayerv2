@@ -128,15 +128,21 @@ bool VlcPlayer::load() {
 #else
   // the bundled libVLC (phase 7 packages it next to the program), or the system's
   QString dir = qEnvironmentVariable("VLCR_VLC", QCoreApplication::applicationDirPath() + "/vlc");
+  auto open = [](const QString &p) { return dlopen(p.toUtf8().constData(), RTLD_NOW | RTLD_GLOBAL); };
 #ifdef __APPLE__
-  dlopen(QString(dir + "/lib/libvlccore.dylib").toUtf8().constData(), RTLD_NOW | RTLD_GLOBAL);
-  void *dll = dlopen(QString(dir + "/lib/libvlc.dylib").toUtf8().constData(), RTLD_NOW | RTLD_GLOBAL);
+  // VLC.app's layout (scripts/fetch-vlc.js): lib/ and plugins/ side by side. libVLC and the plugins ask for
+  // @rpath/libvlccore.dylib, an rpath only VLC's own program has: loading libvlccore by its full path first makes
+  // that name refer to it (the dylibs keep VideoLAN's signatures)
+  if (!qEnvironmentVariableIsSet("VLC_PLUGIN_PATH")) qputenv("VLC_PLUGIN_PATH", QString(dir + "/plugins").toUtf8());
+  if (!open(dir + "/lib/libvlccore.dylib")) open(dir + "/lib/libvlccore.9.dylib");
+  void *dll = open(dir + "/lib/libvlc.dylib");
+  if (!dll) dll = open(dir + "/lib/libvlc.5.dylib");
 #else
-  void *dll = dlopen(QString(dir + "/libvlc.so.5").toUtf8().constData(), RTLD_NOW | RTLD_GLOBAL);
-  if (!dll) dll = dlopen("libvlc.so.5", RTLD_NOW | RTLD_GLOBAL);
+  // build/vlc-linux: lib/libvlc.so.5, lib/libvlccore.so.9 and lib/vlc/plugins (found next to libvlccore)
+  void *dll = open(dir + "/lib/libvlc.so.5");
+  if (!dll) dll = open("libvlc.so.5");                                 // a system libVLC (development)
 #endif
   if (!dll) { m_error = "libVLC not found in " + dir; emit errorChanged(); return false; }
-  if (!qEnvironmentVariableIsSet("VLC_PLUGIN_PATH") && QDir(dir + "/plugins").exists()) qputenv("VLC_PLUGIN_PATH", QString(dir + "/plugins").toUtf8());
 #define LOAD(f, s) if (!(*(void **)&vlc.f = dlsym(dll, s))) { m_error = "libVLC: missing " s; emit errorChanged(); return false; }
 #endif
   LOAD(new_, "libvlc_new") LOAD(get_version, "libvlc_get_version")
@@ -169,10 +175,11 @@ bool VlcPlayer::load() {
 #else
   {
 #ifdef __APPLE__
-    void *c = dlopen(QString(dir + "/lib/libvlccore.dylib").toUtf8().constData(), RTLD_NOW | RTLD_GLOBAL);
+    void *c = open(dir + "/lib/libvlccore.dylib");
+    if (!c) c = open(dir + "/lib/libvlccore.9.dylib");
 #else
-    void *c = dlopen(QString(dir + "/libvlccore.so.9").toUtf8().constData(), RTLD_NOW | RTLD_GLOBAL);
-    if (!c) c = dlopen("libvlccore.so.9", RTLD_NOW | RTLD_GLOBAL);
+    void *c = open(dir + "/lib/libvlccore.so.9");
+    if (!c) c = open("libvlccore.so.9");
 #endif
     if (!c) c = RTLD_DEFAULT;
     *(void **)&core.var_Create = dlsym(c, "var_Create"); *(void **)&core.var_SetChecked = dlsym(c, "var_SetChecked");

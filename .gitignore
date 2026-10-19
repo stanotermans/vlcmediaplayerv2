@@ -11,3 +11,6 @@ app/native/*/build/
 # Qt version (qt/): build output
 qt/build/
 qt/deploy/
+qt/dist/
+qt/build-*/
+qt/keys.json

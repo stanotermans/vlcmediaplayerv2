@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The app bundle of VLC Redesign 3: name, icon, version, and the files it opens (Finder → Open with) -->
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>VLC Redesign</string>
+  <key>CFBundleDisplayName</key><string>VLC Redesign</string>
+  <key>CFBundleExecutable</key><string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
+  <key>CFBundleIdentifier</key><string>nl.otermans.vlcredesign</string>
+  <key>CFBundleIconFile</key><string>icon.icns</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
+  <key>CFBundleVersion</key><string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
+  <key>LSMinimumSystemVersion</key><string>12.0</string>
+  <key>LSApplicationCategoryType</key><string>public.app-category.video</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSHumanReadableCopyright</key><string>© 2026 Stan Otermans. MIT license. VLC is a trademark of VideoLAN; this is an unofficial fan project.</string>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key><string>Video</string>
+      <key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>LSHandlerRank</key><string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array><string>public.movie</string><string>public.mpeg-4</string><string>com.apple.quicktime-movie</string><string>public.avi</string>
+             <string>org.matroska.mkv</string><string>org.webmproject.webm</string><string>public.mpeg-2-transport-stream</string></array>
+      <key>CFBundleTypeExtensions</key>
+      <array><string>mp4</string><string>mkv</string><string>avi</string><string>mov</string><string>webm</string><string>wmv</string><string>flv</string>
+             <string>m4v</string><string>mpg</string><string>mpeg</string><string>ts</string><string>m2ts</string><string>3gp</string><string>ogv</string><string>iso</string></array>
+    </dict>
+    <dict>
+      <key>CFBundleTypeName</key><string>Audio</string>
+      <key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>LSHandlerRank</key><string>Alternate</string>
+      <key>LSItemContentTypes</key><array><string>public.audio</string></array>
+      <key>CFBundleTypeExtensions</key>
+      <array><string>mp3</string><string>flac</string><string>wav</string><string>m4a</string><string>aac</string><string>ogg</string><string>opus</string>
+             <string>wma</string><string>ac3</string><string>mid</string><string>midi</string><string>kar</string><string>rmi</string></array>
+    </dict>
+    <dict>
+      <key>CFBundleTypeName</key><string>Playlist</string>
+      <key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>LSHandlerRank</key><string>Alternate</string>
+      <key>LSItemContentTypes</key><array><string>public.m3u-playlist</string><string>public.playlist</string></array>
+      <key>CFBundleTypeExtensions</key><array><string>m3u</string><string>m3u8</string><string>xspf</string><string>pls</string></array>
+    </dict>
+  </array>
+</dict>
+</plist>
