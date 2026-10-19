@@ -37,6 +37,12 @@ function get(url) {
     const parts = []; r.on('data', d => parts.push(d)); r.on('end', () => res(Buffer.concat(parts))); r.on('error', rej);
   }).on('error', rej));
 }
+// downloads can fail now and then on build servers (DNS, resets): three tries
+async function getRetry(url, tries = 3) {
+  for (let i = 1; ; i++) {
+    try { return await get(url); } catch (e) { if (i >= tries) throw e; console.log(`retrying ${url} (${e.message})`); await new Promise(r => setTimeout(r, 10000)); }
+  }
+}
 function copyTree(from, to, filter) {
   fs.mkdirSync(to, { recursive: true });
   for (const e of fs.readdirSync(from, { withFileTypes: true })) {
@@ -52,7 +58,7 @@ const sizeOf = d => fs.readdirSync(d, { withFileTypes: true }).reduce((s, e) => 
   if (!BASE) { console.log(`fetch-vlc: no VideoLAN build for "${TARGET}" (Linux: build/vlc-linux/)`); return; }
   if (fs.existsSync(path.join(OUT, 'VERSION')) && fs.readFileSync(path.join(OUT, 'VERSION'), 'utf8').trim() === STAMP) { console.log('libVLC', VERSION, TARGET, 'already in', OUT); return; }
   console.log('downloading', BASE);
-  const [pkg, sum] = await Promise.all([get(BASE), get(BASE + '.sha256')]);
+  const [pkg, sum] = await Promise.all([getRetry(BASE), getRetry(BASE + '.sha256')]);
   const want = sum.toString().trim().split(/\s+/)[0].toLowerCase(), have = crypto.createHash('sha256').update(pkg).digest('hex');
   if (want !== have) throw new Error(`checksum mismatch: expected ${want}, got ${have}`);
   console.log('checksum ok', have);

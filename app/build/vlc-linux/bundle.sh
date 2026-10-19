@@ -38,7 +38,7 @@ apt-get install -y -qq --no-install-recommends libvlc5 libvlccore9 vlc-plugin-ba
 FF_VERSION=5.1.10
 FF_SHA256=392306d6fc45dab0e9e0ea55381e071842e83a2fb31d320aeda40477a7766293
 FF=/tmp/ffmpeg; rm -rf $FF /tmp/ffp && mkdir -p $FF
-curl -sSL -o /tmp/ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-$FF_VERSION.tar.xz"
+curl -sSL --retry 5 --retry-delay 10 --retry-all-errors -o /tmp/ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-$FF_VERSION.tar.xz"
 echo "$FF_SHA256  /tmp/ffmpeg.tar.xz" | sha256sum -c - >/dev/null
 tar -xJf /tmp/ffmpeg.tar.xz -C $FF --strip-components=1
 ( cd $FF && ./configure --prefix=/tmp/ffp --enable-shared --disable-static --enable-pic --disable-programs --disable-doc \
@@ -83,7 +83,7 @@ while [ -n "$todo" ]; do
 done
 # Rename FFmpeg's functions (patchelf 0.18 rewrites names and hash tables; Debian 12 has 0.14)
 PE_SHA256=ce84f2447fb7a8679e58bc54a20dc2b01b37b5802e12c57eece772a6f14bf3f0
-curl -sSL -o /tmp/patchelf.tar.gz https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz
+curl -sSL --retry 5 --retry-delay 10 --retry-all-errors -o /tmp/patchelf.tar.gz https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0-x86_64.tar.gz
 echo "$PE_SHA256  /tmp/patchelf.tar.gz" | sha256sum -c - >/dev/null
 mkdir -p /tmp/patchelf && tar -xzf /tmp/patchelf.tar.gz -C /tmp/patchelf
 PE=/tmp/patchelf/bin/patchelf
