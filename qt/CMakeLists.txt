@@ -12,6 +12,8 @@ qt_add_executable(vlcr
   src/windowframe.cpp src/windowframe.h
   src/vlcplayer.cpp src/vlcplayer.h
   src/library.cpp src/library.h
+  src/frames.cpp src/frames.h
+  src/keyfilter.cpp src/keyfilter.h
 )
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(vlcr
@@ -20,6 +22,8 @@ qt_add_qml_module(vlcr
   QML_FILES
     qml/Main.qml qml/Theme.qml qml/Icons.js qml/Lib.js
     qml/library/Rail.qml qml/library/SidePanel.qml qml/library/Browser.qml qml/library/Card.qml qml/library/ListRow.qml
+    qml/player/Playback.qml qml/player/PlayerView.qml qml/player/ControlBar.qml qml/player/SeekBar.qml
+    qml/player/MiniPlayer.qml qml/player/PipWindow.qml qml/player/PixelCat.qml
     qml/dialogs/Ask.qml qml/dialogs/NewPlaylist.qml qml/dialogs/Network.qml qml/dialogs/MediaInfo.qml
     qml/controls/T.qml qml/controls/Icon.qml qml/controls/IconButton.qml qml/controls/Button.qml
     qml/controls/Toggle.qml qml/controls/Segmented.qml qml/controls/Swatches.qml qml/controls/Slider.qml

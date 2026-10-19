@@ -1,6 +1,13 @@
 // Icons of VLC Redesign v2.x (app/src/ui.js, 24x24 strokes), used by Icon.qml
 .pragma library
 var paths = {
+ "vol_mute": "<path d=\"M4 9h4l5-4v14l-5-4H4z\"/><path d=\"M16 9l5 6M21 9l-5 6\"/>",
+ "vol_low": "<path d=\"M4 9h4l5-4v14l-5-4H4z\"/><path d=\"M16 9a4 4 0 0 1 0 6\"/>",
+ "vol_high": "<path d=\"M4 9h4l5-4v14l-5-4H4z\"/><path d=\"M16 9a4 4 0 0 1 0 6\"/><path d=\"M18.5 6.5a8 8 0 0 1 0 11\"/>",
+ "pause_fill": "<path d=\"M6 4h4v16H6zM14 4h4v16h-4z\"/>",
+ "play_fill": "<path d=\"M6 4l14 8-14 8z\"/>",
+ "fast": "<path d=\"M4 6l8 6-8 6zM12 6l8 6-8 6z\"/>",
+ "restore": "<rect x=\"8\" y=\"5\" width=\"11\" height=\"11\" rx=\"1\"/><path d=\"M5 8v10a1 1 0 0 0 1 1h10\"/>",
  "ph_video": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"M10 9l5 3-5 3z\"/>",
  "ph_audio": "<circle cx=\"8\" cy=\"17\" r=\"3\"/><path d=\"M11 17V5l8 2\"/>",
  "row_video": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/>",

@@ -1,11 +1,10 @@
 // The main window: title bar, rail, library panel, library (grid / list) or player, and the control bar, as in
-// v2.x. Phase 2: the library and browsing (app.js "views & navigation", "library interactions", selection #49,
-// playlists #50); the player itself is built out in phase 3.
+// v2.x. The library and browsing (app.js "views & navigation", "library interactions", selection #49, playlists #50)
+// are here; the player is in player/ (PlayerView, ControlBar, SeekBar, MiniPlayer, PipWindow) and Playback.qml.
 import QtQuick
 import QtQuick.Window
 import QtQuick.Controls.Basic as C
 import QtQuick.Dialogs
-import QtMultimedia
 import VLCR
 import "Lib.js" as Lib
 
@@ -43,7 +42,7 @@ C.ApplicationWindow {
     sort: nav.sort, sortDesc: nav.sortDesc, pl: nav.pl, musicLabel: !!Settings.values.audioLabel, tr: s => qsTranslate("Lib", s) })
   readonly property var pg: Lib.page(ctx)
   readonly property var vis: nav.view === "home" && !nav.query ? Lib.visibleItems(ctx) : pg.list      // what Ctrl+A selects
-  readonly property var sideData: Lib.side(ctx, pg, nav.sideMode === "queue" ? queue() : null)
+  readonly property var sideData: Lib.side(ctx, pg, nav.sideMode === "queue" ? pb.queue() : null)
 
   function itemsLabel(n) { return n === 1 ? qsTr("1 item") : qsTr("%1 items").arg(n); }
   function snapshot() { return { view: nav.view, dir: Object.assign({}, nav.dir), pl: nav.pl }; }
@@ -52,11 +51,11 @@ C.ApplicationWindow {
     for (const k in patch) nav[k] = patch[k];
     nav.query = ""; browser.search.text = "";
     clearSelection();                   // another view or folder: nothing selected
-    inPlayer = false;
+    showBrowser();
   }
   function restore(h) { nav.view = h.view; nav.dir = h.dir; nav.pl = h.pl; clearSelection(); }
   function goBack() {
-    if (inPlayer) { inPlayer = false; return; }
+    if (inPlayer) { showBrowser(); return; }
     if (!nav.back.length) return;
     const h = nav.back[nav.back.length - 1];
     nav.back = nav.back.slice(0, -1); nav.fwd = nav.fwd.concat([snapshot()]); restore(h);
@@ -77,21 +76,8 @@ C.ApplicationWindow {
   function sortBy(k) { if (nav.sort === k) nav.sortDesc = !nav.sortDesc; else { nav.sort = k; nav.sortDesc = false; } }
   function toggleList() { Settings.set("listView", !nav.list); }
 
-  // ---------- playing (the player itself: phase 3) ----------
-  function queue() { return queueList || vis; }
-  function playItem(it, list) {
-    if (!it) return;
-    if (list !== undefined) queueList = list;
-    current = it; library.playing = it.src; library.hurry(it.src);
-    if (Settings.values.rememberRecent) library.addRecent(it.src);
-    inPlayer = true;
-    player.open(it.src);
-  }
-  function step(d) {
-    const q = queue(); if (!current || !q.length) return;
-    const i = q.findIndex(x => x.src === current.src);
-    const n = q[(i + d + q.length) % q.length]; if (n) playItem(n);
-  }
+  // ---------- playing (Playback.qml) ----------
+  function playItem(it, list) { pb.playItem(it, list); }
 
   // ---------- clicks ----------
   function entryClicked(e, mods) {
@@ -134,7 +120,7 @@ C.ApplicationWindow {
     ];
   }
   function removeItems(srcs) {
-    if (current && srcs.indexOf(current.src) >= 0) { player.stop(); current = null; library.playing = ""; inPlayer = false; }
+    if (current && srcs.indexOf(current.src) >= 0) pb.stop();
     library.remove(srcs);
     const s = Object.assign({}, sel); srcs.forEach(x => delete s[x]); sel = s;
   }
@@ -143,6 +129,7 @@ C.ApplicationWindow {
   // ---------- menus ----------
   function menu(items, x, y) {
     const m = Qt.createComponent("controls/ContextMenu.qml").createObject(C.Overlay.overlay, { items: items });
+    dialogs++; m.closed.connect(() => dialogs--);
     m.open(); m.placeAt(x, y);
     return m;
   }
@@ -287,8 +274,57 @@ C.ApplicationWindow {
 
   function toggleMax() { win.visibility === Window.Maximized ? win.showNormal() : win.showMaximized(); }
   function openSettings(page) { const w = Qt.createComponent("pages/SettingsWindow.qml").createObject(C.Overlay.overlay, { current: page || "interface" }); dialogs++; w.closed.connect(() => { dialogs--; w.destroy(); }); w.open(); }
-  property int dialogs: 0              // open dialogs (the library keys wait)
+  property int dialogs: 0              // open dialogs and menus (the keys wait)
   function osd(text) { osdText.text = text; osdBox.opacity = 1; osdTimer.restart(); }
+
+  // ---------- library / player, fullscreen, the interface (app.js showPlayer / showBrowser / toggleFs) ----------
+  property bool sideOverride: false    // the sidebar button brought the rail and panel back while a video plays
+  property bool hideUi: false          // Ctrl+\: only the picture
+  property bool fsTop: false           // fullscreen: the mouse is near the top / bottom edge
+  property bool fsBottom: false
+  property bool cursorHidden: false
+  // The library never stays in fullscreen (#31: on Windows the taskbar can cover it); going back to the player
+  // restores it.
+  property bool fsForLibrary: false
+  readonly property bool fullscreen: visibility === Window.FullScreen
+  readonly property bool fsMode: fullscreen && inPlayer
+  // while media plays the rail and library panel step aside (Settings → Interface → autoHideSide)
+  readonly property bool focusVideo: !!Settings.values.autoHideSide && inPlayer && !!current && !sideOverride
+  function showPlayer() {
+    if (fsForLibrary && !fullscreen) { fsForLibrary = false; showFullScreen(); }
+    inPlayer = true;
+  }
+  function showBrowser() {
+    if (fullscreen) { fsForLibrary = true; showNormal(); }
+    inPlayer = false;
+  }
+  function toggleLibrary() { if (inPlayer) showBrowser(); else if (current) showPlayer(); }
+  function toggleFs() { fsForLibrary = false; if (fullscreen) showNormal(); else { showFullScreen(); if (current) inPlayer = true; } }
+  function toggleHideUi() { hideUi = !hideUi; if (hideUi) showPlayer(); osd(hideUi ? qsTr("Interface hidden – press Ctrl+\\ to show it again") : qsTr("Interface visible")); }
+  function flashBig(playing) { playerView.flash(playing); }
+  function raiseMain() { win.show(); win.raise(); win.requestActivate(); }
+  // Resize the window to the video's shape once per new video (Settings → Interface → fitWindow), at most 70 % of
+  // the screen
+  function fitWindow(size) {
+    if (!Settings.values.fitWindow || visibility !== Window.Windowed || !inPlayer) return;
+    Qt.callLater(() => {
+      const chromeW = win.width - playerView.width, chromeH = win.height - playerView.height;
+      const sw = Screen.desktopAvailableWidth, sh = Screen.desktopAvailableHeight;
+      const s = Math.min((sw * 0.7 - chromeW) / size.width, (sh * 0.7 - chromeH) / size.height, Math.max(1, 720 / size.width));
+      if (!(s > 0)) return;
+      const w = Math.round(chromeW + size.width * s), h = Math.round(chromeH + size.height * s);
+      const cx = win.x + win.width / 2, cy = win.y + win.height / 2;
+      win.x = Math.round(Math.min(Math.max(cx - w / 2, Screen.virtualX), Screen.virtualX + sw - w));
+      win.y = Math.round(Math.min(Math.max(cy - h / 2, Screen.virtualY), Screen.virtualY + sh - h));
+      win.width = w; win.height = h;
+    });
+  }
+  property bool pipOpen: false
+  function togglePip() {
+    if (!current || current.type === "audio") return osd(qsTr("Picture-in-picture not available"));
+    if (pipOpen) { pip.close(); return; }
+    pip.show(); pipOpen = true;
+  }
 
   Library {
     id: library
@@ -297,7 +333,18 @@ C.ApplicationWindow {
     onMessage: t => win.osd(t)
   }
   Connections { target: Settings; function onChanged(p) { if (p === "mediaFolders") { library.scanFolders(Settings.values.mediaFolders || []); } } }
-  VlcPlayer { id: player; videoSink: video.videoSink }
+  VlcPlayer {
+    id: player
+    videoSink: playerView.video.videoSink
+    // the mini player and picture-in-picture get the same frames
+    extraSink: win.pipOpen ? pip.video.videoSink : mini.visible ? mini.video.videoSink : null
+  }
+  property alias player: player
+  Frames { id: frames }
+  property alias frames: frames
+  Playback { id: pb; ctl: win; player: player; library: library; frames: frames }
+  property alias pb: pb
+  PipWindow { id: pip; ctl: win; onClosing: win.pipOpen = false }
   WindowFrame { id: frame; maximizeButton: maxBtn }
   Component.onCompleted: {
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
@@ -305,12 +352,13 @@ C.ApplicationWindow {
     library.scanFolders(Settings.values.mediaFolders || []);
     if (autoPlay) addSources([autoPlay]);
     // testing: VLCR_OPEN=<step>;<step>… with view:<name>, dir:<n>, list, grid, select:<n>, pl:<n>, expanded,
-    // dialog:<newpl|network|info|choose>, menu:<item|folder|playlist|more>, settings:<page>
+    // dialog:<newpl|network|info|choose>, menu:<item|folder|playlist|more|player|title>, settings:<page>, play:<n>,
+    // seek:<s>, pause, key:<name>, browse, hover:<fraction>, fs, cone, mini
     if (openAtStart) Qt.callLater(() => testSteps(openAtStart.split(";")), 0);
   }
   function testSteps(steps) {
     let delay = 600;   // the library is read first
-    steps.forEach(s => { const k = s.split(":")[0], v = s.slice(k.length + 1); delay += 500; timerAt(delay, () => testStep(k, v)); });
+    steps.forEach(s => { const k = s.split(":")[0], v = s.slice(k.length + 1); delay += k === "wait" ? +v : 500; timerAt(delay, () => testStep(k, v)); });
   }
   function timerAt(ms, fn) { const t = Qt.createQmlObject("import QtQuick; Timer {}", win); t.interval = ms; t.triggered.connect(() => { fn(); t.destroy(); }); t.start(); }
   function testStep(k, v) {
@@ -326,6 +374,17 @@ C.ApplicationWindow {
     else if (k === "watched") library.setWatched([vis[0].src], true);
     else if (k === "query") { browser.search.text = v; setQuery(v); }
     else if (k === "settings") openSettings(v);
+    else if (k === "play") { const i = vis.find(x => x.name === v) || vis[+v || 0]; playItem(i, vis); }
+    else if (k === "seek") pb.seekTo(+v);
+    else if (k === "pause") player.pause();
+    else if (k === "key") keys.handler(v, false, 0);
+    else if (k === "browse") showBrowser();
+    else if (k === "fs") toggleFs();
+    else if (k === "cone") Settings.set("volShape", v || "cone");
+    else if (k === "ab") { pb.ab = { a: +v.split("-")[0], b: +v.split("-")[1] }; }
+    else if (k === "bookmark") pb.addBookmark(+v);
+    else if (k === "pip") togglePip();
+    else if (k === "hover") controls.testHover(+v);
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });
       else if (v === "network") dialog("dialogs/Network.qml", {});
@@ -333,29 +392,36 @@ C.ApplicationWindow {
       else if (v === "choose") addToPlaylist([vis[0].src]);
     } else if (k === "menu") {
       if (v === "more") moreMenu(win.width - 300, 92);
-      else if (v === "player") menu(playerMenu(), 760, 260);
+      else if (v === "player") { const m = menu(playerMenu(), 760, 260); }
+      else if (v === "title") titleMenu(60, 40);
       else { const e = v === "item" ? { kind: "item", it: vis[0] } : pg.cards.filter(c => c.kind === v)[0]; if (e) entryMenu(e, 700, 300, true); }
     }
   }
 
-  // ---------- title bar (36px) ----------
+  // ---------- title bar (36px); in fullscreen it slides in at the top edge ----------
   Rectangle {
     id: titlebar
-    anchors { left: parent.left; right: parent.right; top: parent.top }
+    visible: !win.hideUi
+    anchors { left: parent.left; right: parent.right }
+    y: win.fsMode ? (win.fsTop ? 0 : -height) : 0
+    opacity: win.fsMode && !win.fsTop ? 0 : 1
+    Behavior on y { enabled: win.fsMode; NumberAnimation { duration: 200 } }
+    Behavior on opacity { NumberAnimation { duration: 200 } }
+    z: 30
     height: 36; color: Theme.bg
     Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.edge }
-    MouseArea { anchors.fill: parent; onPressed: win.startSystemMove(); onDoubleClicked: win.toggleMax() }
+    MouseArea { anchors.fill: parent; onPressed: if (!win.fullscreen) win.startSystemMove(); onDoubleClicked: win.toggleMax() }
     Row {
       anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
       spacing: 4
       Image {   // the cone
         width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter; sourceSize: Qt.size(36, 36)
-        source: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="' + Theme.accent + '"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#ddd"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="' + Theme.accent + '"/><path d="M3 18h18l1 3H2z" fill="' + Theme.accent + '"/></svg>')
+        source: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="' + Theme.accent + '"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#fff"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="' + Theme.accent + '"/><path d="M3 18h18l1 3H2z" fill="' + Theme.accent + '"/></svg>')
       }
-      IconButton { html: "menuBtn"; width: 28; height: 28; tip: qsTr("Menu") }
+      IconButton { id: menuBtn; html: "menuBtn"; width: 28; height: 28; tip: qsTr("Menu")
+                   onClicked: { const p = menuBtn.mapToItem(null, 0, menuBtn.height + 4); win.titleMenu(p.x, p.y); } }
       Rectangle { width: 1; height: 16; color: Theme.line; anchors.verticalCenter: parent.verticalCenter }
-      IconButton { html: "sideToggle"; width: 28; height: 28; tip: qsTr("Sidebar (Q)")
-                   onClicked: { if (Settings.values.navExpanded) Settings.set("navExpanded", false); else win.sideHidden = !win.sideHidden; } }
+      IconButton { html: "sideToggle"; width: 28; height: 28; tip: qsTr("Sidebar (Q)"); onClicked: win.sideToggle() }
       Row {
         spacing: 6; anchors.verticalCenter: parent.verticalCenter; leftPadding: 4
         Icon { html: "crumbs"; color: Theme.muted; anchors.verticalCenter: parent.verticalCenter }
@@ -374,31 +440,41 @@ C.ApplicationWindow {
           width: 44; height: 36
           color: hot ? (modelData === "closeBtn" ? "#c42b1c" : Theme.panel2) : "transparent"
           Component.onCompleted: if (modelData === "maxBtn") maxBtn = wbtn
-          Icon { anchors.centerIn: parent; html: modelData; color: parent.hot ? (modelData === "closeBtn" ? "#fff" : Theme.text) : Theme.muted }
+          Icon { anchors.centerIn: parent; color: parent.hot ? (modelData === "closeBtn" ? "#fff" : Theme.text) : Theme.muted
+                 html: modelData === "maxBtn" && win.visibility === Window.Maximized ? "" : modelData
+                 name: modelData === "maxBtn" && win.visibility === Window.Maximized ? "restore" : "" }
           MouseArea { id: a; anchors.fill: parent; hoverEnabled: true
             onClicked: modelData === "minBtn" ? win.showMinimized() : modelData === "maxBtn" ? win.toggleMax()
-                     : modelData === "fsBtn2" ? (win.visibility === Window.FullScreen ? win.showNormal() : win.showFullScreen()) : Qt.quit() }
+                     : modelData === "fsBtn2" ? win.toggleFs() : win.quit() }
         }
       }
     }
   }
   property Item maxBtn: null
+  function quit() { pb.savePos(); Qt.quit(); }
+  function sideToggle() {
+    if (focusVideo) { sideOverride = true; sideHidden = false; return; }
+    if (sideOverride && inPlayer) { sideOverride = false; return; }          // hide it again (#8)
+    if (Settings.values.navExpanded) return Settings.set("navExpanded", false);
+    sideHidden = !sideHidden;
+  }
 
   // ---------- body ----------
   Item {
     id: body
-    anchors { left: parent.left; right: parent.right; top: titlebar.bottom; bottom: controls.top }
+    anchors { left: parent.left; right: parent.right; top: win.fsMode || win.hideUi ? parent.top : titlebar.bottom; bottom: win.fsMode || win.hideUi ? parent.bottom : controls.top }
+    readonly property bool bare: win.fsMode || win.hideUi || win.focusVideo
 
     Rail {
       id: rail
       ctl: win
-      visible: !win.inPlayer
+      visible: !body.bare
       anchors { left: parent.left; top: parent.top; bottom: parent.bottom; topMargin: expanded ? 6 : 0; bottomMargin: expanded ? 6 : 0 }
     }
     SidePanel {
       id: side
       ctl: win
-      width: win.inPlayer || win.sideHidden || Settings.values.navExpanded ? 0 : 250
+      width: body.bare || win.sideHidden || Settings.values.navExpanded ? 0 : 250
       Behavior on width { NumberAnimation { duration: 200 } }
       visible: width > 0
       anchors { left: rail.visible ? rail.right : parent.left; top: parent.top; bottom: parent.bottom }
@@ -410,16 +486,13 @@ C.ApplicationWindow {
       color: Theme.panel
 
       Browser { id: browser; ctl: win; anchors.fill: parent; visible: !win.inPlayer }
-
-      Rectangle {   // player
-        anchors.fill: parent
-        visible: win.inPlayer
-        color: "#000"
-        VideoOutput { id: video; anchors.fill: parent; fillMode: VideoOutput.PreserveAspectFit }
-        MouseArea { anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
-          onClicked: m => { if (m.button === Qt.RightButton) { const p = mapToItem(null, m.x, m.y); win.menu(win.playerMenu(), p.x, p.y); } else player.togglePause(); }
-          onDoubleClicked: win.visibility === Window.FullScreen ? win.showNormal() : win.showFullScreen() }
-        T { anchors.centerIn: parent; visible: player.error !== ""; text: player.error; color: "#fff" }
+      PlayerView { id: playerView; ctl: win; anchors.fill: parent; visible: win.inPlayer }
+      MiniPlayer {
+        id: mini
+        ctl: win
+        visible: !win.inPlayer && !!win.current && Settings.values.miniPlayer !== false
+        anchors { right: parent.right; bottom: parent.bottom; margins: 16 }
+        z: 4
       }
 
       Rectangle {   // #osd
@@ -434,80 +507,109 @@ C.ApplicationWindow {
     }
   }
 
+  // ---------- menus of the player (design: right-click menu.png) and of the title bar ----------
   function playerMenu() {
+    const it = current, rate = +player.rate.toFixed(2), repeatNames = { off: qsTr("Off"), one: qsTr("Current"), all: qsTr("All") };
+    const ab = pb.ab;
     return [
-      { label: player.playing ? qsTr("Pause") : qsTr("Play"), icon: player.playing ? "pause" : "play", accent: true, kbd: "Space", action: () => player.togglePause() },
-      { label: qsTr("Stop"), icon: "stop", accent: true, kbd: "S", action: () => { player.stop(); win.inPlayer = false; } },
+      { label: player.playing ? qsTr("Pause") : qsTr("Play"), icon: player.playing ? "pause" : "play", accent: true, kbd: "Space", action: () => pb.togglePlay() },
+      { label: qsTr("Stop"), icon: "stop", accent: true, kbd: "S", action: () => pb.stop(), disabled: !it },
+      { label: qsTr("Previous"), icon: "prev", accent: true, kbd: "P", action: () => pb.prev(), disabled: !it },
+      { label: qsTr("Next"), icon: "next", accent: true, kbd: "N", action: () => pb.step(1), disabled: !it },
+      { label: hideUi ? qsTr("Show interface") : qsTr("Hide interface"), icon: "hide", kbd: "Ctrl + \\", action: toggleHideUi },
       { sep: true },
-      { label: qsTr("Playback"), icon: "playback", sub: [{ header: "Speed" }, { label: "0.5×" }, { label: "1×", checked: true }, { label: "1.5×" }, { label: "2×" }] },
-      { label: qsTr("Video"), icon: "video", sub: [{ label: "Fullscreen", icon: "fullscreen", kbd: "F" }, { label: "Snapshot", icon: "camera", kbd: "Shift + S" }] },
+      { label: qsTr("Playback"), icon: "playback", sub: () => [{ header: qsTr("Speed") }].concat(
+          [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3].map(r => ({ label: r + "×", checked: rate === r, action: () => pb.setSpeed(r) })), [
+          { sep: true },
+          { label: qsTr("Repeat: %1").arg(repeatNames[Settings.values.repeat || "off"]), icon: "repeat", action: () => { const n = { off: "one", one: "all", all: "off" }[Settings.values.repeat || "off"]; Settings.set("repeat", n); osd(qsTr("Repeat: %1").arg(repeatNames[n])); } },
+          { label: qsTr("Shuffle"), icon: "shuffle", checked: !!Settings.values.shuffle, action: () => Settings.set("shuffle", !Settings.values.shuffle) },
+          { label: qsTr("Autoplay next"), checked: !!Settings.values.autoNext, action: () => Settings.set("autoNext", !Settings.values.autoNext) },
+          { sep: true },
+          { label: qsTr("%1 s forward").arg(Settings.values.jump), kbd: "→", action: () => pb.seekTo(pb.curTime() + Settings.values.jump) },
+          { label: qsTr("%1 s back").arg(Settings.values.jump), kbd: "←", action: () => pb.seekTo(pb.curTime() - Settings.values.jump) },
+          { sep: true },
+          { label: qsTr("Add bookmark"), icon: "bookmark", kbd: "Ctrl + B", action: () => pb.addBookmark(), disabled: !it },
+          { sep: true }, { header: qsTr("A-B repeat") },
+          { label: ab.a !== null ? qsTr("Set point A (%1)").arg(pb.fmt(ab.a)) : qsTr("Set point A"), kbd: "A", action: () => pb.abSet("a"), disabled: !it },
+          { label: ab.b !== null ? qsTr("Set point B (%1)").arg(pb.fmt(ab.b)) : qsTr("Set point B"), action: () => pb.abSet("b"), disabled: !it },
+          { label: qsTr("A-B repeat off"), action: () => pb.abClear(), disabled: ab.a === null },
+          { label: qsTr("Next chapter / bookmark"), kbd: "Shift + N", action: () => pb.jumpMark(1), disabled: !it || !pb.markTimes().length },
+          { label: qsTr("Previous chapter / bookmark"), kbd: "Shift + P", action: () => pb.jumpMark(-1), disabled: !it || !pb.markTimes().length }
+        ]) },
+      { label: qsTr("Video"), icon: "video", sub: () => [
+          { label: qsTr("Fullscreen"), icon: "fullscreen", kbd: "F", action: toggleFs },
+          { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !it },
+          { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !it },
+          { sep: true }, { header: qsTr("Aspect ratio") }
+        ].concat([["", "Default"], ["fill", "Fill"], ["stretch", "Stretch"]].map(([v, l]) => ({ label: qsTr(l), checked: (Settings.values.aspect || "") === v, action: () => Settings.set("aspect", v) }))) },
+      { label: qsTr("Audio"), icon: "audio", sub: () => [{ header: qsTr("Audio track") }].concat(
+          player.audioTracks().filter(t => t.id >= 0).map(t => ({ label: t.name, checked: player.audioTrack() === t.id, action: () => player.setAudioTrack(t.id) })), [
+          { sep: true },
+          { label: player.muted ? qsTr("Unmute") : qsTr("Mute"), icon: player.muted ? "volume" : "mute", kbd: "M", action: () => pb.toggleMute() }]) },
+      { label: qsTr("More settings"), icon: "settings", sub: () => [
+          { label: qsTr("Global settings…"), icon: "general", kbd: "Ctrl + P", action: () => openSettings() },
+          { label: qsTr("Media information"), icon: "info", kbd: "Ctrl + I", action: () => mediaInfo(), disabled: !it }] },
+      { label: qsTr("Playlist"), icon: "playlist", sub: () => [
+          { label: qsTr("Show queue"), icon: "queue", kbd: "Q", action: toggleQueue },
+          { label: qsTr("Add current to playlist…"), icon: "plus", action: () => addToPlaylist([current.src]), disabled: !it },
+          { label: qsTr("New playlist…"), icon: "playlist", action: () => doAct("newpl") },
+          { sep: true }].concat(library.playlists.map((p, i) => ({ label: p.name, icon: "playlist", action: () => navigate({ view: "playlists", pl: i }) }))) },
+      { label: qsTr("Open media"), icon: "open", sub: openMediaItems },
       { sep: true },
-      { label: qsTr("Add to playlist…"), icon: "playlist", action: () => { if (win.current) win.addToPlaylist([win.current.src]); } },
-      { label: qsTr("Settings"), icon: "general", action: () => win.openSettings("interface") }
+      { label: qsTr("Quit VLC"), icon: "quit", kbd: "Ctrl + Q", action: quit }
     ];
   }
-
-  // ---------- control bar (52px) ----------
-  Rectangle {
-    id: controls
-    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-    height: 52; color: Theme.bg
-    Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top } height: 1; color: Theme.edge }
-    Row {
-      id: leftCtl
-      anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-      spacing: 6
-      IconButton { html: "prevBtn"; visible: Settings.values.ctl.prevnext; tip: qsTr("Previous (P)"); onClicked: win.step(-1) }
-      Rectangle {   // #playBtn: 46×26, accent, rounded 5
-        visible: Settings.values.ctl.play
-        width: 46; height: 26; radius: 5; anchors.verticalCenter: parent.verticalCenter
-        color: pa.containsMouse ? Theme.accent2 : Theme.accent
-        Icon { anchors.centerIn: parent; width: 16; height: 16; name: player.playing ? "pause" : "play"; filled: !player.playing; strokeWidth: 2.2; color: Theme.accentText }
-        MouseArea { id: pa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: player.togglePause() }
-      }
-      IconButton { html: "nextBtn"; visible: Settings.values.ctl.prevnext; tip: qsTr("Next (N)"); onClicked: win.step(1) }
-      T { visible: Settings.values.ctl.time; width: 70; horizontalAlignment: Text.AlignHCenter; text: win.fmt(player.time); color: Theme.muted; px: 12; font.features: { "tnum": 1 }; anchors.verticalCenter: parent.verticalCenter }
-    }
-    Row {
-      id: rightCtl
-      anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
-      spacing: 6
-      T { visible: Settings.values.ctl.time; width: 70; horizontalAlignment: Text.AlignHCenter; text: win.fmt(player.length); color: Theme.muted; px: 12; font.features: { "tnum": 1 }; anchors.verticalCenter: parent.verticalCenter }
-      IconButton { html: "muteBtn"; visible: Settings.values.ctl.volume }
-      Rectangle {   // #vol: 90×18, gradient fill
-        visible: Settings.values.ctl.volume
-        width: 90; height: 18; radius: 4; color: Theme.track; anchors.verticalCenter: parent.verticalCenter; clip: true
-        Rectangle { width: parent.width * Math.min(1, player.volume / 125); height: parent.height; radius: 4
-          gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: Theme.vol1 } GradientStop { position: 1; color: Theme.vol2 } } }
-        MouseArea { anchors.fill: parent; onPressed: m => player.volume = Math.round(m.x / width * 125); onPositionChanged: m => player.volume = Math.round(Math.max(0, m.x) / width * 125) }
-      }
-      Rectangle { width: 1; height: 18; color: Theme.line; anchors.verticalCenter: parent.verticalCenter }
-      IconButton { html: "eqBtn"; visible: Settings.values.ctl.audio }
-      IconButton { html: "subBtn"; visible: Settings.values.ctl.subs }
-      IconButton { html: "setBtn"; visible: Settings.values.ctl.settings; onClicked: win.openSettings("interface") }
-      IconButton { html: "listBtn"; visible: Settings.values.ctl.library; tip: qsTr("Library / player (L)"); onClicked: win.inPlayer = !win.inPlayer && !!win.current }
-    }
-    Item {   // #seek: 18px track, accent-dark fill, 6×20 accent handle
-      anchors { left: leftCtl.right; right: rightCtl.left; leftMargin: 6; rightMargin: 6; verticalCenter: parent.verticalCenter }
-      height: 22
-      Rectangle {
-        anchors.verticalCenter: parent.verticalCenter; width: parent.width; height: 18; radius: 4; color: Theme.track
-        readonly property real p: player.length > 0 ? player.time / player.length : 0
-        Rectangle { width: parent.width * parent.p; height: parent.height; radius: 4; color: Theme.accentDark }
-        Rectangle { x: parent.width * parent.p - 3; y: -1; width: 6; height: 20; radius: 3; color: Theme.accent }
-      }
-      MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onPressed: m => player.seek(m.x / width * player.length) }
-    }
+  function mediaInfo() { if (current) dialog("dialogs/MediaInfo.qml", { it: library.item(current.src) }); else osd(qsTr("Nothing is playing")); }
+  function titleMenu(x, y) {
+    menu(openMediaItems().concat([{ sep: true },
+      { label: qsTr("New playlist…"), icon: "playlist", action: () => doAct("newpl") },
+      { label: qsTr("Add current to playlist…"), icon: "plus", action: () => addToPlaylist([current.src]), disabled: !current },
+      { sep: true },
+      { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !current },
+      { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !current },
+      { label: qsTr("Media information"), icon: "info", kbd: "Ctrl + I", action: mediaInfo, disabled: !current },
+      { sep: true },
+      { label: qsTr("Settings…"), icon: "settings", kbd: "Ctrl + P", action: () => openSettings() },
+      { sep: true },
+      { label: qsTr("Quit VLC"), icon: "quit", kbd: "Ctrl + Q", action: quit }]), x, y);
   }
-  function fmt(ms) { const s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
-                     return [h, m, x].map(n => String(n).padStart(2, '0')).join(':'); }
+
+  // ---------- control bar (52px); in fullscreen it slides in at the bottom edge ----------
+  ControlBar {
+    id: controls
+    ctl: win
+    visible: !win.hideUi
+    anchors { left: parent.left; right: parent.right }
+    y: win.fsMode ? (win.fsBottom ? win.height - height : win.height) : win.height - height
+    opacity: win.fsMode && !win.fsBottom ? 0 : 1
+    Behavior on y { enabled: win.fsMode; NumberAnimation { duration: 200 } }
+    Behavior on opacity { NumberAnimation { duration: 200 } }
+    z: 30
+  }
+
+  // In fullscreen the top bar and the controls stay hidden; they slide in while the mouse is near the top or bottom
+  // edge. The cursor hides after a moment without movement while a video plays (Settings → Interface).
+  HoverHandler {
+    id: hover
+    onPointChanged: {
+      const y = point.position.y;
+      win.fsTop = win.fsMode && y <= 60 && win.dialogs === 0;
+      win.fsBottom = win.fsMode && y >= win.height - 90;
+      win.cursorHidden = false; hideCursorT.restart();
+    }
+    onHoveredChanged: if (!hovered) { win.fsTop = false; win.fsBottom = false; }
+  }
+  Timer { id: hideCursorT; interval: (Settings.values.hideCursorDelay || 2.5) * 1000
+          onTriggered: win.cursorHidden = win.fsMode && Settings.values.hideCursor !== false && player.playing && !win.fsTop && !win.fsBottom }
+  onFsModeChanged: { fsTop = fsBottom = false; cursorHidden = false; }
 
   // drop files and folders anywhere to add them (#drop)
   DropArea {
     id: dropArea
     anchors.fill: parent
     keys: ["text/uri-list"]
-    onDropped: d => { if (d.hasUrls) { win.addSources(d.urls.map(u => library.toLocal(u)), true); d.accept(Qt.CopyAction); } }
+    enabled: win.dialogs === 0
+    onDropped: d => { if (d.hasUrls) { win.queueList = null; win.addSources(d.urls.map(u => library.toLocal(u)), true); d.accept(Qt.CopyAction); } }
   }
   Rectangle {
     anchors.fill: parent; visible: dropArea.containsDrag; z: 50
@@ -517,9 +619,10 @@ C.ApplicationWindow {
 
   // window edges: resize like a normal window (the frame is our own)
   Repeater {
-    model: [[Qt.LeftEdge, 0, 0, 5, -1], [Qt.RightEdge, -5, 0, 5, -1], [Qt.BottomEdge, 0, -5, -1, 5], [Qt.TopEdge, 0, 0, -1, 4]]
+    model: win.fullscreen ? [] : [[Qt.LeftEdge, 0, 0, 5, -1], [Qt.RightEdge, -5, 0, 5, -1], [Qt.BottomEdge, 0, -5, -1, 5], [Qt.TopEdge, 0, 0, -1, 4]]
     MouseArea {
       required property var modelData
+      z: 40
       x: modelData[1] < 0 ? win.width + modelData[1] : modelData[1]; y: modelData[2] < 0 ? win.height + modelData[2] : modelData[2]
       width: modelData[3] < 0 ? win.width : modelData[3]; height: modelData[4] < 0 ? win.height : modelData[4]
       cursorShape: modelData[0] === Qt.LeftEdge || modelData[0] === Qt.RightEdge ? Qt.SizeHorCursor : Qt.SizeVerCursor
@@ -527,17 +630,42 @@ C.ApplicationWindow {
     }
   }
 
-  // keys of the library (v2.x: Ctrl+A, Esc, Delete only while browsing and no dialog is open)
-  readonly property bool browsing: !inPlayer && dialogs === 0
-  Shortcut { sequence: "Ctrl+A"; enabled: win.browsing && !browser.search.input.activeFocus; onActivated: win.selectAll() }
-  Shortcut { sequence: "Delete"; enabled: win.browsing && win.selectedItems.length > 0 && !browser.search.input.activeFocus
-             onActivated: { const a = win.selActions(win.selectedItems); a[a.length - 1].action(); } }
-  Shortcut { sequence: "Ctrl+O"; onActivated: win.doAct("files") }
-  Shortcut { sequence: "Ctrl+F"; onActivated: win.doAct("folder") }
-  Shortcut { sequence: "Ctrl+N"; onActivated: win.doAct("url") }
-  Shortcut { sequence: "Space"; enabled: !browser.search.input.activeFocus; onActivated: player.togglePause() }
-  Shortcut { sequence: "Esc"
-    onActivated: { if (win.browsing && win.selectedItems.length) win.clearSelection(); else if (win.visibility === Window.FullScreen) win.showNormal(); else win.inPlayer = false; } }
+  // ---------- keyboard (app.js keydown): the library's keys, Ctrl shortcuts, then the player's actions ----------
+  KeyFilter {
+    id: keys
+    enabled: win.active
+    handler: (name, repeat, code) => {
+      if (win.dialogs > 0) return false;                       // dialogs and menus have their own keys
+      const browsing = !win.inPlayer;
+      if (browsing && name === "Ctrl+a") { win.selectAll(); return true; }
+      if (browsing && win.selectedItems.length) {
+        if (name === "Escape") { win.clearSelection(); return true; }
+        if (name === "Delete") { const a = win.selActions(win.selectedItems); a[a.length - 1].action(); return true; }
+      }
+      const custom = name.startsWith("Ctrl+") && pb.keyMap[name];
+      if (custom) { pb.runAction(custom); return true; }
+      if (name.startsWith("Ctrl+")) {
+        const k = name.slice(5), views = ["home", "videos", "music", "network", "playlists", "recent"];
+        if (/^[1-6]$/.test(k)) { win.showView(views[+k - 1]); return true; }
+        const map = { o: () => win.doAct("files"), f: () => win.doAct("folder"), n: () => win.doAct("url"), i: win.mediaInfo,
+                      p: () => win.openSettings(), q: win.quit, "\\": win.toggleHideUi };
+        if (map[k.toLowerCase()]) { map[k.toLowerCase()](); return true; }
+        return false;
+      }
+      if (name === "F11") { win.toggleFs(); return true; }
+      if (pb.key(name, repeat, code)) return true;
+      if (name === "Escape") {
+        if (win.hideUi) win.toggleHideUi();
+        else if (win.fullscreen) win.toggleFs();
+        else if (win.inPlayer) win.showBrowser();
+        return true;
+      }
+      return false;
+    }
+    onReleased: code => pb.keyUp(code)
+  }
+  onActiveChanged: if (!active) pb.fastEnd()
+  onClosing: pb.savePos()
 
   // testing: frames drawn while a video plays, then a screenshot (VLCR_SHOT)
   property int swaps: 0
@@ -548,6 +676,7 @@ C.ApplicationWindow {
           onTriggered: player.log("decoded " + ((player.framesShown - win.f0) / 3).toFixed(1) + " fps, drawn " + (win.swaps / 3).toFixed(1) + " fps") }
   Timer { running: shotPath !== ""; interval: shotMs
           onTriggered: { player.log("hit test over the maximise button: " + (maxBtn ? frame.hitTestAt(Math.round((maxBtn.mapToItem(null, 22, 18).x) * Screen.devicePixelRatio), Math.round(18 * Screen.devicePixelRatio)) : -1));
-                         player.log("items " + library.items.length + ", busy " + library.busy + ", view " + nav.view + ", cards " + pg.cards.length);
+                         player.log("items " + library.items.length + ", busy " + library.busy + ", view " + nav.view + ", cards " + pg.cards.length +
+                                    ", player " + (current ? current.name : "-") + " t=" + (player.time / 1000).toFixed(1) + " rate=" + player.rate + " vol=" + player.volume + " size=" + player.videoSize.width + "x" + player.videoSize.height);
                          frame.grab(shotPath); Qt.quit(); } }
 }

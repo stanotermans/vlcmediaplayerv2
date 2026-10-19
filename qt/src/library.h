@@ -23,6 +23,7 @@ class Library : public QObject {
   Q_PROPERTY(QStringList recent READ recent NOTIFY recentChanged)
   Q_PROPERTY(QVariantMap watched READ watched NOTIFY watchedChanged)          // { src: true }
   Q_PROPERTY(QVariantMap positions READ positions NOTIFY positionsChanged)    // { src: seconds }
+  Q_PROPERTY(QVariantMap bookmarks READ bookmarks NOTIFY bookmarksChanged)    // { src: [{ t, name }] } (#40)
   Q_PROPERTY(int busy READ busy NOTIFY busyChanged)                           // files still being read
   // from the settings: thumbnails on/off, "Remember recently played" (off: nothing about what you watched is kept)
   Q_PROPERTY(bool thumbs MEMBER m_thumbs NOTIFY optionsChanged)
@@ -36,6 +37,8 @@ public:
   QStringList recent() const { return m_recent; }
   QVariantMap watched() const { return m_watched; }
   QVariantMap positions() const { return m_positions; }
+  QVariantMap bookmarks() const { return m_bookmarks; }
+  Q_INVOKABLE void setBookmarks(const QString &src, const QVariantList &list);
   int busy() const { return m_busy; }
 
   Q_INVOKABLE void load();
@@ -64,6 +67,7 @@ public:
   Q_INVOKABLE QString readImage(const QString &file) const;   // a cover as a data: URL (kept in library.json, like v2.x)
   Q_INVOKABLE void reveal(const QString &path) const;         // "Show in folder"
   Q_INVOKABLE void openPath(const QString &path) const;
+  Q_INVOKABLE QString picturesDir() const;                    // snapshots go here unless set otherwise
   Q_INVOKABLE QString toLocal(const QVariant &url) const;     // file:///… (drops, file dialogs) → a path
   Q_INVOKABLE QStringList expandMedia(const QStringList &paths) const { QStringList l; for (const QString &p : paths) l << toLocal(p); return expand(l); }
 
@@ -74,6 +78,7 @@ signals:
   void recentChanged();
   void watchedChanged();
   void positionsChanged();
+  void bookmarksChanged();
   void busyChanged();
   void optionsChanged();
   void message(const QString &text);          // shown by the interface (osd)
@@ -90,7 +95,7 @@ private:
   QVariantList m_items, m_playlists;
   QHash<QString, int> m_index;
   QStringList m_recent;
-  QVariantMap m_watched, m_positions;
+  QVariantMap m_watched, m_positions, m_bookmarks;
   void addOne(const QString &src, bool manual, qint64 added, bool *isNew);
   QStringList m_folders;                       // the media folders of the last scan
   QString m_playing;

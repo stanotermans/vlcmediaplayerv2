@@ -172,10 +172,11 @@ void Library::load() {
   m_recent = o["recent"].toVariant().toStringList();
   for (const auto &w : o["watched"].toArray()) m_watched[w.toString()] = true;
   m_positions = o["positions"].toObject().toVariantMap();
+  m_bookmarks = o["bookmarks"].toObject().toVariantMap();
   m_loading = true;
   for (const auto &e : o["library"].toArray()) { const QJsonObject it = e.toObject(); bool n; addOne(it["src"].toString(), true, (qint64)it["added"].toDouble(), &n); }
   m_loading = false;
-  emit playlistsChanged(); emit recentChanged(); emit watchedChanged(); emit positionsChanged(); changed();
+  emit playlistsChanged(); emit recentChanged(); emit watchedChanged(); emit positionsChanged(); emit bookmarksChanged(); changed();
 }
 void Library::save() {
   QJsonArray lib;
@@ -186,6 +187,7 @@ void Library::save() {
   o["recent"] = m_remember ? QJsonArray::fromStringList(m_recent.mid(0, 50)) : QJsonArray();
   o["watched"] = m_remember ? QJsonArray::fromStringList(m_watched.keys()) : QJsonArray();
   o["positions"] = QJsonObject::fromVariantMap(m_positions);
+  o["bookmarks"] = QJsonObject::fromVariantMap(m_bookmarks);
   QSaveFile f(dataDir() + "/library.json");
   if (f.open(QIODevice::WriteOnly)) { f.write(QJsonDocument(o).toJson(QJsonDocument::Compact)); f.commit(); }
 }
@@ -369,6 +371,15 @@ void Library::setPosition(const QString &src, double secs) {
   if (secs > 0) m_positions[src] = secs; else m_positions.remove(src);
   emit positionsChanged(); m_saveTimer.start();
 }
+// sorted by time, rounded to milliseconds; an empty list removes the file's bookmarks
+void Library::setBookmarks(const QString &src, const QVariantList &given) {
+  QVariantList list;
+  for (const QVariant &v : given) { const QVariantMap b = v.toMap(); const double t = b["t"].toDouble();
+    if (t >= 0) list << QVariantMap{ { "t", qRound64(t * 1000) / 1000.0 }, { "name", b["name"].toString().trimmed() } }; }
+  std::sort(list.begin(), list.end(), [](const QVariant &a, const QVariant &b) { return a.toMap()["t"].toDouble() < b.toMap()["t"].toDouble(); });
+  if (list.isEmpty()) m_bookmarks.remove(src); else m_bookmarks[src] = list;
+  emit bookmarksChanged(); m_saveTimer.start();
+}
 void Library::addRecent(const QString &src) {
   m_recent.removeAll(src); m_recent.prepend(src);
   while (m_recent.size() > 50) m_recent.removeLast();
@@ -447,6 +458,7 @@ void Library::reveal(const QString &path) const {
   QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
 #endif
 }
+QString Library::picturesDir() const { return QStandardPaths::writableLocation(QStandardPaths::PicturesLocation); }
 void Library::openPath(const QString &path) const { QDesktopServices::openUrl(QUrl::fromLocalFile(path)); }
 QString Library::toLocal(const QVariant &url) const {
   const QString s = url.toString();
