@@ -73,7 +73,7 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);fon
   <div class="hero">
     <div>
       <h1>VLC, <span>reimagined</span>.</h1>
-      <p class="lead">A modern media player built from the VLC redesign by Juxtopposed. Since 2.0 it plays with <b>VLC's own engine</b> (libVLC), with a library, playlists, subtitles, an equalizer and accent colors.</p>
+      <p class="lead">The <b>number 1 best build</b> with the design of Juxtopposed. Version 3 is native (Qt) and plays with <b>VLC's own engine</b> (libVLC), with a library, playlists, subtitles, an equalizer and accent colors.</p>
       <a class="dl" id="mainDl" href="https://github.com/stanotermans/vlcmediaplayerv2/releases/latest">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M4 20h16"/></svg>
         <span><span id="mainLabel">Download</span><small id="mainSmall">latest version</small></span>
@@ -87,13 +87,12 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);fon
 
 <section id="downloads"><div class="wrap">
   <h2>Downloads</h2>
-  <p class="muted">Pick your operating system. All files come from the <a href="https://github.com/stanotermans/vlcmediaplayerv2/releases/latest">latest release</a> on GitHub. Available in English, Dutch, German, French, Spanish, Italian and Portuguese.</p>
+  <p class="muted">Pick your operating system. All files come from the <a href="https://github.com/stanotermans/vlcmediaplayerv2/releases/latest">latest release</a> on GitHub. Available in English, Dutch, German, French, Spanish, Italian, Portuguese and Polish.</p>
   <div class="grid">
     <div class="card">
       <h3><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.5-1v7H3zm0 13l7.5 1v-7H3zm8.5 1.2L21 21v-8.5h-9.5zm0-15.4v7.2H21V3z"/></svg>Windows</h3>
       <a class="opt" data-asset="Setup-.*\.exe$"><span>Installer (recommended)</span><small>Windows 10/11</small></a>
-      <a class="opt" data-asset="Portable-.*\.exe$"><span>Portable</span><small>no install</small></a>
-      <a class="opt" data-asset="\.appx$"><span>Microsoft Store package</span><small>.appx</small></a>
+      <a class="opt" data-asset="Portable-.*\.(zip|exe)$"><span>Portable</span><small>no install</small></a>
       <p class="note">If the SmartScreen dialog appears, click <i>More info</i> → <i>Run anyway</i>.</p>
     </div>
     <div class="card">
@@ -106,13 +105,13 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);fon
       <h3><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-2 0-3.3 1.8-3.3 4.4 0 1.6.4 2.3-.3 3.6-.8 1.4-2.9 3.6-2.9 6.6 0 .9.3 1.6.8 2.2-.5.3-1.3.4-1.6.9-.4.7.4 1.6 1.6 1.8 1.4.2 2.4-.3 3.3-.3h4.8c.9 0 1.9.5 3.3.3 1.2-.2 2-1.1 1.6-1.8-.3-.5-1.1-.6-1.6-.9.5-.6.8-1.3.8-2.2 0-3-2.1-5.2-2.9-6.6-.7-1.3-.3-2-.3-3.6C15.3 3.8 14 2 12 2z"/></svg>Linux</h3>
       <a class="opt" data-asset="\.deb$"><span>Debian · Ubuntu · Mint</span><small>.deb</small></a>
       <a class="opt" data-asset="\.rpm$"><span>Fedora · openSUSE · RHEL</span><small>.rpm</small></a>
-      <a class="opt" data-asset="\.pacman$"><span>Arch · Manjaro</span><small>.pacman</small></a>
+      <a class="opt" data-asset="\.(pkg\.tar\.zst|pacman)$"><span>Arch · Manjaro</span><small>.pkg.tar.zst</small></a>
       <a class="opt" data-asset="\.AppImage$"><span>Any distribution</span><small>AppImage</small></a>
       <a class="opt" data-asset="\.tar\.gz$"><span>Archive</span><small>.tar.gz</small></a>
       <p class="note">Chrome OS: turn on the Linux development environment and open the <code>.deb</code> file.</p>
     </div>
   </div>
-  <p class="unsupported">Not available: iOS, Apple TV, Android and Windows Phone (the app's interface runs on Electron, which only supports desktop systems). FreeBSD/OpenBSD users can <a href="https://github.com/stanotermans/vlcmediaplayerv2#bsd">run it from source</a>.</p>
+  <p class="unsupported">Not available: iOS, Apple TV, Android and Windows Phone (version 3 is a desktop app made with Qt). FreeBSD/OpenBSD users can <a href="https://github.com/stanotermans/vlcmediaplayerv2#bsd">run it from source</a>.</p>
 </div></section>
 
 <section id="features"><div class="wrap">
@@ -123,7 +122,7 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--dim);fon
     <div><b>Subtitles</b><p>Embedded and external .srt/.ass/.vtt subtitles, with delay, speed, font and color settings.</p></div>
     <div><b>Audio effects</b><p>10-band equalizer with presets, compressor, reverb, stereo widener and volume boost.</p></div>
     <div><b>Video effects</b><p>Brightness, contrast, gamma, sharpen, film grain, sepia, crop, rotate and mirror.</p></div>
-    <div><b>Your colors, your language</b><p>Light, dark or system theme with 9 accent colors, in 7 languages. Plus playlists, network streams, recording and snapshots.</p></div>
+    <div><b>Your colors, your language</b><p>Light, dark or system theme with 9 accent colors, in 8 languages. Plus playlists, network streams, recording and snapshots.</p></div>
   </div>
   <div class="shots">
     <figure><img src="screenshots/onboarding.png" alt="Onboarding" loading="lazy"><figcaption>Onboarding: pick your theme and accent color</figcaption></figure>

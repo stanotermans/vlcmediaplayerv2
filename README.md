@@ -4,8 +4,8 @@
 
 # VLC Redesign
 
-**An unofficial, modern desktop media player built from the VLC redesign by [Juxtopposed](https://www.youtube.com/@juxtopposed).**
-For Windows, macOS and Linux · plays almost anything with VLC's own engine (libVLC).
+**The number 1 best build with the design of [Juxtopposed](https://www.youtube.com/@juxtopposed): an unofficial, modern desktop media player built from their VLC redesign.**
+For Windows, macOS and Linux · plays almost anything with VLC's own engine (libVLC) · version 3 is native (Qt), no web browser inside.
 
 [**⬇️ Download**](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest) ·
 [Download page](https://stanotermans.github.io/vlcmediaplayerv2/) ·
@@ -28,23 +28,26 @@ The entire design of this app comes from **Juxtopposed**: the library, the playe
 
 This repository turns that design into a working app. All credit for the design goes to Juxtopposed. Go watch the video! 🙌
 
+## ✨ Version 3
+
+VLC Redesign 3 is rebuilt from the ground up with **Qt** and **libVLC**: it starts faster, uses far less memory and disk space, and plays everything VLC plays without converting. Every screen of v2.x is still there, and your settings, library, playlists, positions and bookmarks move over by themselves the first time you start it (after v2.2 or later has run once). The source is in [`qt/`](qt); v2.x (Electron) stays in [`app/`](app).
+
 ## ⬇️ Download
 
 Open the **[latest release](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest)** and pick the file for your system:
 
 | Operating system | File |
 |---|---|
-| 🪟 **Windows 10 / 11** | `VLC-Redesign-Setup-<version>-x64.exe` (installer) or `VLC-Redesign-Portable-<version>.exe` |
-| 🪟 Microsoft Store package | `VLC-Redesign-Store-<version>-x64.appx` |
+| 🪟 **Windows 10 / 11** | `VLC-Redesign-Setup-<version>-x64.exe` (installer) or `VLC-Redesign-Portable-<version>-x64.zip` |
 | 🍎 **macOS** (Apple Silicon / Intel) | `VLC-Redesign-<version>-mac-arm64.dmg` / `…-mac-x64.dmg` |
 | 🐧 **Debian, Ubuntu, Linux Mint, Chrome OS** | `vlc-redesign-<version>-amd64.deb` |
 | 🐧 **Fedora, openSUSE, Red Hat** | `vlc-redesign-<version>-x86_64.rpm` |
-| 🐧 **Arch Linux, Manjaro** | `vlc-redesign-<version>-x64.pacman` |
+| 🐧 **Arch Linux, Manjaro** | `vlc-redesign-<version>-1-x86_64.pkg.tar.zst` |
 | 🐧 **Any Linux** (Gentoo, Slackware, …) | `vlc-redesign-<version>-x86_64.AppImage` or `.tar.gz` |
 
 Or use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**, which detects your system automatically.
 
-> 🌍 The app is available in **English, Dutch, German, French, Spanish, Italian and Portuguese**. You pick your language on first launch and can change it any time in Settings.
+> 🌍 The app is available in **English, Dutch, German, French, Spanish, Italian, Portuguese and Polish**. You pick your language on first launch and can change it any time in Settings.
 
 <details>
 <summary><b>Installing on Linux</b></summary>
@@ -53,7 +56,7 @@ Or use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**
 sudo apt install ./vlc-redesign-*-amd64.deb        # Debian, Ubuntu, Mint, Chrome OS
 sudo dnf install ./vlc-redesign-*-x86_64.rpm       # Fedora, Red Hat
 sudo zypper install ./vlc-redesign-*-x86_64.rpm    # openSUSE
-sudo pacman -U ./vlc-redesign-*-x64.pacman         # Arch, Manjaro
+sudo pacman -U ./vlc-redesign-*.pkg.tar.zst        # Arch, Manjaro
 chmod +x vlc-redesign-*.AppImage && ./vlc-redesign-*.AppImage   # any distribution
 ```
 
