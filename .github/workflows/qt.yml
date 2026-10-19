@@ -94,6 +94,8 @@ jobs:
         run: |
           cmake -S qt -B qt/build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build qt/build
+      - name: NSIS (the installer)
+        run: choco install nsis -y --no-progress
       - name: Package (installer, portable)
         shell: bash
         run: bash qt/packaging/windows/package.sh "$GITHUB_WORKSPACE/ffbin/ffmpeg.exe" "$GITHUB_WORKSPACE/qt/dist"
@@ -111,7 +113,7 @@ jobs:
           name: vlc3-windows
           if-no-files-found: error
           path: |
-            qt/dist/*.exe
+            qt/dist/*Setup-*.exe
             qt/dist/*.zip
 
   macos:

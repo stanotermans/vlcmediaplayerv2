@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
   }
   applyInterfaceSize();
   QGuiApplication app(argc, argv);
-  app.setApplicationVersion("3.0.0");
+  app.setApplicationVersion(VLCR_VERSION);
   app.setApplicationName("VLC Redesign 3");
   app.setOrganizationName("VLC Redesign");
   QQuickStyle::setStyle("Basic");                      // popups and scrollbars only; everything is drawn by our components

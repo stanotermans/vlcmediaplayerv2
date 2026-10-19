@@ -40,6 +40,7 @@ if [ -x "$MAKENSIS" ] || command -v makensis >/dev/null; then
   ( cd packaging/windows && "$MAKENSIS" -V2 "-DVERSION=$VERSION" "-DSRC=$SRC" "-DOUT=$(cygpath -w "$OUT")\\VLC-Redesign-Setup-$VERSION-x64.exe" installer.nsi )
 else
   echo "NSIS not found: no installer"
+  [ -z "${CI:-}" ] || exit 1   # on the build server the installer is required
 fi
 
 # portable: the same folder with a "portable" file (the app keeps its data in "data" next to it)
