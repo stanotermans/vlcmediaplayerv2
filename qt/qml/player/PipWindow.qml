@@ -14,7 +14,7 @@ Window {
   flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
   color: "#000000"
   title: ctl.current ? ctl.current.name : "VLC Redesign"
-  VideoOutput { id: video; anchors.fill: parent }
+  VideoOutput { id: video; anchors.fill: parent; fillMode: VideoOutput.Stretch }   // the window keeps the picture's shape
   MouseArea {
     id: area
     anchors.fill: parent; hoverEnabled: true

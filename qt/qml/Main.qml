@@ -343,6 +343,26 @@ C.ApplicationWindow {
   Frames { id: frames }
   property alias frames: frames
   Playback { id: pb; ctl: win; player: player; library: library; frames: frames }
+  Subs { id: subs }
+  Subtitles { id: sb; ctl: win; subs: subs }
+  property alias sb: sb
+  property alias subs: subs
+  FileDialog { id: subDlg; title: qsTr("Add subtitle file"); nameFilters: [qsTr("Subtitles") + " (*.srt *.vtt *.ass *.ssa *.sub *.lrc)", qsTr("All files") + " (*)"]
+    onAccepted: sb.addFile(library.toLocal(selectedFile), true) }
+  function addSubtitleFile() { if (!current) return osd(qsTr("Play something first")); subDlg.currentFolder = "file:///" + current.src.replace(/\\/g, "/").replace(/\/[^/]*$/, ""); subDlg.open(); }
+  function searchSubtitles() { if (!current) return osd(qsTr("Play something first")); dialog("dialogs/SearchSubs.qml", { ctl: win, subs: subs, it: current }); }
+  function subtitleMenu() {
+    return [
+      { label: qsTr("Off"), checked: sb.active < 0, action: () => sb.select(-1) }
+    ].concat(sb.tracks.map((t, i) => ({ label: t.label, checked: sb.active === i, action: () => sb.select(i) })), [
+      { sep: true },
+      { label: qsTr("Add file…"), icon: "file", action: addSubtitleFile, disabled: !current },
+      { label: qsTr("Search online…"), icon: "search", action: searchSubtitles, disabled: !current },
+      sb.lyrics ? { label: qsTr("Show lyrics"), checked: !sb.lyricsHidden, kbd: "Y", action: () => sb.toggleLyrics() } : null,
+      { label: qsTr("Delay −0.1 s"), kbd: "G", action: () => sb.nudge(-0.1) },
+      { label: qsTr("Delay +0.1 s"), kbd: "H", action: () => sb.nudge(0.1) }
+    ]);
+  }
   property alias pb: pb
   PipWindow { id: pip; ctl: win; onClosing: win.pipOpen = false }
   WindowFrame { id: frame; maximizeButton: maxBtn }
@@ -385,6 +405,10 @@ C.ApplicationWindow {
     else if (k === "bookmark") pb.addBookmark(+v);
     else if (k === "pip") togglePip();
     else if (k === "hover") controls.testHover(+v);
+    else if (k === "sub") sb.select(+v);
+    else if (k === "subfile") sb.addFile(v, true);
+    else if (k === "search") searchSubtitles();
+    else if (k === "submenu") menu(subtitleMenu(), 900, 400);
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });
       else if (v === "network") dialog("dialogs/Network.qml", {});
@@ -546,6 +570,7 @@ C.ApplicationWindow {
           player.audioTracks().filter(t => t.id >= 0).map(t => ({ label: t.name, checked: player.audioTrack() === t.id, action: () => player.setAudioTrack(t.id) })), [
           { sep: true },
           { label: player.muted ? qsTr("Unmute") : qsTr("Mute"), icon: player.muted ? "volume" : "mute", kbd: "M", action: () => pb.toggleMute() }]) },
+      { label: qsTr("Subtitle"), icon: "subtitle", sub: subtitleMenu },
       { label: qsTr("More settings"), icon: "settings", sub: () => [
           { label: qsTr("Global settings…"), icon: "general", kbd: "Ctrl + P", action: () => openSettings() },
           { label: qsTr("Media information"), icon: "info", kbd: "Ctrl + I", action: () => mediaInfo(), disabled: !it }] },
@@ -609,7 +634,14 @@ C.ApplicationWindow {
     anchors.fill: parent
     keys: ["text/uri-list"]
     enabled: win.dialogs === 0
-    onDropped: d => { if (d.hasUrls) { win.queueList = null; win.addSources(d.urls.map(u => library.toLocal(u)), true); d.accept(Qt.CopyAction); } }
+    onDropped: d => {
+      if (!d.hasUrls) return;
+      d.accept(Qt.CopyAction);
+      const all = library.expandMedia(d.urls.map(u => library.toLocal(u)));
+      // only subtitle or lyrics files: for what plays
+      if (all.length && all.every(p => /\.(srt|vtt|ass|ssa|sub|lrc)$/i.test(p))) { if (win.current) all.forEach(f => sb.addFile(f, true)); else win.osd(qsTr("Play a video first")); return; }
+      win.queueList = null; win.addSources(all, true);
+    }
   }
   Rectangle {
     anchors.fill: parent; visible: dropArea.containsDrag; z: 50
@@ -677,6 +709,6 @@ C.ApplicationWindow {
   Timer { running: shotPath !== ""; interval: shotMs
           onTriggered: { player.log("hit test over the maximise button: " + (maxBtn ? frame.hitTestAt(Math.round((maxBtn.mapToItem(null, 22, 18).x) * Screen.devicePixelRatio), Math.round(18 * Screen.devicePixelRatio)) : -1));
                          player.log("items " + library.items.length + ", busy " + library.busy + ", view " + nav.view + ", cards " + pg.cards.length +
-                                    ", player " + (current ? current.name : "-") + " t=" + (player.time / 1000).toFixed(1) + " rate=" + player.rate + " vol=" + player.volume + " size=" + player.videoSize.width + "x" + player.videoSize.height);
+                                    ", player " + (current ? current.name : "-") + " t=" + (player.time / 1000).toFixed(1) + " rate=" + player.rate + " vol=" + player.volume + " size=" + player.videoSize.width + "x" + player.videoSize.height + " subs=" + sb.tracks.length + "/" + sb.active + " cues=" + (sb.cues ? sb.cues.length : -1) + " now=" + JSON.stringify(sb.now));
                          frame.grab(shotPath); Qt.quit(); } }
 }

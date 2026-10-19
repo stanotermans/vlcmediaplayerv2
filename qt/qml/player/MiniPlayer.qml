@@ -18,7 +18,9 @@ Rectangle {
     width: parent.width
     Rectangle {   // #miniCanvasWrap
       width: parent.width; height: width * 9 / 16; color: Theme.stage; clip: true
-      VideoOutput { id: video; anchors.fill: parent; visible: !root.audio && root.ctl.player.videoSize.width > 0 }
+      VideoOutput { id: video; anchors.centerIn: parent; visible: !root.audio && root.ctl.player.videoSize.width > 0; fillMode: VideoOutput.Stretch
+                    readonly property real ar: root.ctl.player.videoSize.width > 0 ? root.ctl.player.videoSize.width / root.ctl.player.videoSize.height : 16 / 9
+                    width: parent.width / parent.height > ar ? parent.height * ar : parent.width; height: width / ar }
       Image { id: art; anchors.fill: parent; visible: false; source: root.audio ? root.it.thumb || "" : ""; fillMode: Image.PreserveAspectCrop; sourceSize.width: 320 }
       MultiEffect { anchors.fill: parent; autoPaddingEnabled: false; source: art; visible: root.audio && art.status === Image.Ready; blurEnabled: true; blur: 1; blurMax: 48; opacity: 0.55 }
       Image { visible: root.audio && art.status === Image.Ready; anchors.centerIn: parent; width: parent.height * 132 / 180; height: width; source: art.source; fillMode: Image.PreserveAspectCrop }

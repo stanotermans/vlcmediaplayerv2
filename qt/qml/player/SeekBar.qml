@@ -77,7 +77,7 @@ Item {
     property int stepNo: -1
     function move(hf) {
       // music has no picture (#27): only a card when there is a chapter or bookmark name, else just the tooltip (#41)
-      cardMode = !!(Settings.values.seekPreview && it && root.dur && !(audio && !root.pb.markTimes().length));
+      cardMode = !!(Settings.values.seekPreview && it && root.dur && !(audio && !root.ctl.sb.hoverLines && !root.pb.markTimes().length));
       if (!cardMode) return leave();
       hideT.stop();
       at = hf * root.dur; cx = hf * root.width;
@@ -116,7 +116,7 @@ Item {
       id: col
       x: 10; y: preview.audio ? 12 : 10; width: 216
       T {   // .pv-title: the chapter or bookmark name
-        readonly property string label: root.pb.markLabel(preview.at)
+        readonly property string label: (preview.audio && root.ctl.sb.lyricAt(preview.at)) || root.pb.markLabel(preview.at)
         visible: label !== ""; width: parent.width; horizontalAlignment: Text.AlignHCenter; bottomPadding: 7
         text: label; px: preview.audio ? 15 : 14; font.weight: Font.DemiBold; color: Theme.light ? "#222222" : "#e8e8e8"
       }

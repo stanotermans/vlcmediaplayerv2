@@ -68,7 +68,8 @@ Rectangle {
     }
     Rectangle { visible: root.c.audio !== false || root.c.subs !== false; width: 1; height: 18; color: Theme.line; anchors.verticalCenter: parent.verticalCenter }
     IconButton { html: "eqBtn"; visible: root.c.audio !== false; tip: qsTr("Audio") }
-    IconButton { html: "subBtn"; visible: root.c.subs !== false; tip: qsTr("Subtitles") }
+    IconButton { id: subBtn; html: "subBtn"; visible: root.c.subs !== false; tip: qsTr("Subtitles")
+                 onClicked: { const p = subBtn.mapToItem(null, 0, 0); root.ctl.menu(root.ctl.subtitleMenu(), p.x - 200, p.y - 8 - 330); } }
     IconButton { html: "setBtn"; visible: root.c.settings !== false; tip: qsTr("Settings"); onClicked: root.ctl.openSettings("interface") }
     IconButton { html: "listBtn"; visible: root.c.library !== false; tip: qsTr("Library / player (L)"); onClicked: root.ctl.toggleLibrary() }
   }

@@ -25,7 +25,8 @@ class VlcPlayer : public QObject {
   Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)   // 0…200 (libVLC's volume, 100 = normal)
   Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY volumeChanged)
   Q_PROPERTY(double rate READ rate WRITE setRate NOTIFY rateChanged)
-  Q_PROPERTY(QSize videoSize READ videoSize NOTIFY videoSizeChanged) // the picture's size (0×0: no video)
+  Q_PROPERTY(QSize videoSize READ videoSize NOTIFY videoSizeChanged) // the picture's size on screen (pixel aspect applied)
+  Q_PROPERTY(bool keepSpu MEMBER m_keepSpu)
   Q_PROPERTY(QString version READ version CONSTANT)
   Q_PROPERTY(QString error READ error NOTIFY errorChanged)
   Q_PROPERTY(int framesShown READ framesShown NOTIFY timeChanged)
@@ -63,7 +64,12 @@ public:
   Q_INVOKABLE QVariantList audioTracks() const;               // [{ id, name }] (id -1 = off)
   Q_INVOKABLE int audioTrack() const;
   Q_INVOKABLE void setAudioTrack(int id);
-  Q_INVOKABLE bool snapshot(const QString &file) const;       // the picture on screen, as PNG or JPEG
+  Q_INVOKABLE bool snapshot(const QString &file) const;
+  // libVLC's subtitle tracks (image subtitles: PGS, DVD, DVB). Off by default (text subtitles are drawn by the
+  // interface); keepSpu leaves libVLC's choice alone (a DVD's menus).
+  Q_INVOKABLE QVariantList spuTracks() const;                 // [{ id, name }] without "Disable"
+  Q_INVOKABLE void setSpu(int id);                            // -1: off
+  Q_INVOKABLE void setSpuDelay(double seconds);       // the picture on screen, as PNG or JPEG
   Q_INVOKABLE void log(const QString &line);                  // testing: appends a line to VLCR_LOG
 
 signals:
@@ -96,6 +102,10 @@ private:
   bool m_playing = false, m_loading = false, m_muted = false;
   int m_volume = 80, m_state = 0;
   double m_rate = 1;
+  double m_sar = 0;                       // pixel aspect ratio of the video track (0: not read yet)
+  int m_spu = -1;
+  qint64 m_spuDelay = 0;
+  bool m_keepSpu = false, m_spuApplied = false;
   QSize m_videoSize;
   QString m_version, m_error;
   std::atomic<int> m_frames{0};

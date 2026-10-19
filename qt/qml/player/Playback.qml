@@ -39,7 +39,9 @@ QtObject {
     const pos = library.positions[i.src];
     const resumeAt = Settings.values.resume && pos && pos < (i.duration || 1e9) - 5 ? pos : 0;
     fit = true;
+    player.keepSpu = dvdRe.test(i.src);              // a DVD's menus and subtitles stay libVLC's
     player.open(mrl(i), resumeAt * 1000);
+    ctl.sb.setup(i);
     if (resumeAt) osd(qsTr("Resuming from %1").arg(Lib.shortFmt(resumeAt)));
     if (Settings.values.rememberRecent) library.addRecent(i.src);
     ctl.showPlayer();
@@ -48,8 +50,11 @@ QtObject {
   }
   // an item's latest data from the library (duration, chapters … arrive after it was opened)
   readonly property var info: { library.items; return it ? library.item(it.src) : null; }
-  onInfoChanged: if (info && it && info.duration && !frames.src && it.type !== "audio" && !it.remote && Settings.values.seekPreview)
-                   frames.storyboard(it.src, info.duration, info.width * info.height > 2560 * 1440)
+  onInfoChanged: {
+    if (info && it && info.duration && !frames.src && it.type !== "audio" && !it.remote && Settings.values.seekPreview)
+      frames.storyboard(it.src, info.duration, info.width * info.height > 2560 * 1440);
+    if (info && info.ready) ctl.sb.refreshTracks(info);
+  }
 
   function togglePlay() {
     if (!it) { const v = ctl.vis[0] || library.items[0]; if (v) playItem(v, ctl.vis); else ctl.doAct("files"); return; }
@@ -58,7 +63,7 @@ QtObject {
   }
   function stop() {
     savePos(); abClear(true);
-    player.stop(); frames.clear();
+    player.stop(); frames.clear(); ctl.sb.clear();
     ctl.current = null; library.playing = "";
     ctl.showBrowser();
   }
@@ -218,11 +223,11 @@ QtObject {
     ["fullscreen", "Fullscreen", ["f"], () => ctl.toggleFs()],
     ["library", "Library / player", ["l"], () => ctl.toggleLibrary()],
     ["queue", "Show / hide queue", ["q"], () => ctl.toggleQueue()],
-    ["lyrics", "Show lyrics", ["y"], () => {}],
-    ["subs", "Cycle subtitle track", ["v"], () => {}],
+    ["lyrics", "Show lyrics", ["y"], () => ctl.sb.toggleLyrics()],
+    ["subs", "Cycle subtitle track", ["v"], () => ctl.sb.cycle()],
     ["audio", "Cycle audio track", ["b"], () => cycleAudio()],
-    ["subMinus", "Subtitle delay −", ["g"], () => {}],
-    ["subPlus", "Subtitle delay +", ["h"], () => {}],
+    ["subMinus", "Subtitle delay −", ["g"], () => ctl.sb.nudge(-0.1)],
+    ["subPlus", "Subtitle delay +", ["h"], () => ctl.sb.nudge(0.1)],
     ["snapshot", "Snapshot", ["S"], () => snapshot()],
     ["record", "Record", ["r", "R"], () => {}],
     ["slower", "Slower", ["["], () => setSpeed(speed - 0.25)],

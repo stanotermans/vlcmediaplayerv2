@@ -3,7 +3,7 @@ project(vlcredesign3 VERSION 3.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia Svg)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Multimedia Svg Network)
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(vlcr
@@ -14,6 +14,7 @@ qt_add_executable(vlcr
   src/library.cpp src/library.h
   src/frames.cpp src/frames.h
   src/keyfilter.cpp src/keyfilter.h
+  src/subtitles.cpp src/subtitles.h
 )
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(vlcr
@@ -24,7 +25,8 @@ qt_add_qml_module(vlcr
     qml/library/Rail.qml qml/library/SidePanel.qml qml/library/Browser.qml qml/library/Card.qml qml/library/ListRow.qml
     qml/player/Playback.qml qml/player/PlayerView.qml qml/player/ControlBar.qml qml/player/SeekBar.qml
     qml/player/MiniPlayer.qml qml/player/PipWindow.qml qml/player/PixelCat.qml
-    qml/dialogs/Ask.qml qml/dialogs/NewPlaylist.qml qml/dialogs/Network.qml qml/dialogs/MediaInfo.qml
+    qml/player/Subtitles.qml qml/player/SubtitleView.qml qml/player/LyricsView.qml
+    qml/dialogs/Ask.qml qml/dialogs/NewPlaylist.qml qml/dialogs/Network.qml qml/dialogs/MediaInfo.qml qml/dialogs/SearchSubs.qml
     qml/controls/T.qml qml/controls/Icon.qml qml/controls/IconButton.qml qml/controls/Button.qml
     qml/controls/Toggle.qml qml/controls/Segmented.qml qml/controls/Swatches.qml qml/controls/Slider.qml
     qml/controls/TextField.qml qml/controls/Select.qml qml/controls/ColorField.qml
@@ -36,8 +38,8 @@ qt_add_qml_module(vlcr
     src/defaults.json
 )
 target_include_directories(vlcr PRIVATE src)
-target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg)
+target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)
 if(WIN32)
-  target_link_libraries(vlcr PRIVATE user32)
+  target_link_libraries(vlcr PRIVATE user32 crypt32)
 endif()
 set_target_properties(vlcr PROPERTIES WIN32_EXECUTABLE ON MACOSX_BUNDLE ON)

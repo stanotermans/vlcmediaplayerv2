@@ -19,15 +19,24 @@ Rectangle {
   clip: true
 
   Rectangle {   // .floor
-    visible: !root.showVideo && !(root.audio && root.art && Settings.values.audioBg !== "none")
+    visible: !root.showVideo && !(root.audio && root.art && Settings.values.audioBg !== "none") && !root.ctl.sb.lyricsOn
     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
     height: parent.height * 0.27; color: Theme.floor
   }
-  VideoOutput {
-    id: video
+  Item {   // the picture in its real shape (pixel aspect applied), fitted, filled or stretched (Video → Aspect ratio)
     anchors.fill: parent
     visible: root.showVideo
-    fillMode: Settings.values.aspect === "fill" ? VideoOutput.PreserveAspectCrop : Settings.values.aspect === "stretch" ? VideoOutput.Stretch : VideoOutput.PreserveAspectFit
+    clip: true
+    readonly property real ar: root.ctl.player.videoSize.width > 0 ? root.ctl.player.videoSize.width / root.ctl.player.videoSize.height : 16 / 9
+    readonly property string mode: Settings.values.aspect || ""
+    readonly property bool wide: width / height > ar
+    VideoOutput {
+      id: video
+      anchors.centerIn: parent
+      fillMode: VideoOutput.Stretch
+      width: parent.mode === "stretch" ? parent.width : (parent.wide !== (parent.mode === "fill")) ? parent.height * parent.ar : parent.width
+      height: parent.mode === "stretch" ? parent.height : (parent.wide !== (parent.mode === "fill")) ? parent.height : parent.width / parent.ar
+    }
   }
 
   Item {   // #audioBg: the cover, blurred, dimmed (Settings → Interface → Music background)
@@ -39,7 +48,7 @@ Rectangle {
   }
   Item {   // #idle: the music's cover, or the pixel cat
     anchors.fill: parent
-    visible: !root.showVideo
+    visible: !root.showVideo && !root.ctl.sb.lyricsOn
     Rectangle {   // .np-cover
       visible: root.audio && root.art !== ""
       anchors.centerIn: parent
@@ -82,6 +91,9 @@ Rectangle {
     Timer { id: hold; interval: 450; onTriggered: { root.ctl.pb.fastStart(0); if (root.ctl.pb.fast) area.skipClick = true; } }
   }
 
+  LyricsView { ctl: root.ctl; anchors.fill: parent }
+  SubtitleView { ctl: root.ctl; anchors.fill: parent; visible: !root.ctl.sb.lyricsOn; text: root.ctl.sb.now }
+
   Item {   // #bigplay: the play/pause flash
     anchors.centerIn: parent
     width: 64; height: 64
@@ -99,6 +111,7 @@ Rectangle {
   function flash(playing) { big.paused = !playing; big.state = "flash"; flashT.restart(); }
 
   Rectangle {   // #spinner
+    id: spinner
     visible: root.ctl.player.loading && !!root.it
     anchors.centerIn: parent
     width: 44; height: 44; radius: 22; color: "transparent"; border.width: 3; border.color: "#22ffffff"
@@ -106,7 +119,7 @@ Rectangle {
       anchors.fill: parent
       onPaint: { const g = getContext("2d"); g.reset(); g.lineWidth = 3; g.strokeStyle = Theme.accent; g.beginPath(); g.arc(22, 22, 20.5, -Math.PI / 2, 0); g.stroke(); }
     }
-    RotationAnimation on rotation { from: 0; to: 360; duration: 800; loops: Animation.Infinite; running: parent.visible }
+    RotationAnimation on rotation { from: 0; to: 360; duration: 800; loops: Animation.Infinite; running: spinner.visible }
   }
 
   Rectangle {   // #fastBadge: 2× while held
