@@ -40,5 +40,10 @@ codesign --verify --deep "$APP" && echo "signature ok"
 mkdir -p "$OUT"; DMG="$OUT/VLC-Redesign-$VERSION-mac-$ARCH.dmg"
 STAGE=$B/dmg; rm -rf $STAGE; mkdir -p $STAGE
 cp -R "$APP" $STAGE/ && ln -s /Applications $STAGE/Applications
-rm -f "$DMG"; hdiutil create -volname "VLC Redesign" -srcfolder $STAGE -ov -format UDZO "$DMG"
+# hdiutil fails now and then on build servers ("Resource busy"): a few tries
+rm -f "$DMG"
+for i in 1 2 3 4 5; do
+  hdiutil create -volname "VLC Redesign" -srcfolder $STAGE -ov -format UDZO "$DMG" && break
+  [ $i = 5 ] && exit 1; echo "hdiutil failed, try $((i + 1))"; sleep 10
+done
 ls -la "$OUT"
