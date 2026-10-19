@@ -190,6 +190,10 @@ static lib_t open_libvlc(const char *d8) {
 #ifdef __APPLE__
   // VLC.app's layout: lib/ and plugins/ side by side (libVLC itself would look in lib/vlc/plugins)
   char plugins[1200]; snprintf(plugins, sizeof plugins, "%s/plugins", d8); setenv("VLC_PLUGIN_PATH", plugins, 1);
+  // libVLC and the plugins ask for @rpath/libvlccore.dylib, an rpath that only VLC's own executable has: loading
+  // libvlccore by its full path first makes that name refer to it (the dylibs keep VideoLAN's signatures)
+  char core[1200]; snprintf(core, sizeof core, "%s/lib/libvlccore.dylib", d8);
+  if (!dlopen(core, RTLD_NOW | RTLD_GLOBAL)) { snprintf(core, sizeof core, "%s/lib/libvlccore.9.dylib", d8); dlopen(core, RTLD_NOW | RTLD_GLOBAL); }
 #endif
   lib_t h = dlopen(path, RTLD_NOW | RTLD_GLOBAL);                  // bundled libs find each other through their rpath
 #ifdef __APPLE__

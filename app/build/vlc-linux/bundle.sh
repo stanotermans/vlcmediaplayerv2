@@ -21,7 +21,7 @@ ARCH_DIR=/usr/lib/x86_64-linux-gnu
 
 if [ "$STEP" = module ]; then
   rm -rf /tmp/vlcview && cp -r "$APP/native/vlcview" /tmp/vlcview && rm -rf /tmp/vlcview/build
-  ( cd /tmp/vlcview && npx --yes node-gyp@11 rebuild --arch=x64 >/dev/null )
+  ( cd /tmp/vlcview && npx --yes node-gyp@12 rebuild --arch=x64 >/dev/null )
   mkdir -p "$MOD_OUT" && cp /tmp/vlcview/build/Release/vlcview.node "$MOD_OUT/"
   echo "vlcview.node: needs $(objdump -T "$MOD_OUT/vlcview.node" | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -1)"
   exit 0

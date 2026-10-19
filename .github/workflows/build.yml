@@ -117,7 +117,7 @@ jobs:
         shell: bash
         run: |
           node scripts/fetch-vlc.js
-          npx --yes node-gyp@11 rebuild -C native/vlcview --arch=x64
+          npx --yes node-gyp@12 rebuild -C native/vlcview --arch=x64
           node scripts/vlc-smoke.js
       - name: libVLC and the vlcview module (Linux)
         if: runner.os == 'Linux'
@@ -179,7 +179,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           node scripts/fetch-vlc.js mac-arm64
-          npx --yes node-gyp@11 rebuild -C native/vlcview --arch=arm64
+          npx --yes node-gyp@12 rebuild -C native/vlcview --arch=arm64
           node scripts/vlc-smoke.js
           npx electron-builder --mac --arm64 --publish never
       - name: macOS Intel (with Intel FFmpeg and libVLC)
@@ -187,7 +187,7 @@ jobs:
         run: |
           cp ../ffbin/ffmpeg-mac-x64/ffmpeg node_modules/ffmpeg-static/ffmpeg && chmod +x node_modules/ffmpeg-static/ffmpeg
           node scripts/fetch-vlc.js mac-x64
-          npx --yes node-gyp@11 rebuild -C native/vlcview --arch=x64
+          npx --yes node-gyp@12 rebuild -C native/vlcview --arch=x64
           npx electron-builder --mac --x64 --publish never
 
       - name: Linux (AppImage, deb, rpm, pacman, tar.gz)
