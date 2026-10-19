@@ -65,11 +65,14 @@ public:
   Q_INVOKABLE void movePlaylistItem(int i, const QString &src, const QString &target, bool after);
   Q_INVOKABLE bool exportPlaylist(const QString &name, const QStringList &srcs, const QString &file);
 
-  Q_INVOKABLE QString readImage(const QString &file) const;   // a cover as a data: URL (kept in library.json, like v2.x)
+  Q_INVOKABLE QString readImage(const QString &file) const;
+  Q_INVOKABLE QStringList coverColors(const QString &art) const;   // two colours of a cover (the music's gradient background)   // a cover as a data: URL (kept in library.json, like v2.x)
   Q_INVOKABLE void reveal(const QString &path) const;         // "Show in folder"
   Q_INVOKABLE void openPath(const QString &path) const;
   Q_INVOKABLE QString picturesDir() const;                    // snapshots go here unless set otherwise
   Q_INVOKABLE QString videosDir() const;                      // recordings, the first media folder suggestion
+  Q_INVOKABLE QString snapshotsDir() const;                   // Pictures\VLC Redesign, Videos\VLC Redesign (like v2.x)
+  Q_INVOKABLE QString recordingsDir() const;
   Q_INVOKABLE void clearRecent();
   Q_INVOKABLE bool makeDir(const QString &dir) const;
   // moving over from v2.x (Electron): the export v2.x writes (export-for-v3.json in its data folder), as
@@ -112,6 +115,7 @@ private:
   void addOne(const QString &src, bool manual, qint64 added, bool *isNew);
   QStringList m_folders;                       // the media folders of the last scan
   QString m_playing;
+  qint64 m_batch = 0;                          // the "added" time of what is being added together
   bool m_thumbs = true, m_remember = true, m_loading = false;
   int m_busy = 0;
   QThreadPool m_pool;

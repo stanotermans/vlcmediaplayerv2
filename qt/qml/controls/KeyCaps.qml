@@ -29,7 +29,9 @@ Row {
         width: Math.max(34, cl.implicitWidth + 20); height: 32; radius: 6
         color: Theme.panel2; border.width: 1; border.color: Theme.line
         Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 2; rightMargin: 2; bottomMargin: -2 } height: 2; radius: 1; color: Theme.edge; z: -1 }
-        T { id: cl; anchors.centerIn: parent; text: qsTr(modelData.cap); px: 12; color: Theme.text }
+        // the media keys (⏯ ⏭ ⏮ ⏹) as plain symbols: Qt would take the colour emoji font for them
+        T { id: cl; anchors.centerIn: parent; text: qsTr(modelData.cap); px: 12; color: Theme.text
+            font.family: /^[⏩-⏺]$/.test(modelData.cap) ? (Qt.platform.os === "windows" ? "Segoe UI Symbol" : Qt.platform.os === "osx" ? "Apple Symbols" : "DejaVu Sans") : Theme.font }
       }
     }
   }

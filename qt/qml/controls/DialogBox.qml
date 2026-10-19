@@ -1,6 +1,7 @@
 // .dlg: a centred dialog on a dark scrim. Head (title and ×) on bg2, body, footer with buttons on a line; Escape or
 // a click on the scrim closes it. buttons: [{ label, value, primary }]; finished(value) (null when closed).
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Controls.Basic as C
 import VLCR
 
@@ -42,12 +43,20 @@ C.Popup {
     Item {   // .dlg-foot
       visible: dlg.buttons.length > 0
       width: parent.width; height: 56
-      Row {
-        anchors { right: parent.right; rightMargin: 18; verticalCenter: parent.verticalCenter }
+      RowLayout {   // justify-content: space-between (a single button on the right, like v2.x)
+        anchors { left: parent.left; right: parent.right; leftMargin: 18; rightMargin: 18; verticalCenter: parent.verticalCenter }
         spacing: 8
-        Repeater { model: dlg.buttons
-          Button { required property var modelData; text: qsTr(modelData.label); kind: modelData.primary ? "primary" : ""
-                   onClicked: dlg.done(typeof modelData.value === "function" ? modelData.value() : modelData.value) } }
+        Repeater {
+          model: dlg.buttons.length === 1 ? [null].concat(dlg.buttons) : dlg.buttons.reduce((out, b, i) => out.concat(i ? [null, b] : [b]), [])
+          Loader {
+            required property var modelData
+            Layout.fillWidth: modelData === null
+            sourceComponent: modelData === null ? gap : btn
+            Component { id: gap; Item { implicitHeight: 1 } }
+            Component { id: btn; Button { text: qsTr(modelData.label); kind: modelData.primary ? "primary" : ""
+                                          onClicked: dlg.done(typeof modelData.value === "function" ? modelData.value() : modelData.value) } }
+          }
+        }
       }
     }
   }

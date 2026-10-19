@@ -13,7 +13,7 @@ Column {
   Section {
     title: "Snapshots"
     SettingRow { label: "Format"; Select { path: "snapshotFormat"; options: [["png", "PNG"], ["jpg", "JPG"]] } }
-    FolderRow { label: "Folder"; path: "snapshotDir"; fallback: page.ctl.library.picturesDir(); ctl: page.ctl }
+    FolderRow { label: "Folder"; path: "snapshotDir"; fallback: page.ctl.library.snapshotsDir(); ctl: page.ctl }
   }
   Section {
     title: "Filters"

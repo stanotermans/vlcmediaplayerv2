@@ -190,7 +190,8 @@ QtObject {
   // ---------- snapshot (Shift+S): the picture on screen, into Pictures (or Settings → Video → Snapshot folder) ----------
   function snapshot() {
     if (!it || it.type === "audio") return osd(qsTr("Nothing to take a snapshot of"));
-    const dir = Settings.values.snapshotDir || library.picturesDir();
+    const dir = Settings.values.snapshotDir || library.snapshotsDir();
+    library.makeDir(dir);
     const ext = Settings.values.snapshotFormat === "jpg" ? "jpg" : "png";
     const base = it.name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]/g, "_");
     const file = dir + "/" + base + " " + fmt(curTime()).replace(/:/g, "-") + "." + ext;

@@ -3,6 +3,7 @@
 // so a double click only goes fullscreen, #32), holding the button plays at 2× (#46), the wheel sets the volume.
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 import QtMultimedia
 import VLCR
 
@@ -19,7 +20,7 @@ Rectangle {
   clip: true
 
   Rectangle {   // .floor
-    visible: !root.showVideo && !(root.audio && root.art && Settings.values.audioBg !== "none") && !root.ctl.sb.lyricsOn
+    visible: !root.showVideo && !root.abOn && !root.ctl.sb.lyricsOn
     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
     height: parent.height * 0.27; color: Theme.floor
   }
@@ -101,12 +102,32 @@ Rectangle {
           text: "REC " + String(Math.floor(parent.parent.secs / 60)).padStart(2, "0") + ":" + String(parent.parent.secs % 60).padStart(2, "0") } }
   }
 
-  Item {   // #audioBg: the cover, blurred, dimmed (Settings → Interface → Music background)
+  // #audioBg (Settings → Interface → Music background, like v2.x): blur = the cover blurred, gradient = two colours
+  // of the cover (a dark default without one, also for blur), black; dimmed. "stage" keeps the normal stage.
+  readonly property string abMode: Settings.values.audioBg || "blur"
+  readonly property bool abOn: audio && abMode !== "stage"
+  readonly property var abColors: abOn && abMode === "gradient" && art !== "" ? root.ctl.library.coverColors(art) : []
+  Item {
     anchors.fill: parent
-    visible: root.audio && root.art !== "" && (Settings.values.audioBg || "blur") !== "none"
-    Image { id: abArt; anchors.fill: parent; source: Settings.values.audioBg === "black" ? "" : root.art; fillMode: Image.PreserveAspectCrop; visible: false; sourceSize.width: 320 }
-    MultiEffect { anchors.fill: parent; autoPaddingEnabled: false; source: abArt; blurEnabled: Settings.values.audioBg !== "cover"; blur: 1; blurMax: 64; saturation: 0.3; visible: Settings.values.audioBg !== "black" }
-    Rectangle { anchors.fill: parent; color: "#000000"; opacity: Settings.values.audioBg === "black" ? 1 : (Settings.values.audioBgDim ?? 65) / 100 }
+    visible: root.abOn
+    Shape {   // CSS linear-gradient(135deg, …): the line runs corner to corner through the middle
+      id: abGrad
+      anchors.fill: parent
+      visible: root.abMode !== "black" && !(root.abMode === "blur" && root.art !== "")
+      readonly property real d: (width + height) / 4
+      ShapePath {
+        strokeWidth: -1
+        fillGradient: LinearGradient {
+          x1: abGrad.width / 2 - abGrad.d; y1: abGrad.height / 2 - abGrad.d; x2: abGrad.width / 2 + abGrad.d; y2: abGrad.height / 2 + abGrad.d
+          GradientStop { position: 0; color: root.abColors.length ? root.abColors[0] : "#3a3a46" }
+          GradientStop { position: 1; color: root.abColors.length ? root.abColors[1] : "#121214" }
+        }
+        PathRectangle { width: abGrad.width; height: abGrad.height }
+      }
+    }
+    Image { id: abArt; anchors.fill: parent; source: root.abMode === "blur" ? root.art : ""; fillMode: Image.PreserveAspectCrop; visible: false; sourceSize.width: 320 }
+    MultiEffect { anchors.fill: parent; autoPaddingEnabled: false; source: abArt; blurEnabled: true; blur: 1; blurMax: 64; saturation: 0.3; visible: root.abMode === "blur" && root.art !== "" }
+    Rectangle { anchors.fill: parent; color: "#000000"; opacity: root.abMode === "black" ? 1 : (Settings.values.audioBgDim ?? 65) / 100 }
   }
   Item {   // #idle: the music's cover, or the pixel cat
     anchors.fill: parent

@@ -25,6 +25,7 @@ Column {
     SettingRow { label: "Start page"; info: "The library page the app opens on."
                  Select { path: "startView"; options: ["home", "videos", "music", "network", "playlists", "recent"].map(v => [v, v === "music" && Settings.values.audioLabel ? "Audio" : v.charAt(0).toUpperCase() + v.slice(1)]) } }
     SettingRow { label: "Show confirmation and error dialogs"; info: "Ask for confirmation before deleting or clearing."; Toggle { path: "confirmDialogs" } }
+    SettingRow { label: "Check for updates automatically"; Toggle { path: "autoUpdate" } }
     SettingRow { label: "Show welcome screen again"; Button { text: qsTr("Start onboarding"); kind: "ghost"; onClicked: ctl.showOnboarding() } }
   }
   Section {

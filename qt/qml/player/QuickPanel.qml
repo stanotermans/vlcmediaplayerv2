@@ -61,13 +61,13 @@ Rectangle {
   }
   Flickable {   // .qbody
     id: body
-    anchors { left: parent.left; right: parent.right; top: tabs.bottom; bottom: foot.top; leftMargin: 18; rightMargin: 18 }
+    anchors { left: parent.left; right: parent.right; top: tabs.bottom; bottom: foot.top; leftMargin: 18; rightMargin: 2 }
     contentHeight: content.implicitHeight + 10
     clip: true; boundsBehavior: Flickable.StopAtBounds
     C.ScrollBar.vertical: ScrollBar {}
     Loader {
       id: content
-      width: body.width
+      width: body.width - 26   // v2.x's .qbody: 18px padding, then the scrollbar at the edge (the Loader sizes the page)
       sourceComponent: root.tab === "playback" ? playbackC : root.tab === "video" ? videoC : root.tab === "audio" ? audioC : subsC
     }
   }
@@ -76,7 +76,7 @@ Rectangle {
     Column {
       width: body.width - 10
       Section { title: "Defaults"; last: true
-        Slider { label: "Speed"; min: 0.25; max: 4; step: 0.05; controlled: true; value: root.ctl.pb.speed; fmt: v => v.toFixed(2) + "×"; onMoved: v => Settings.set("speed", v) }
+        Slider { label: "Speed"; box: true; min: 0.25; max: 4; step: 0.05; controlled: true; value: root.ctl.pb.speed; fmt: v => v.toFixed(2) + "×"; onMoved: v => Settings.set("speed", v) }
         SettingRow { label: "Repeat"; Select { width: 160; path: "repeat"; options: [["off", "Off"], ["one", "Current"], ["all", "All"]] } }
         SettingRow { label: "Shuffle"; Toggle { path: "shuffle" } }
         SettingRow { label: "Autoplay next item"; Toggle { path: "autoNext" } }
@@ -95,19 +95,30 @@ Rectangle {
         SettingRow { label: "Zoom"; Select { width: 160; path: "vf.zoom"; options: [[1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [2, "2×"]] } }
         SettingRow { label: "Mirror"; Toggle { path: "vf.mirror" } }
         SettingRow { label: "Crop" }
-        Grid {   // .cropgrid
-          columns: 2; spacing: 8; width: parent.width; bottomPadding: 8
+        Grid {   // .cropgrid: two fields and a link button per row; a linked pair gets the same value
+          id: cropGrid
+          property var linked: ({ v: false, h: false })
+          columns: 3; spacing: 8; width: parent.width; bottomPadding: 8
           Repeater {
-            model: [["Top", "t"], ["Bottom", "b"], ["Left", "l"], ["Right", "r"]]
-            Rectangle {   // .cropf
+            model: [["Top", "t", "b", "v"], ["Bottom", "b", "t", "v"], ["link", "v"], ["Left", "l", "r", "h"], ["Right", "r", "l", "h"], ["link", "h"]]
+            Item {
+              id: cell
               required property var modelData
-              width: (parent.width - 8) / 2; height: 38; radius: 8; color: Theme.track
-              T { x: 12; anchors.verticalCenter: parent.verticalCenter; text: qsTr(modelData[0]); color: Theme.muted }
-              TextInput { anchors { right: unit.left; rightMargin: 6; verticalCenter: parent.verticalCenter } width: 50; horizontalAlignment: TextInput.AlignRight
-                          font.family: Theme.font; font.pixelSize: 13; color: Theme.text; validator: IntValidator { bottom: 0; top: 2000 }
-                          text: String((Settings.values.vf && Settings.values.vf.crop && Settings.values.vf.crop[modelData[1]]) || 0)
-                          onEditingFinished: Settings.set("vf.crop." + modelData[1], Math.max(0, +text || 0)) }
-              T { id: unit; anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter } text: "px"; color: Theme.dim }
+              readonly property bool isLink: modelData[0] === "link"
+              width: isLink ? 30 : (cropGrid.width - 30 - 16) / 2; height: 38
+              IconButton { visible: cell.isLink; anchors.centerIn: parent; name: "link"; tip: qsTr("Link"); on: cell.isLink && cropGrid.linked[cell.modelData[1]]
+                           onClicked: { const l = Object.assign({}, cropGrid.linked); l[cell.modelData[1]] = !l[cell.modelData[1]]; cropGrid.linked = l; } }
+              Rectangle {   // .cropf
+                visible: !cell.isLink
+                anchors.fill: parent; radius: 8; color: Theme.track
+                T { x: 12; anchors.verticalCenter: parent.verticalCenter; text: qsTr(cell.modelData[0]); color: Theme.muted }
+                TextInput { anchors { right: unit.left; rightMargin: 6; verticalCenter: parent.verticalCenter } width: 50; horizontalAlignment: TextInput.AlignRight
+                            font.family: Theme.font; font.pixelSize: 13; color: Theme.text; validator: IntValidator { bottom: 0; top: 2000 }
+                            text: String((Settings.values.vf && Settings.values.vf.crop && Settings.values.vf.crop[cell.modelData[1]]) || 0)
+                            onEditingFinished: { const v = Math.max(0, +text || 0); Settings.set("vf.crop." + cell.modelData[1], v)
+                                                 if (cropGrid.linked[cell.modelData[3]]) Settings.set("vf.crop." + cell.modelData[2], v); } }
+                T { id: unit; anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter } text: "px"; color: Theme.dim }
+              }
             }
           }
         }
@@ -138,13 +149,18 @@ Rectangle {
       width: body.width - 10
       Section { title: "Defaults"
         SettingRow { label: "Audio track"
-                     Select { width: 160; options: { root.ctl.player.time; const t = root.ctl.player.audioTracks().filter(x => x.id >= 0); return t.length ? t.map(x => [x.id, x.name]) : [[-2, "Default"]]; }
+                     Select { width: 160; options: { root.ctl.player.time; const t = root.ctl.player.audioTracks().filter(x => x.id >= 0); const a = (root.ctl.pb.info || {}).audio || [];
+                                       // named like v2.x from FFmpeg's look at the file: "Track 1 (aac, 2ch)"
+                                       return t.length ? t.map((x, i) => [x.id, a[i] ? a[i].label + " (" + a[i].codec + (a[i].ch ? ", " + a[i].ch + "ch" : "") + ")" : x.name]) : [[-2, "Default"]]; }
                               value: { root.ctl.player.time; return root.ctl.player.audioTrack(); } onPicked: v => { if (v >= 0) root.ctl.player.setAudioTrack(v); } } }
         Slider { label: "Volume boost"; min: 0; max: 200; path: "gain"; fmt: v => v + "%"; ticks: 2 }
         Slider { label: "Audio delay"; min: -1000; max: 1000; step: 10; path: "audioDelay"; fmt: v => (v > 0 ? "+" : "") + v + " ms"; center: true; ticks: 2 }
       }
+      Section { title: "Equalizer"
+        EffectRows { vertical: false; part: "eq" }
+      }
       Section { title: "Effects"; last: true
-        EffectRows { vertical: false }
+        EffectRows { vertical: false; part: "fx" }
       }
     }
   }
@@ -160,13 +176,13 @@ Rectangle {
         SettingRow { label: "Search online"; Button { text: "OpenSubtitles…"; onClicked: { root.open = false; root.ctl.searchSubtitles(); } } }
       }
       Section { title: "Synchronization"
-        Slider { label: "Subtitle delay"; min: -10; max: 10; step: 0.05; center: true; controlled: true; value: root.sb.delay; fmt: v => v.toFixed(3) + " s"
+        Slider { label: "Subtitle delay"; box: true; min: -10; max: 10; step: 0.05; center: true; controlled: true; value: root.sb.delay; fmt: v => v.toFixed(3) + " s"
                  onMoved: v => { root.sb.delay = v; root.ctl.player.setSpuDelay(v); } }
         Item { width: parent.width; height: 14   // .scale
           T { text: "−10 s"; px: 11; color: Theme.muted } T { anchors.horizontalCenter: parent.horizontalCenter; text: "0 s"; px: 11; color: Theme.muted }
           T { anchors.right: parent.right; text: "+10 s"; px: 11; color: Theme.muted } }
-        Slider { label: "Subtitle speed"; min: 0.5; max: 2; step: 0.001; controlled: true; value: root.sb.speed; fmt: v => v.toFixed(3); onMoved: v => root.sb.speed = v }
-        Slider { label: "Duration factor"; min: 0; max: 5; step: 0.05; controlled: true; value: root.sb.dur; fmt: v => v.toFixed(3) + " s"; onMoved: v => root.sb.dur = v }
+        Slider { label: "Subtitle speed"; box: true; min: 0.5; max: 2; step: 0.001; controlled: true; value: root.sb.speed; fmt: v => v.toFixed(3); onMoved: v => root.sb.speed = v }
+        Slider { label: "Duration factor"; box: true; min: 0; max: 5; step: 0.05; controlled: true; value: root.sb.dur; fmt: v => v.toFixed(3) + " s"; onMoved: v => root.sb.dur = v }
       }
       Section { title: "Appearance"; last: true
         SettingRow { label: "Font"; FontSelect { width: 160; ctl: root.ctl } }

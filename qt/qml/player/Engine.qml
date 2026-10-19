@@ -43,14 +43,21 @@ QtObject {
 
   // MIDI: libVLC's FluidSynth plays it with the chosen SoundFont, or the built-in FluidR3 Mono
   readonly property var midiRe: /\.(mid|midi|kar|rmi|smf)$/i
-  function options(src) { return midiRe.test(src) ? [":soundfont=" + (Settings.values.soundfont || ctl.library.builtinSoundfont())] : []; }
+  // "Play another media synchronously" (Open network stream → Show more options): its audio plays with the stream
+  property var extra: ({})
+  function options(src) {
+    const o = midiRe.test(src) ? [":soundfont=" + (Settings.values.soundfont || ctl.library.builtinSoundfont())] : [];
+    const x = extra[src];
+    if (x) o.push(":input-slave=" + (/^[a-z][a-z0-9+.-]*:\/\//i.test(x) ? x : "file:///" + x.replace(/\\/g, "/").replace(/^\/+/, "")));
+    return o;
+  }
 
   // ---------- recording (R): like VLC's Record button, the file's own streams saved unchanged from the next keyframe ----------
   property real recStart: 0
   function toggleRecord() {
     if (player.recording) return stopRecord();
     if (!ctl.current) return ctl.osd(qsTr("Play something first"));
-    const dir = Settings.values.recDir || ctl.library.videosDir();
+    const dir = Settings.values.recDir || ctl.library.recordingsDir();
     ctl.library.makeDir(dir);
     if (!player.record(true, dir)) return ctl.osd(qsTr("Recording not possible"));
     recStart = Date.now(); ctl.osd(qsTr("Recording started"));
@@ -59,7 +66,7 @@ QtObject {
   function stopRecord() {
     if (!player.recording) return;
     player.record(false);
-    ctl.osd(qsTr("Recording saved to %1").arg(Settings.values.recDir || ctl.library.videosDir()));
+    ctl.osd(qsTr("Recording saved to %1").arg(Settings.values.recDir || ctl.library.recordingsDir()));
   }
 
   // ---------- DVD menus: in a menu the arrow keys, Enter and clicks work its buttons ----------

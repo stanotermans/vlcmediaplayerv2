@@ -15,8 +15,9 @@ QtObject {
   readonly property bool black: mode === "black"
 
   // a·t + b·(1−t), like color-mix(in srgb, a t%, b)
-  function mix(a, b, t) { return Qt.rgba(a.r * t + b.r * (1 - t), a.g * t + b.g * (1 - t), a.b * t + b.b * (1 - t), a.a * t + b.a * (1 - t)); }
-  function alpha(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
+  function mix(a, b, t) { if (typeof a === "string") a = Qt.lighter(a, 1); if (typeof b === "string") b = Qt.lighter(b, 1);
+    return Qt.rgba(a.r * t + b.r * (1 - t), a.g * t + b.g * (1 - t), a.b * t + b.b * (1 - t), a.a * t + b.a * (1 - t)); }
+  function alpha(c, a) { if (typeof c === "string") c = Qt.lighter(c, 1); return Qt.rgba(c.r, c.g, c.b, a); }   // also "#rrggbb"
 
   readonly property color accent: Settings.values.accent || "#f28c1b"
   // readable text on the accent (a light grey accent needs dark text)

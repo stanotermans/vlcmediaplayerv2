@@ -43,7 +43,7 @@ qt_add_qml_module(vlcr
     qml/controls/KeyCaps.qml qml/controls/FolderRow.qml qml/controls/LinkButton.qml
     qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml
   RESOURCES
-    src/defaults.json
+    src/defaults.json assets/icon.png
     lang/de.json lang/es.json lang/fr.json lang/it.json lang/nl.json lang/pl.json lang/pt.json
 )
 qt_add_shaders(vlcr "shaders"

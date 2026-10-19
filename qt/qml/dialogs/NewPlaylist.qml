@@ -1,6 +1,7 @@
 // "New playlist" (panels.js newPlaylist): a name, a cover and files (choose them or drag them onto the drop zone).
 // finished({ name, cover, files }) or null.
 import QtQuick
+import QtQuick.Shapes
 import QtQuick.Dialogs
 import VLCR
 
@@ -34,14 +35,23 @@ DialogBox {
     Item { width: 1; height: 8 }
     T { text: qsTr("Select files"); font.weight: Font.DemiBold; color: Theme.text }
     T { width: parent.width; text: qsTr("These files will be added to the playlist."); px: 12; color: Theme.muted }
-    Rectangle {   // .dropzone
-      width: parent.width; height: 90; radius: 8
+    Rectangle {   // .dropzone: dashed, 130px (70 once files are chosen); the + as an icon button
+      id: zone
+      width: parent.width; height: dlg.files.length ? 70 : 130; radius: 8
       color: drop.containsDrag ? Theme.accentSoft : Theme.track
-      border.width: 1; border.color: drop.containsDrag || za.containsMouse ? Theme.accent : Theme.line
+      Shape {
+        anchors.fill: parent
+        ShapePath {
+          strokeWidth: 1; strokeColor: drop.containsDrag || za.containsMouse ? Theme.accent : Theme.line; fillColor: "transparent"
+          strokeStyle: ShapePath.DashLine; dashPattern: [3, 3]
+          PathRectangle { x: 0.5; y: 0.5; width: zone.width - 1; height: zone.height - 1; radius: 8 }
+        }
+      }
       Column {
-        anchors.centerIn: parent; spacing: 6
+        anchors.centerIn: parent; spacing: 10
         T { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("Drag files here or click to choose them"); color: Theme.muted }
-        Icon { anchors.horizontalCenter: parent.horizontalCenter; name: "plus"; color: Theme.muted }
+        Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 30; height: 30; radius: Theme.radius; color: Theme.panel2
+          Icon { anchors.centerIn: parent; width: 16; height: 16; name: "plus"; color: za.containsMouse ? Theme.text : Theme.muted } }
       }
       MouseArea { id: za; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: filesDlg.open() }
       DropArea { id: drop; anchors.fill: parent; onDropped: d => { if (d.hasUrls) { dlg.addFiles(d.urls.map(u => dlg.library.toLocal(u))); d.accept(); } } }

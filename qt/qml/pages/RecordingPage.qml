@@ -9,7 +9,7 @@ Column {
   Section {
     title: "Recording"
     last: true
-    FolderRow { label: "Recording folder"; path: "recDir"; fallback: page.ctl.library.videosDir(); ctl: page.ctl }
+    FolderRow { label: "Recording folder"; path: "recDir"; fallback: page.ctl.library.recordingsDir(); ctl: page.ctl }
     SettingRow { label: "Include audio"; Toggle { path: "recAudio" } }
     Note { text: qsTr("Press R (or Shift+R) during playback to record.") }
   }

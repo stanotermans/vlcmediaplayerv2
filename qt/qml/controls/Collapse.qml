@@ -5,12 +5,13 @@ import VLCR
 Rectangle {
   id: root
   property bool open: false
+  property bool shown: true
   property string onLabel: "Collapse settings"
   property string offLabel: "Expand settings"
   default property alias rows: body.data
   width: parent ? parent.width : 400
   readonly property bool searching: SettingsSearch.q !== ""
-  visible: !searching || SettingsSearch.any(body)
+  visible: shown && (!searching || SettingsSearch.any(body))
   height: head.height + (open || searching ? body.height + 10 : 0)
   radius: 8; color: Theme.alpha(Theme.panel2, 0.5)
   clip: true

@@ -16,6 +16,11 @@ function shortFmt(s) {
 var TITLES = { home: 'Home', videos: 'Videos', music: 'Music', network: 'Network', playlists: 'Playlists', recent: 'Recent' };
 function typeOf(view) { return view === 'music' ? 'audio' : 'video'; }
 
+// Array.sort in QML's JavaScript is not stable (v2.x's Chromium is): equal entries keep their order this way
+function stableSort(list, cmp) {
+  return list.map(function (v, i) { return [v, i]; }).sort(function (a, b) { return cmp(a[0], b[0]) || a[1] - b[1]; }).map(function (p) { return p[0]; });
+}
+
 function sortItems(list, sort, desc) {
   var num = function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); };
   var cmp = {
@@ -24,7 +29,7 @@ function sortItems(list, sort, desc) {
     duration: function (a, b) { return (a.duration || 0) - (b.duration || 0); },
     album: function (a, b) { return (a.album || '￿').localeCompare(b.album || '￿') || num(a, b); }
   }[sort] || function () { return 0; };
-  return list.slice().sort(desc ? function (a, b) { return cmp(b, a); } : cmp);
+  return stableSort(list, desc ? function (a, b) { return cmp(b, a); } : cmp);
 }
 
 // the folder browser of Videos / Music: { folders: [{ path, name, items }], files, dir, roots }
@@ -100,7 +105,7 @@ function page(c) {
   var item = function (it) { return { kind: 'item', it: it }; };
   if (v === 'home' && !c.query) {
     var cont = c.items.filter(function (i) { return c.positions[i.src] && !c.watched[i.src]; }).slice(0, 10);
-    var added = sortItems(c.items, c.sort, c.sortDesc).sort(function (a, b) { return b.added - a.added; }).slice(0, 15);
+    var added = stableSort(sortItems(c.items, c.sort, c.sortDesc), function (a, b) { return b.added - a.added; }).slice(0, 15);
     if (cont.length) out.cards = out.cards.concat([{ kind: 'section', title: tr('Continue watching') }], cont.map(item));
     if (added.length) out.cards = out.cards.concat([{ kind: 'section', title: tr('Recently added') }], added.map(item));
     out.count = c.items.length;

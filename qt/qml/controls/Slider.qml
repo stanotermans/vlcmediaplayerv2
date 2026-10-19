@@ -14,6 +14,7 @@ Column {
   property var fmt: v => String(v)
   property int ticks: 0
   property bool center: false
+  property bool box: false          // the value in an editable box (v2.x's valbox): type a number, Enter sets it
   property real value: path !== "" ? (Settings.values, Number(Settings.get(path))) : 0
   signal moved(real v)
   property bool controlled: false   // value comes from a binding and is changed by the owner (on moved)
@@ -34,9 +35,30 @@ Column {
   readonly property real c: Math.min(1, Math.max(0, (0 - min) / (max - min)))
 
   Item {
-    width: root.width; height: Math.max(lbl.implicitHeight, val.implicitHeight)
-    T { id: lbl; text: qsTr(root.label); color: Theme.text2; width: parent.width - val.implicitWidth - 10 }
-    T { id: val; anchors.right: parent.right; text: root.fmt(root.value); color: Theme.muted; font.features: { "tnum": 1 } }
+    width: root.width; height: root.box ? val.implicitHeight + 10 : Math.max(lbl.implicitHeight, val.implicitHeight)
+    T { id: lbl; text: qsTr(root.label); color: Theme.text2; width: parent.width - (root.box ? 120 : val.implicitWidth + 10); anchors.verticalCenter: parent.verticalCenter }
+    T { id: val; anchors.right: parent.right; text: root.fmt(root.value); color: Theme.muted; font.features: { "tnum": 1 }; visible: !root.box }
+    Rectangle {
+      visible: root.box
+      anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+      width: 110; height: edit.implicitHeight + 10; radius: Theme.radius; color: Theme.track
+      border.width: 1; border.color: edit.activeFocus ? Theme.accent : Theme.line
+      TextInput {
+        id: edit
+        anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; verticalAlignment: TextInput.AlignVCenter
+        color: Theme.text; selectionColor: Theme.accentSoft; selectByMouse: true; clip: true
+        font.pixelSize: val.font.pixelSize; font.family: val.font.family; font.features: { "tnum": 1 }
+        Binding on text { value: root.fmt(root.value); when: !edit.activeFocus; restoreMode: Binding.RestoreNone }
+        function commit() {
+          const n = parseFloat(text.replace(",", "."));
+          if (isFinite(n)) { const v = Math.min(root.max, Math.max(root.min, n)); if (root.path !== "") Settings.set(root.path, v); else if (!root.controlled) root.value = v; root.moved(v); }
+          text = root.fmt(root.value);
+        }
+        onAccepted: { commit(); focus = false; }
+        onEditingFinished: commit()
+        Keys.onEscapePressed: { text = root.fmt(root.value); focus = false; }
+      }
+    }
   }
   Item {
     id: trackBox

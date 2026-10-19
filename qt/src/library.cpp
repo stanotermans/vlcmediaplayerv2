@@ -1,3 +1,5 @@
+#include <QImage>
+#include <QColor>
 #include "library.h"
 #include <QCollator>
 #include <QCoreApplication>
@@ -264,13 +266,16 @@ void Library::addOne(const QString &src, bool manual, qint64 added, bool *isNew)
   }
   const bool remote = isRemote(src);
   m_items << QVariantMap{ { "src", src }, { "name", itemName(src) }, { "remote", remote }, { "type", AUDIO_RE.match(src).hasMatch() ? "audio" : "video" },
-                          { "thumb", QString() }, { "duration", 0.0 }, { "added", (double)(added ? added : QDateTime::currentMSecsSinceEpoch()) }, { "manual", manual }, { "ready", false } };
+                          { "thumb", QString() }, { "duration", 0.0 }, { "added", (double)(added ? added : m_batch ? m_batch : QDateTime::currentMSecsSinceEpoch()) }, { "manual", manual }, { "ready", false } };
   m_index[src] = m_items.size() - 1;
   *isNew = true;
   probe(src);
 }
 
 QStringList Library::addSources(const QStringList &given, bool manual, bool keepLists) {
+  // everything added at once gets the same time (like v2.x): "Recently added" then lists it by name
+  const qint64 was = m_batch; if (!was) m_batch = QDateTime::currentMSecsSinceEpoch();
+  struct Reset { qint64 &b; qint64 v; ~Reset() { b = v; } } reset{ m_batch, was };
   QStringList srcs, out;
   bool lists = false;
   for (QString s : given) {
@@ -305,6 +310,8 @@ QStringList Library::addSources(const QStringList &given, bool manual, bool keep
 }
 
 void Library::scanFolders(const QStringList &folders) {
+  const qint64 was = m_batch; if (!was) m_batch = QDateTime::currentMSecsSinceEpoch();
+  struct Reset { qint64 &b; qint64 v; ~Reset() { b = v; } } reset{ m_batch, was };
   m_folders = folders;
   QSet<QString> found;
   for (const QString &f : folders) {
@@ -449,6 +456,18 @@ QString Library::readImage(const QString &file) const {
   if (f.size() > (8 << 20) || !f.open(QIODevice::ReadOnly)) return {};
   return "data:" + QMimeDatabase().mimeTypeForFile(f.fileName()).name() + ";base64," + QString::fromLatin1(f.readAll().toBase64());
 }
+QStringList Library::coverColors(const QString &art) const {
+  // like v2.x: the cover at 8×8, the average of the top-left and the bottom-right 4×4
+  QImage img;
+  if (art.startsWith("data:")) img.loadFromData(QByteArray::fromBase64(art.section(',', 1).toLatin1()));
+  else img.load(toLocal(art));
+  if (img.isNull()) return {};
+  img = img.convertToFormat(QImage::Format_RGB32).scaled(8, 8, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+  auto avg = [&](int x0, int y0) { int r = 0, g = 0, b = 0;
+    for (int y = y0; y < y0 + 4; y++) for (int x = x0; x < x0 + 4; x++) { const QRgb c = img.pixel(x, y); r += qRed(c); g += qGreen(c); b += qBlue(c); }
+    return QColor(r / 16, g / 16, b / 16).name(); };
+  return { avg(0, 0), avg(4, 4) };
+}
 void Library::reveal(const QString &path) const {
 #if defined(Q_OS_WIN)
   QProcess::startDetached("explorer.exe", { "/select,", QDir::toNativeSeparators(path) });
@@ -459,6 +478,8 @@ void Library::reveal(const QString &path) const {
 #endif
 }
 QString Library::videosDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)); }
+QString Library::snapshotsDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/VLC Redesign"); }
+QString Library::recordingsDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) + "/VLC Redesign"); }
 bool Library::makeDir(const QString &dir) const { return QDir().mkpath(dir); }
 
 // v2.x's data folder: "VLC Redesign" (Linux packages: "vlc-redesign") in the system's app data folder

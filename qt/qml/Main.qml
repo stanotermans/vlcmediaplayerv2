@@ -231,6 +231,7 @@ C.ApplicationWindow {
       if (!list.length) return osd(qsTr("No valid URL entered"));
       Settings.set("networkHistory", list.concat((Settings.values.networkHistory || []).filter(u => list.indexOf(u) < 0)).slice(0, 30));
       if (r.name.trim()) library.createPlaylist(r.name.trim(), list, "");
+      if (r.extra) { const x = Object.assign({}, en.extra); list.forEach(u => x[u] = r.extra); en.extra = x; }
       addSources(list);
     });
     else if (a === "newpl") newPlaylist();
@@ -455,7 +456,7 @@ C.ApplicationWindow {
   }
   function testSteps(steps) {
     let delay = 600;   // the library is read first
-    steps.forEach(s => { const k = s.split(":")[0], v = s.slice(k.length + 1); delay += k === "wait" ? +v : 500; timerAt(delay, () => testStep(k, v)); });
+    steps.forEach(s => { const k = s.split(":")[0], v = s.slice(k.length + 1); delay += k === "wait" ? +v : k === "set" ? 60 : 500; timerAt(delay, () => testStep(k, v)); });
   }
   function timerAt(ms, fn) { const t = Qt.createQmlObject("import QtQuick; Timer {}", win); t.interval = ms; t.triggered.connect(() => { fn(); t.destroy(); }); t.start(); }
   function testStep(k, v) {
@@ -501,6 +502,7 @@ C.ApplicationWindow {
     else if (k === "log") player.log(eval(v));
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });
+      else if (v === "newpl0") dialog("dialogs/NewPlaylist.qml", { library: library });
       else if (v === "network") dialog("dialogs/Network.qml", {});
       else if (v === "info") dialog("dialogs/MediaInfo.qml", { it: library.item(vis[0].src) });
       else if (v === "choose") addToPlaylist([vis[0].src]);
@@ -508,7 +510,7 @@ C.ApplicationWindow {
       if (v === "more") moreMenu(win.width - 300, 92);
       else if (v === "player") { const m = menu(playerMenu(), 760, 260); }
       else if (v === "title") titleMenu(60, 40);
-      else { const e = v === "item" ? { kind: "item", it: vis[0] } : pg.cards.filter(c => c.kind === v)[0]; if (e) entryMenu(e, 700, 300, true); }
+      else { const e = v === "item" ? { kind: "item", it: vis[1] } : pg.cards.filter(c => c.kind === v)[0]; if (e) entryMenu(e, v === "item" ? 848 : 700, v === "item" ? 206 : 300, true); }
     }
   }
 

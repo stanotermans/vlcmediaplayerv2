@@ -17,7 +17,7 @@ Column {
         required property var modelData
         readonly property string searchLabel: modelData.label
         visible: SettingsSearch.match(modelData.label)
-        width: parent.width; height: 44
+        width: parent.width; height: 46   // 44 + the 2px gap of .kbtable.kbedit
         T { anchors.verticalCenter: parent.verticalCenter; text: qsTr(kr.modelData.label); color: kr.modelData.changed ? Theme.accent : Theme.text2 }
         Row {
           anchors { right: parent.right; verticalCenter: parent.verticalCenter }
