@@ -36,7 +36,7 @@ cp ../app/build/icon.png "$AD/vlc-redesign.png"
 du -sh "$AD"
 
 # AppImage
-ARCH=x86_64 VERSION=$VERSION appimagetool --comp gzip "$AD" "$OUT/VLC-Redesign-$VERSION-x86_64.AppImage"
+ARCH=x86_64 VERSION=$VERSION appimagetool "$AD" "$OUT/VLC-Redesign-$VERSION-x86_64.AppImage"
 
 # /opt/vlc-redesign: the AppDir's usr/ (bin/, lib/, plugins/, qml/ with qt.conf pointing next door)
 OPT=$(realpath -m build-linux/opt); rm -rf "$OPT"; mkdir -p "$OPT"

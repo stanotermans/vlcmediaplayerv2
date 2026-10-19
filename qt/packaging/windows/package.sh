@@ -10,7 +10,7 @@ cd "$(dirname "$0")/../.."                       # qt/
 FFMPEG=${1:?ffmpeg.exe}
 OUT=$(realpath -m "${2:-dist}")
 VERSION=$(sed -n 's/^project(vlcredesign3 VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
-QT_DIR=${QT_DIR:-/c/Qt/6.8.3/msvc2022_64}
+QT_DIR=${QT_DIR:-$([ -n "${QT_ROOT_DIR:-}" ] && cygpath -u "$QT_ROOT_DIR" || echo /c/Qt/6.8.3/msvc2022_64)}
 APP=deploy/VLC\ Redesign
 rm -rf deploy; mkdir -p "$APP" "$OUT"
 cp "build/VLC Redesign.exe" "$APP/"
