@@ -65,7 +65,8 @@ jobs:
         shell: bash
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
-        run: node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+        run: |
+          node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
       - name: Build
         shell: bash
         run: |
@@ -112,7 +113,8 @@ jobs:
       - name: API keys
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
-        run: node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+        run: |
+          node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
       - name: Build and package (app, dmg)
         run: bash qt/packaging/macos/package.sh ${{ matrix.arch }} "$GITHUB_WORKSPACE/ffbin/ffmpeg" "$GITHUB_WORKSPACE/qt/dist"
       - name: Smoke test
@@ -152,7 +154,8 @@ jobs:
       - name: API keys
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
-        run: node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
+        run: |
+          node -e "require('fs').writeFileSync('qt/keys.json', JSON.stringify({ opensubtitles: process.env.OPENSUBTITLES_API_KEY || '' }))"
       - name: Build and package (AppImage, deb, rpm, Arch, tar.gz)
         run: bash qt/packaging/linux/package.sh "$GITHUB_WORKSPACE/ffbin/ffmpeg" "$GITHUB_WORKSPACE/qt/dist"
       - name: Smoke test
