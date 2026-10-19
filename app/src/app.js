@@ -423,7 +423,16 @@ const chromiumNeedsTx = it => S.get('forceTx') || !canDirect(it.info) || !!it.ex
 // What the VLC engine leaves to the Classic path: HDR films on an HDR screen. There Chromium can show real HDR, while
 // the VLC engine's canvas tone-maps to SDR.
 const isHdr = it => !!(it.info && it.info.color && /smpte2084|arib-std-b67/.test(it.info.color.transfer || ''));
-const vlcSkips = it => !DVD_RE.test(it.src) && isHdr(it) && matchMedia('(dynamic-range: high)').matches;
+// #57: file types that always play with Classic (FFmpeg), for files VLC shows wrongly (TGV: its palette colours)
+const extOf = src => !/^[a-z][a-z0-9+.-]+:\/\//i.test(src) && (/\.([a-z0-9]{1,6})$/i.exec(src.replace(/#t\d+(n\d+)?$/, '')) || [])[1]?.toLowerCase() || '';
+const classicTypes = () => (S.get('classicTypes') || '').toLowerCase().split(/[\s,;.]+/).filter(Boolean);
+const classicByType = it => { const e = extOf(it.src); return !!e && classicTypes().includes(e); };
+function setClassicType(ext, on) {
+  const list = classicTypes().filter(x => x !== ext); if (on) list.push(ext);
+  S.set('classicTypes', list.join(', '));
+  const it = curItem(); if (it && extOf(it.src) === ext) reloadSource();   // the playing file switches right away
+}
+const vlcSkips = it => classicByType(it) || (!DVD_RE.test(it.src) && isHdr(it) && matchMedia('(dynamic-range: high)').matches);
 // A DVD for libVLC: dvd:///<the .iso, or the folder holding VIDEO_TS>, plus #<title> for one title (none: the menu)
 function dvdMrl(src) {
   const tm = /#t(\d+)(?:n\d+)?$/.exec(src), file = tm ? src.slice(0, tm.index) : src;
@@ -1430,6 +1439,7 @@ document.addEventListener('contextmenu', e => {
       !it.remote ? { label: 'Show in folder', icon: 'folder', action: () => api.reveal(it.src) } : null,
       { label: 'Media information', icon: 'info', action: () => mediaInfo(it) },
       card.matches('.card') ? { label: SEL.has(it.src) ? 'Deselect' : 'Select', icon: 'check', kbd: 'Ctrl + click', action: () => selectClick(it, false) } : null,
+      video.isVlc && extOf(it.src) && !DVD_RE.test(it.src) ? { label: t('Always play .{ext} files with FFmpeg (Classic)', { ext: extOf(it.src) }), checked: classicByType(it), action: () => setClassicType(extOf(it.src), !classicByType(it)) } : null,
       ...(state.view === 'playlists' && state.activePlaylist && !state.activePlaylist.all ? (() => {
         const p = state.activePlaylist, i = p.srcs.indexOf(it.src);
         return [{ sep: true },

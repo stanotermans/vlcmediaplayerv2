@@ -720,5 +720,9 @@ I18N.add('es', {
  "Select all": "Seleccionar todo",
  "Clear selection": "Quitar selección",
  "Select": "Seleccionar",
- "Deselect": "Deseleccionar"
+ "Deselect": "Deseleccionar",
+ "Always play with Classic (FFmpeg)": "Reproducir siempre con Clásico (FFmpeg)",
+ "File types (extensions) that always play with the Classic engine, for files the VLC engine shows wrongly. Separate them with commas. Also in the right-click menu of a file.": "Tipos de archivo (extensiones) que siempre se reproducen con el motor Clásico, para archivos que el motor VLC muestra mal. Sepáralos con comas. También en el menú del clic derecho de un archivo.",
+ "e.g. tgv, bik": "p. ej. tgv, bik",
+ "Always play .{ext} files with FFmpeg (Classic)": "Reproducir siempre los archivos .{ext} con FFmpeg (Clásico)"
 });

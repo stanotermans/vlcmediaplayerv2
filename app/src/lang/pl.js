@@ -667,5 +667,9 @@ I18N.add('pl', {
  "Select all": "Zaznacz wszystko",
  "Clear selection": "Wyczyść zaznaczenie",
  "Select": "Zaznacz",
- "Deselect": "Odznacz"
+ "Deselect": "Odznacz",
+ "Always play with Classic (FFmpeg)": "Zawsze odtwarzaj silnikiem Klasyczny (FFmpeg)",
+ "File types (extensions) that always play with the Classic engine, for files the VLC engine shows wrongly. Separate them with commas. Also in the right-click menu of a file.": "Typy plików (rozszerzenia), które zawsze są odtwarzane silnikiem Klasyczny – dla plików, które silnik VLC pokazuje błędnie. Oddziel je przecinkami. Także w menu prawego przycisku pliku.",
+ "e.g. tgv, bik": "np. tgv, bik",
+ "Always play .{ext} files with FFmpeg (Classic)": "Zawsze odtwarzaj pliki .{ext} przez FFmpeg (Klasyczny)"
 });
