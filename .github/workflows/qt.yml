@@ -204,23 +204,13 @@ jobs:
         with: { name: testmedia, path: testdata }
       - name: Tests
         run: xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/tests/run.py qt/build-linux/AppDir/AppRun testdata --out test-out
-      - name: Flatpak (#54)
-        run: |
-          sudo apt-get install -y flatpak flatpak-builder
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y --noninteractive flathub org.kde.Sdk//6.11 org.kde.Platform//6.11 org.flatpak.Builder
-          bash qt/packaging/flatpak/package.sh "$GITHUB_WORKSPACE/ffbin/ffmpeg" app/vendor/vlc "$GITHUB_WORKSPACE/qt/dist"
-      - name: Flatpak smoke test and tests
-        run: |
-          flatpak install --user -y --noninteractive qt/dist/*.flatpak
-          mkdir -p "$GITHUB_WORKSPACE/tmp"; export TMPDIR="$GITHUB_WORKSPACE/tmp"   # the sandbox does not see the host's /tmp
-          [ -n "${XDG_RUNTIME_DIR:-}" ] || { export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg"; mkdir -p -m 700 "$XDG_RUNTIME_DIR"; }
-          # flatpak run needs a session bus
-          dbus-run-session -- xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/packaging/smoke.py qt/packaging/flatpak/run.sh
-          dbus-run-session -- xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/tests/run.py qt/packaging/flatpak/run.sh testdata --out test-out-flatpak
+      - name: libVLC for the Flatpak
+        run: tar -C app/vendor -czf vlc-linux.tgz vlc
+      - uses: actions/upload-artifact@v4
+        with: { name: libvlc-linux, path: vlc-linux.tgz, if-no-files-found: error }
       - uses: actions/upload-artifact@v4
         if: failure()
-        with: { name: tests-linux, path: "test-out*/" }
+        with: { name: tests-linux, path: test-out/ }
       - uses: actions/upload-artifact@v4
         with:
           name: vlc3-linux
@@ -231,11 +221,60 @@ jobs:
             qt/dist/*.rpm
             qt/dist/*.pkg.tar.zst
             qt/dist/*.tar.gz
-            qt/dist/*.flatpak
+
+  # the Flatpak (#54): built in Flathub's own build container (KDE SDK and flatpak-builder inside), then installed on
+  # a plain Ubuntu and tested there like the other packages
+  flatpak:
+    needs: linux
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: ffmpeg-linux-x64, path: ffbin }
+      - uses: actions/download-artifact@v4
+        with: { name: libvlc-linux, path: . }
+      - name: API keys
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+        run: printf '{"opensubtitles":"%s"}' "${OPENSUBTITLES_API_KEY:-}" > qt/keys.json
+      - name: Build the Flatpak
+        run: |
+          tar -xzf vlc-linux.tgz && chmod +x ffbin/ffmpeg
+          bash qt/packaging/flatpak/package.sh ffbin/ffmpeg vlc qt/dist
+      - uses: actions/upload-artifact@v4
+        with: { name: vlc3-flatpak, path: qt/dist/*.flatpak, if-no-files-found: error }
+
+  flatpak-test:
+    needs: [flatpak, testmedia]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: vlc3-flatpak, path: dist }
+      - uses: actions/download-artifact@v4
+        with: { name: testmedia, path: testdata }
+      - name: Install (KDE's runtime comes from Flathub)
+        run: |
+          sudo apt-get update && sudo apt-get install -y flatpak xvfb dbus
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive dist/*.flatpak
+      - name: Smoke test and tests
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tmp"; export TMPDIR="$GITHUB_WORKSPACE/tmp"   # the sandbox does not see the host's /tmp
+          [ -n "${XDG_RUNTIME_DIR:-}" ] || { export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg"; mkdir -p -m 700 "$XDG_RUNTIME_DIR"; }
+          # flatpak run needs a session bus
+          dbus-run-session -- xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/packaging/smoke.py qt/packaging/flatpak/run.sh
+          dbus-run-session -- xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/tests/run.py qt/packaging/flatpak/run.sh testdata --out test-out
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: tests-flatpak, path: test-out/ }
 
   release:
     if: startsWith(github.ref, 'refs/tags/v3.')
-    needs: [windows, macos, linux]
+    needs: [windows, macos, linux, flatpak-test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
