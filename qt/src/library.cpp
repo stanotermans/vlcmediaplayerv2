@@ -523,6 +523,8 @@ QVariantMap Library::v2Export() const {
   dirs << QDir::homePath() + "/Library/Application Support/VLC Redesign";
 #else
   dirs << base + "/vlc-redesign" << base + "/VLC Redesign";
+  // in a Flatpak the config folder above is the sandbox's own: v2.x's is in the home folder's
+  dirs << QDir::homePath() + "/.config/vlc-redesign" << QDir::homePath() + "/.config/VLC Redesign";
 #endif
   if (qEnvironmentVariableIsSet("VLCR_V2_DATA")) dirs.prepend(qEnvironmentVariable("VLCR_V2_DATA"));
   for (const QString &d : dirs) {

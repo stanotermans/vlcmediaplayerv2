@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.stanotermans.VLCRedesign</id>
+  <name>VLC Redesign</name>
+  <summary>Unofficial VLC-style media player with Juxtopposed's design</summary>
+  <developer id="io.github.stanotermans">
+    <name>Stan Otermans</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>The number 1 best build with the design of Juxtopposed: a modern media player made from the VLC redesign in the
+      video "I Redesigned VLC After 25 Years". It plays with VLC's own engine (libVLC).</p>
+    <ul>
+      <li>Library with folders, playlists, recently played and where you left off</li>
+      <li>Subtitles (also from OpenSubtitles) and synced lyrics</li>
+      <li>Equalizer, audio and video effects, A-B repeat, chapters and bookmarks</li>
+      <li>DVD menus, network streams, recording and snapshots</li>
+      <li>Light, dark and system theme with accent colors, in 8 languages</li>
+    </ul>
+    <p>Unofficial fan project, not made by or affiliated with VideoLAN. "VLC" and the cone logo are trademarks of VideoLAN.</p>
+  </description>
+  <launchable type="desktop-id">io.github.stanotermans.VLCRedesign.desktop</launchable>
+  <url type="homepage">https://stanotermans.github.io/vlcmediaplayerv2/</url>
+  <url type="bugtracker">https://github.com/stanotermans/vlcmediaplayerv2/issues</url>
+  <url type="vcs-browser">https://github.com/stanotermans/vlcmediaplayerv2</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/stanotermans/vlcmediaplayerv2/main/docs/screenshots/library.png</image>
+      <caption>The library</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/stanotermans/vlcmediaplayerv2/main/docs/screenshots/player.png</image>
+      <caption>The player with quick settings</caption>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Player</category>
+  </categories>
+  <releases>
+    <release version="3.0.2" date="2026-10-20"/>
+    <release version="3.0.1" date="2026-10-20"/>
+    <release version="3.0.0" date="2026-10-20"/>
+  </releases>
+</component>

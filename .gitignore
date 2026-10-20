@@ -14,3 +14,4 @@ qt/deploy/
 qt/dist/
 qt/build-*/
 qt/keys.json
+build-flatpak/

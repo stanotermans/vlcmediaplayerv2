@@ -204,9 +204,23 @@ jobs:
         with: { name: testmedia, path: testdata }
       - name: Tests
         run: xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/tests/run.py qt/build-linux/AppDir/AppRun testdata --out test-out
+      - name: Flatpak (#54)
+        run: |
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.kde.Sdk//6.8 org.kde.Platform//6.8
+          bash qt/packaging/flatpak/package.sh "$GITHUB_WORKSPACE/ffbin/ffmpeg" app/vendor/vlc "$GITHUB_WORKSPACE/qt/dist"
+      - name: Flatpak smoke test and tests
+        run: |
+          flatpak install --user -y --noninteractive qt/dist/*.flatpak
+          mkdir -p "$GITHUB_WORKSPACE/tmp"; export TMPDIR="$GITHUB_WORKSPACE/tmp"   # the sandbox does not see the host's /tmp
+          [ -n "${XDG_RUNTIME_DIR:-}" ] || { export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg"; mkdir -p -m 700 "$XDG_RUNTIME_DIR"; }
+          # flatpak run needs a session bus
+          dbus-run-session -- xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/packaging/smoke.py qt/packaging/flatpak/run.sh
+          dbus-run-session -- xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/tests/run.py qt/packaging/flatpak/run.sh testdata --out test-out-flatpak
       - uses: actions/upload-artifact@v4
         if: failure()
-        with: { name: tests-linux, path: test-out/ }
+        with: { name: tests-linux, path: "test-out*/" }
       - uses: actions/upload-artifact@v4
         with:
           name: vlc3-linux
@@ -217,6 +231,7 @@ jobs:
             qt/dist/*.rpm
             qt/dist/*.pkg.tar.zst
             qt/dist/*.tar.gz
+            qt/dist/*.flatpak
 
   release:
     if: startsWith(github.ref, 'refs/tags/v3.')
@@ -237,7 +252,7 @@ jobs:
           B="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
           f() { ls artifacts | grep -E "$1" | head -1; }
           link() { n=$(f "$1"); if [ -n "$n" ]; then echo "[\`$n\`]($B/$n)"; else echo "—"; fi; }
-          sed -e "s|{{VERSION}}|$V|g"               -e "s|{{WIN_SETUP}}|$(link 'Setup-.*\.exe$')|"               -e "s|{{WIN_PORTABLE}}|$(link 'Portable-.*\.zip$')|"               -e "s|{{MAC_ARM}}|$(link 'mac-arm64\.dmg$')|"               -e "s|{{MAC_X64}}|$(link 'mac-x64\.dmg$')|"               -e "s|{{DEB}}|$(link '\.deb$')|"               -e "s|{{RPM}}|$(link '\.rpm$')|"               -e "s|{{PACMAN}}|$(link '\.pkg\.tar\.zst$')|"               -e "s|{{APPIMAGE}}|$(link '\.AppImage$')|"               -e "s|{{TARGZ}}|$(link '\.tar\.gz$')|"               qt/packaging/release-notes.md > notes.md
+          sed -e "s|{{VERSION}}|$V|g"               -e "s|{{WIN_SETUP}}|$(link 'Setup-.*\.exe$')|"               -e "s|{{WIN_PORTABLE}}|$(link 'Portable-.*\.zip$')|"               -e "s|{{MAC_ARM}}|$(link 'mac-arm64\.dmg$')|"               -e "s|{{MAC_X64}}|$(link 'mac-x64\.dmg$')|"               -e "s|{{DEB}}|$(link '\.deb$')|"               -e "s|{{RPM}}|$(link '\.rpm$')|"               -e "s|{{PACMAN}}|$(link '\.pkg\.tar\.zst$')|"               -e "s|{{APPIMAGE}}|$(link '\.AppImage$')|"               -e "s|{{TARGZ}}|$(link '\.tar\.gz$')|" -e "s|{{FLATPAK}}|$(link '\.flatpak$')|"               qt/packaging/release-notes.md > notes.md
           cat notes.md
       - uses: softprops/action-gh-release@v2
         with:

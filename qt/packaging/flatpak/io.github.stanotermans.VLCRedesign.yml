@@ -1,0 +1,38 @@
+# Flatpak of VLC Redesign 3 (#54). package.sh puts the sources and the prebuilt parts in build-flatpak/stage and runs
+# flatpak-builder with this. The app is built from source on KDE's runtime (Qt 6.8); libVLC (app/build/vlc-linux),
+# the slim FFmpeg and the SoundFont go next to the program, like in the other Linux packages.
+app-id: io.github.stanotermans.VLCRedesign
+runtime: org.kde.Platform
+runtime-version: '6.8'
+sdk: org.kde.Sdk
+command: vlc-redesign
+finish-args:
+  - --share=ipc
+  - --socket=x11              # the app draws its own window frame; on Wayland desktops it runs through XWayland
+  - --env=QT_QPA_PLATFORM=xcb
+  - --socket=pulseaudio
+  - --share=network           # streams, subtitles from OpenSubtitles, update check
+  - --device=all              # graphics card, DVD drives
+  - --filesystem=host         # media folders and files anywhere (also other disks), recordings and snapshots
+modules:
+  - name: vlc-redesign
+    buildsystem: simple
+    build-options:
+      no-debuginfo: true      # the program is stripped below; libVLC's libraries (patched with patchelf) stay as they are
+      strip: false
+    build-commands:
+      - cmake -S qt -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr
+      - cmake --build build
+      - strip build/vlc-redesign && install -Dm755 build/vlc-redesign /app/bin/vlc-redesign
+      - cp -a vlc /app/bin/vlc
+      - install -Dm755 ffmpeg /app/bin/ffmpeg
+      - install -Dm644 FluidR3Mono_GM.sf3 /app/bin/assets/FluidR3Mono_GM.sf3
+      - if [ -f keys.json ]; then install -Dm644 keys.json /app/bin/keys.json; fi
+      - install -Dm644 vlc-redesign.desktop /app/share/applications/${FLATPAK_ID}.desktop
+      - desktop-file-edit --set-icon=${FLATPAK_ID} /app/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 icon.png /app/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png
+      - install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 LICENSE /app/share/licenses/${FLATPAK_ID}/LICENSE
+    sources:
+      - type: dir
+        path: ../../../build-flatpak/stage
