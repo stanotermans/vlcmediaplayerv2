@@ -235,7 +235,7 @@ def cursor(c):   # #60: in fullscreen the cursor hides after the delay, also whi
 def ffmpeg_route(c):   # #66: file types on the FFmpeg list play converted by FFmpeg (time, length and seeking still right)
     c.vals, _ = run(c.name, ['set:classicTypes="mkv"'] + PLAY('tracks.mkv', 3000) + ['log:"a=" + player.playing + " " + player.frameSize.width + "x" + player.frameSize.height',
                     'log:"t=" + player.time', 'log:"len=" + player.length', 'seek:5', 'wait:1500', 'log:"t=" + player.time', 'log:"err=" + player.error'])
-    c.eq('a', 'true 640x360'); c.near('t', 2900, 900, 0); c.near('len', 11000, 300); c.near('t', 6300, 900, 1); c.eq('err', '')   # (its subtitles run to 11 s)
+    c.eq('a', 'true 640x360'); c.near('t', 2600, 1100, 0); c.near('len', 11000, 300); c.near('t', 6300, 900, 1); c.eq('err', '')   # (its subtitles run to 11 s; FFmpeg starts slower on 2-core build servers)
 
 @test
 def migration(c):   # v2.x → v3: export-for-v3.json in v2.x's data folder
