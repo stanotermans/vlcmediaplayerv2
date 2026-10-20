@@ -2,7 +2,7 @@
 # Packages VLC Redesign 3 as a Flatpak (#54): a .flatpak file that installs on any Linux with Flatpak
 #   (flatpak install VLC-Redesign-<version>-x86_64.flatpak; KDE's runtime comes from Flathub by itself).
 #   qt/packaging/flatpak/package.sh <ffmpeg> <libVLC folder (app/build/vlc-linux)> [out dir]
-# Needs flatpak and flatpak-builder with org.kde.Sdk//6.11 and org.kde.Platform//6.11 from Flathub.
+# Needs flatpak with org.kde.Sdk//6.11, org.kde.Platform//6.11 and org.flatpak.Builder from Flathub.
 set -euo pipefail
 FFMPEG=$(realpath "${1:?ffmpeg}"); VLC=$(realpath "${2:?libVLC folder}"); OUT=$(realpath -m "${3:-qt/dist}")   # before the cd
 cd "$(dirname "$0")/../.."                       # qt/
@@ -16,6 +16,8 @@ cp -a "$VLC" "$S/vlc"
 cp "$FFMPEG" "$S/ffmpeg"
 cp ../app/assets/FluidR3Mono_GM.sf3 ../app/build/icon.png ../LICENSE packaging/linux/vlc-redesign.desktop packaging/flatpak/$ID.metainfo.xml "$S/"
 [ -f keys.json ] && cp keys.json "$S/" || true
-flatpak-builder --user --force-clean --disable-rofiles-fuse --repo="$B/repo" --state-dir="$B/state" "$B/app" packaging/flatpak/$ID.yml
+# Flathub's own flatpak-builder when installed (org.flatpak.Builder): the SDKs of today need its newer AppStream tools
+if flatpak info --user org.flatpak.Builder >/dev/null 2>&1; then FB=(flatpak run --user --command=flatpak-builder org.flatpak.Builder); else FB=(flatpak-builder); fi
+"${FB[@]}" --user --force-clean --disable-rofiles-fuse --repo="$B/repo" --state-dir="$B/state" "$B/app" packaging/flatpak/$ID.yml
 flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo "$B/repo" "$OUT/VLC-Redesign-$VERSION-x86_64.flatpak" $ID
 ls -la "$OUT"/*.flatpak
