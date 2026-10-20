@@ -123,8 +123,11 @@ def subtitles(c):   # the .srt next to the video, and the embedded track
 @test
 def lyrics(c):   # #41
     c.vals, _ = run(c.name, ['view:music'] + PLAY('song.flac', 3500) + ['log:"lines="+(sb.lyrics ? sb.lyrics.length : 0)', 'log:"synced="+sb.synced',
-                    'log:"index="+sb.lyricIndex', 'log:"playing="+player.playing'])
-    c.eq('lines', 3); c.eq('synced', 'true'); c.eq('index', 1); c.eq('playing', 'true')
+                    'log:"now="+player.time+" "+sb.lyricIndex', 'log:"playing="+player.playing'])
+    c.eq('lines', 3); c.eq('synced', 'true'); c.eq('playing', 'true')
+    t, idx = (c.get('now') or '-1 -9').split()   # the line for the moment it was asked (lines at 1, 3 and 5 s)
+    want = sum(int(t) >= ms for ms in (1000, 3000, 5000)) - 1
+    c.ok(int(idx) == want and want >= 0, f'lyric line {idx} at {t} ms, want {want}')
 
 @test
 def fast(c):   # #46: hold for 2× speed
