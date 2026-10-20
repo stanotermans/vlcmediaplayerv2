@@ -8,7 +8,6 @@ Unicode true
 SetCompressor /SOLID lzma
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
-!include "MultiUser.nsh"
 
 !define NAME "VLC Redesign"
 !define EXE "VLC Redesign.exe"
@@ -32,6 +31,7 @@ BrandingText "${NAME} ${VERSION}"
 !define MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_VALUENAME "InstallLocation"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_KEY "${UNINST}"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_VALUENAME "InstallLocation"
+!include "MultiUser.nsh"   ; after its settings: it reads them when included
 
 !define MUI_ICON "icon.ico"
 !define MUI_UNICON "icon.ico"
