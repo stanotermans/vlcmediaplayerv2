@@ -1,6 +1,7 @@
 {
  "defaults": {
   "onboarded": false,
+  "lastVersion": "",
   "language": "",
   "theme": "dark",
   "accent": "#f28c1b",

@@ -436,6 +436,10 @@ C.ApplicationWindow {
     subs.loadFonts(Settings.values.customFonts || []);
     const opened = System.startPaths();
     if (!Settings.values.onboarded && !shotPath && !autoPlay) Qt.callLater(showOnboarding);
+    // #71: after an update, what changed (once per version; a new install gets the onboarding instead)
+    const before = Settings.values.lastVersion || (Settings.values.onboarded ? "3.0.3" : "");   // 3.0.3 and older did not keep it
+    if (before && before !== System.version && !shotPath) Qt.callLater(() => dialog("dialogs/WhatsNew.qml", { since: before }));
+    Settings.set("lastVersion", System.version);
     System.mediaAttach(win);
     if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
     if (Settings.values.autoUpdate !== false && !shotPath) updateTimer.start();

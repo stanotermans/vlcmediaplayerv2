@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(vlcredesign3 VERSION 3.0.3 LANGUAGES C CXX)
+project(vlcredesign3 VERSION 3.0.4 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -42,9 +42,9 @@ qt_add_qml_module(vlcr
     qml/pages/NetworkPage.qml qml/pages/PerformancePage.qml qml/pages/RecordingPage.qml qml/pages/ExtensionsPage.qml
     qml/pages/AboutPage.qml qml/pages/EffectRows.qml qml/pages/VSlider.qml qml/pages/FontSelect.qml qml/pages/Effects.js
     qml/controls/KeyCaps.qml qml/controls/FolderRow.qml qml/controls/LinkButton.qml
-    qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml
+    qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml qml/dialogs/WhatsNew.qml
   RESOURCES
-    src/defaults.json assets/icon.png
+    src/defaults.json assets/icon.png CHANGELOG.md
     lang/de.json lang/es.json lang/fr.json lang/it.json lang/nl.json lang/pl.json lang/pt.json
 )
 qt_add_shaders(vlcr "shaders"

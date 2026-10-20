@@ -100,8 +100,10 @@ def playback(c):
 def keys(c):   # #37: the skip keys, mute, speed
     c.vals, _ = run(c.name, ['set:jump=5'] + PLAY('video.mp4', 1500) + ['pause', 'seek:2', 'wait:600', 'key:ArrowRight', 'wait:700', 'log:"t="+player.time',
                     'key:ArrowLeft', 'wait:700', 'log:"t="+player.time', 'key:m', 'log:"muted="+player.muted', 'key:]', 'log:"rate="+player.rate',
-                    'key:j', 'key:j', 'log:"delay="+Settings.values.audioDelay'])
+                    'key:j', 'key:j', 'log:"delay="+Settings.values.audioDelay',
+                    'seek:2', 'wait:500', 'key:Ctrl+ArrowRight', 'wait:700', 'log:"tmin="+player.time', 'key:Alt+ArrowLeft', 'wait:700', 'log:"t5="+player.time'])
     c.near('t', 7000, 400, 0); c.near('t', 2000, 400, 1); c.eq('muted', 'true'); c.more('rate', 1.01); c.eq('delay', -20)   # #58: 10 ms steps
+    c.near('tmin', 11500, 500); c.near('t5', 0, 400)   # #70: Ctrl+→ 1 min (to the end of 12 s), Alt+← 5 min (to the start)
 
 @test
 def ab_repeat(c):   # #42 (libVLC reports the time in steps: B can be seen up to ~0.5 s late)

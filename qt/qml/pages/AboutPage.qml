@@ -34,6 +34,7 @@ Column {
     }
     Row { spacing: 8; topPadding: 10; bottomPadding: 10
       Button { text: qsTr("Check for updates"); kind: "ghost"; onClicked: System.checkUpdates(true) }
+      Button { text: qsTr("What's new"); kind: "ghost"; onClicked: page.ctl.dialog("dialogs/WhatsNew.qml", { since: "" }) }
       Button { visible: System.update.state === "available"; kind: "primary"
                text: (System.update.info || {}).mode === "install" ? qsTr("Install update") : (System.update.info || {}).mode === "download" ? qsTr("Download update") : qsTr("Open download page")
                onClicked: System.installUpdate() } }

@@ -26,6 +26,7 @@ public:
   void listen();
 
   QString version() const;
+  Q_INVOKABLE QString changelog() const;                 // CHANGELOG.md, built in (#71)
   bool portable() const;
   QVariantMap update() const { return m_update; }
 

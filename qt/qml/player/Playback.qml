@@ -218,6 +218,11 @@ QtObject {
     ["seekBack", "Seek backward", ["ArrowLeft"], () => jumpBy(-Settings.values.jump, "−" + Settings.values.jump + " s")],
     ["seekFwdShort", "Seek 3 s forward", ["Shift+ArrowRight"], () => jumpBy(3, "+3 s")],
     ["seekBackShort", "Seek 3 s backward", ["Shift+ArrowLeft"], () => jumpBy(-3, "−3 s")],
+    // #70: bigger jumps for long videos
+    ["seekFwdMin", "Seek 1 min forward", ["Ctrl+ArrowRight"], () => jumpBy(60, "+1 min")],
+    ["seekBackMin", "Seek 1 min backward", ["Ctrl+ArrowLeft"], () => jumpBy(-60, "−1 min")],
+    ["seekFwd5Min", "Seek 5 min forward", ["Alt+ArrowRight"], () => jumpBy(300, "+5 min")],
+    ["seekBack5Min", "Seek 5 min backward", ["Alt+ArrowLeft"], () => jumpBy(-300, "−5 min")],
     ["volUp", "Volume up", ["ArrowUp"], () => { player.muted = false; setVol(volume + 0.05); volOsd(); }],
     ["volDown", "Volume down", ["ArrowDown"], () => { setVol(volume - 0.05); volOsd(); }],
     ["mute", "Mute", ["m"], () => toggleMute()],

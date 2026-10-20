@@ -89,6 +89,7 @@ void System::listen() {
 }
 
 QString System::version() const { return QCoreApplication::applicationVersion(); }
+QString System::changelog() const { QFile f(":/qt/qml/VLCR/CHANGELOG.md"); return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QString(); }
 // the portable Windows version has a file "portable" next to the program (and keeps its data there)
 bool System::portable() const { return QFile::exists(QCoreApplication::applicationDirPath() + "/portable"); }
 
