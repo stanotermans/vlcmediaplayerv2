@@ -479,7 +479,7 @@ C.ApplicationWindow {
   // timers may be a few percent early or late)
   function testSteps(steps, i) {
     i = i || 0;
-    if (i >= steps.length) return;
+    if (i >= steps.length) { stepsDone = true; return; }
     const s = steps[i], k = s.split(":")[0], v = s.slice(k.length + 1);
     timerAt((i === 0 ? 600 : 0) + (k === "wait" ? +v : k === "set" ? 60 : 500), () => { testStep(k, v); testSteps(steps, i + 1); });   // first: the library is read
   }
@@ -870,9 +870,18 @@ C.ApplicationWindow {
   Timer { running: shotPath !== "" && autoPlay !== ""; interval: 4000; onTriggered: { win.swaps = 0; win.f0 = player.framesShown; } }
   Timer { running: shotPath !== "" && autoPlay !== ""; interval: 7000
           onTriggered: player.log("decoded " + ((player.framesShown - win.f0) / 3).toFixed(1) + " fps, drawn " + (win.swaps / 3).toFixed(1) + " fps") }
-  Timer { running: shotPath !== ""; interval: shotMs
-          onTriggered: { player.log("hit test over the maximise button: " + (maxBtn ? frame.hitTestAt(Math.round((maxBtn.mapToItem(null, 22, 18).x) * Screen.devicePixelRatio), Math.round(18 * Screen.devicePixelRatio)) : -1));
+  // testing: the screenshot (and quit) at VLCR_SHOT_MS, but never before the last test step has run (on a slow build
+  // server the steps can take longer than planned)
+  property bool stepsDone: !openAtStart
+  property bool shotDue: false
+  onStepsDoneChanged: if (stepsDone && shotDue) timerAt(300, takeShot)
+  Timer { running: shotPath !== ""; interval: shotMs; onTriggered: { if (win.stepsDone) win.takeShot(); else win.shotDue = true; } }
+  function takeShot() {   // (once)
+          if (shotTaken) return; shotTaken = true;
+          player.log("hit test over the maximise button: " + (maxBtn ? frame.hitTestAt(Math.round((maxBtn.mapToItem(null, 22, 18).x) * Screen.devicePixelRatio), Math.round(18 * Screen.devicePixelRatio)) : -1));
                          player.log("items " + library.items.length + ", busy " + library.busy + ", view " + nav.view + ", cards " + pg.cards.length +
                                     ", player " + (current ? current.name : "-") + " t=" + (player.time / 1000).toFixed(1) + " rate=" + player.rate + " vol=" + player.volume + " size=" + player.videoSize.width + "x" + player.videoSize.height + " subs=" + sb.tracks.length + "/" + sb.active + " cues=" + (sb.cues ? sb.cues.length : -1) + " now=" + JSON.stringify(sb.now));
-                         frame.grab(shotPath); win.quit(); } }   // like Ctrl+Q: the position is kept
+                         frame.grab(shotPath); win.quit();   // like Ctrl+Q: the position is kept
+  }
+  property bool shotTaken: false
 }
