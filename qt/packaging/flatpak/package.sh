@@ -17,7 +17,10 @@ cp "$FFMPEG" "$S/ffmpeg"
 cp ../app/assets/FluidR3Mono_GM.sf3 ../app/build/icon.png ../LICENSE packaging/linux/vlc-redesign.desktop packaging/flatpak/$ID.metainfo.xml "$S/"
 [ -f keys.json ] && cp keys.json "$S/" || true
 # Flathub's own flatpak-builder when installed (org.flatpak.Builder): the SDKs of today need its newer AppStream tools
-if flatpak info --user org.flatpak.Builder >/dev/null 2>&1; then FB=(flatpak run --user --command=flatpak-builder org.flatpak.Builder); else FB=(flatpak-builder); fi
+# (in its sandbox "--user" would be its own folder: FLATPAK_USER_DIR points it at the user installation with the SDK)
+if flatpak info --user org.flatpak.Builder >/dev/null 2>&1; then
+  FB=(flatpak run --user --env=FLATPAK_USER_DIR="$HOME/.local/share/flatpak" --command=flatpak-builder org.flatpak.Builder)
+else FB=(flatpak-builder); fi
 "${FB[@]}" --user --force-clean --disable-rofiles-fuse --repo="$B/repo" --state-dir="$B/state" "$B/app" packaging/flatpak/$ID.yml
 flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo "$B/repo" "$OUT/VLC-Redesign-$VERSION-x86_64.flatpak" $ID
 ls -la "$OUT"/*.flatpak
