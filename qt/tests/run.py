@@ -126,7 +126,7 @@ def lyrics(c):   # #41
                     'log:"now="+player.time+" "+sb.lyricIndex', 'log:"playing="+player.playing'])
     c.eq('lines', 3); c.eq('synced', 'true'); c.eq('playing', 'true')
     t, idx = (c.get('now') or '-1 -9').split()   # the line for the moment it was asked (lines at 1, 3 and 5 s)
-    want = sum(int(t) >= ms for ms in (1000, 3000, 5000)) - 1
+    want = sum(int(t) + 50 >= ms for ms in (1000, 3000, 5000)) - 1   # a line shows 50 ms early (Subtitles.lineAt)
     c.ok(int(idx) == want and want >= 0, f'lyric line {idx} at {t} ms, want {want}')
 
 @test
