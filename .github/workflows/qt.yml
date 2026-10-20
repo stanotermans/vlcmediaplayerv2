@@ -278,6 +278,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -298,3 +299,7 @@ jobs:
           name: VLC Redesign ${{ github.ref_name }}
           body_path: notes.md
           files: artifacts/*
+      - name: Update the Flatpak repository on the website
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main

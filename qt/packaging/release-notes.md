@@ -9,7 +9,7 @@
 | 🐧 **Debian / Ubuntu / Linux Mint / Chrome OS** | {{DEB}} | `sudo apt install ./file.deb` |
 | 🐧 **Fedora / openSUSE / Red Hat** | {{RPM}} | `sudo dnf install ./file.rpm` |
 | 🐧 **Arch Linux / Manjaro** | {{PACMAN}} | `sudo pacman -U ./file.pkg.tar.zst` |
-| 🐧 **Any Linux with Flatpak** | {{FLATPAK}} | `flatpak install ./file.flatpak` |
+| 🐧 **Any Linux with Flatpak** | {{FLATPAK}} | `flatpak install ./file.flatpak`, or with updates: `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref` |
 | 🐧 **Any Linux** (Gentoo, Slackware, …) | {{APPIMAGE}} | `chmod +x` and run |
 | 🐧 Linux archive | {{TARGZ}} | Extract and run `bin/vlc-redesign` |
 

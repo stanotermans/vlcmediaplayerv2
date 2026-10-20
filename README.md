@@ -43,7 +43,7 @@ Open the **[latest release](https://github.com/stanotermans/vlcmediaplayerv2/rel
 | 🐧 **Debian, Ubuntu, Linux Mint, Chrome OS** | `vlc-redesign-<version>-amd64.deb` |
 | 🐧 **Fedora, openSUSE, Red Hat** | `vlc-redesign-<version>-x86_64.rpm` |
 | 🐧 **Arch Linux, Manjaro** | `vlc-redesign-<version>-1-x86_64.pkg.tar.zst` |
-| 🐧 **Any Linux with Flatpak** | `VLC-Redesign-<version>-x86_64.flatpak` |
+| 🐧 **Any Linux with Flatpak** | `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref` (updates with `flatpak update`) or `VLC-Redesign-<version>-x86_64.flatpak` |
 | 🐧 **Any Linux** (Gentoo, Slackware, …) | `vlc-redesign-<version>-x86_64.AppImage` or `.tar.gz` |
 
 Or use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**, which detects your system automatically.
@@ -58,7 +58,7 @@ sudo apt install ./vlc-redesign-*-amd64.deb        # Debian, Ubuntu, Mint, Chrom
 sudo dnf install ./vlc-redesign-*-x86_64.rpm       # Fedora, Red Hat
 sudo zypper install ./vlc-redesign-*-x86_64.rpm    # openSUSE
 sudo pacman -U ./vlc-redesign-*.pkg.tar.zst        # Arch, Manjaro
-flatpak install ./VLC-Redesign-*-x86_64.flatpak       # any distribution with Flatpak
+flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref   # any distribution with Flatpak; `flatpak update` brings new versions
 chmod +x vlc-redesign-*.AppImage && ./vlc-redesign-*.AppImage   # any distribution
 ```
 
