@@ -2,10 +2,10 @@
 # Packages VLC Redesign 3 as a Flatpak (#54): a .flatpak file that installs on any Linux with Flatpak
 #   (flatpak install VLC-Redesign-<version>-x86_64.flatpak; KDE's runtime comes from Flathub by itself).
 #   qt/packaging/flatpak/package.sh <ffmpeg> <libVLC folder (app/build/vlc-linux)> [out dir]
-# Needs flatpak and flatpak-builder with org.kde.Sdk//6.8 and org.kde.Platform//6.8 from Flathub.
+# Needs flatpak and flatpak-builder with org.kde.Sdk//6.11 and org.kde.Platform//6.11 from Flathub.
 set -euo pipefail
+FFMPEG=$(realpath "${1:?ffmpeg}"); VLC=$(realpath "${2:?libVLC folder}"); OUT=$(realpath -m "${3:-qt/dist}")   # before the cd
 cd "$(dirname "$0")/../.."                       # qt/
-FFMPEG=$(realpath "${1:?ffmpeg}"); VLC=$(realpath "${2:?libVLC folder}"); OUT=$(realpath -m "${3:-dist}")
 VERSION=$(sed -n 's/^project(vlcredesign3 VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
 ID=io.github.stanotermans.VLCRedesign
 B=$(realpath -m ../build-flatpak); S="$B/stage"

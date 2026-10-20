@@ -1,9 +1,9 @@
 # Flatpak of VLC Redesign 3 (#54). package.sh puts the sources and the prebuilt parts in build-flatpak/stage and runs
-# flatpak-builder with this. The app is built from source on KDE's runtime (Qt 6.8); libVLC (app/build/vlc-linux),
+# flatpak-builder with this. The app is built from source on KDE's runtime (Qt 6.11); libVLC (app/build/vlc-linux),
 # the slim FFmpeg and the SoundFont go next to the program, like in the other Linux packages.
 app-id: io.github.stanotermans.VLCRedesign
 runtime: org.kde.Platform
-runtime-version: '6.8'
+runtime-version: '6.11'
 sdk: org.kde.Sdk
 command: vlc-redesign
 finish-args:
