@@ -212,6 +212,13 @@ def controls_follow(c):   # #68: a switch follows its setting while it is shown
     c.eq('flip', 'true>false')
 
 @test
+def episodes(c):   # #72: at the end of an episode the next one starts (this crashed: the old player was used after release)
+    c.vals, prof = run(c.name, ['view:videos', 'dir:0', 'wait:800', 'play:Show_S01E01.mp4', 'wait:1500', 'seek:9', 'wait:6000',
+                                'log:"now=" + (current ? current.name : "-")', 'log:"playing=" + player.playing'])
+    c.eq('now', 'Show_S01E02.mp4'); c.eq('playing', 'true')
+    c.ok(not os.path.exists(os.path.join(prof, 'crash.log')), 'the app crashed (crash.log)')
+
+@test
 def migration(c):   # v2.x → v3: export-for-v3.json in v2.x's data folder
     v2 = os.path.join(OUT, c.name, 'v2data'); os.makedirs(v2, exist_ok=True)
     src = os.path.join(MEDIA, 'video.mp4')

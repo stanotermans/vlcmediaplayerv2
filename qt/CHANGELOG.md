@@ -1,4 +1,5 @@
 ## 3.0.4
+- 🐛 **No more crash at the end of an episode** when the next one starts (#72).
 - ✨ **Bigger jumps:** Ctrl+← / → jumps 1 minute, Alt+← / → 5 minutes (#70). Change the keys in Settings → Controls.
 - ✨ **What's new:** after an update the app shows what changed, once (#71). Also in Settings → About.
 

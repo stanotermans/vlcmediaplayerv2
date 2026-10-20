@@ -311,19 +311,22 @@ void VlcPlayer::stop() {
 void VlcPlayer::poll() {
   if (!m_mp) return;
   auto *mp = MP(m_mp);
+  // #72: what the signals below start can open the next file (at the end: the next episode) and release this player;
+  // after each of them, stop when the player is no longer the one this pass began with
+  const auto gone = [&] { return MP(m_mp) != mp; };
   const int st = vlc.mp_get_state(mp);
   const qint64 t = vlc.mp_get_time(mp), l = vlc.mp_get_length(mp);
   const bool p = st == 3, ld = st == 1 || st == 2;
-  if (t >= 0 && t != m_time && st != 6) { m_time = t; emit timeChanged(); }
-  if (l != m_length) { m_length = l; emit lengthChanged(); }
-  if (p != m_playing || ld != m_loading) { m_playing = p; m_loading = ld; emit stateChanged(); }
+  if (t >= 0 && t != m_time && st != 6) { m_time = t; emit timeChanged(); if (gone()) return; }
+  if (l != m_length) { m_length = l; emit lengthChanged(); if (gone()) return; }
+  if (p != m_playing || ld != m_loading) { m_playing = p; m_loading = ld; emit stateChanged(); if (gone()) return; }
   // once playing, libVLC's own subtitle choice is replaced by ours (off, or the image subtitle that was chosen)
   if (st == 3 && !m_spuApplied) { m_spuApplied = true; if (!m_keepSpu) { vlc.video_set_spu(mp, m_spu); vlc.video_set_spu_delay(mp, m_spuDelay); } }
-  if (m_dvd) { const int t = vlc.get_title(mp); if (t != m_title) { m_title = t; emit titleChanged(); } }
+  if (m_dvd) { const int t = vlc.get_title(mp); if (t != m_title) { m_title = t; emit titleChanged(); if (gone()) return; } }
   if (st != m_state) {
     m_state = st;
-    if (st == 6) { m_time = m_length; emit timeChanged(); emit ended(); }
-    if (st == 7) { m_error = tr("Cannot play this file"); emit errorChanged(); emit failed(); }
+    if (st == 6) { m_time = m_length; emit timeChanged(); if (gone()) return; emit ended(); if (gone()) return; }
+    if (st == 7) { m_error = tr("Cannot play this file"); emit errorChanged(); if (gone()) return; emit failed(); if (gone()) return; }
   }
   // the picture's visible size (decoders add padding rows): the frames show only that part
   unsigned vw = 0, vh = 0;
@@ -342,7 +345,7 @@ void VlcPlayer::poll() {
       }
     }
     const QSize shown(qRound(vw * m_sar), int(vh));
-    if (m_videoSize != shown || m_frameSize != QSize(int(vw), int(vh))) { m_videoSize = shown; m_frameSize = QSize(int(vw), int(vh)); emit videoSizeChanged(); }
+    if (m_videoSize != shown || m_frameSize != QSize(int(vw), int(vh))) { m_videoSize = shown; m_frameSize = QSize(int(vw), int(vh)); emit videoSizeChanged(); if (gone()) return; }
     std::lock_guard<std::mutex> g(m_lock);
     if (m_format.isValid() && m_format.viewport().size() != QSize(int(vw), int(vh))) m_format.setViewport(QRect(0, 0, int(vw), int(vh)));
   }
