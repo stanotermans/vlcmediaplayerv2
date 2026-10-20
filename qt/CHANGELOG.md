@@ -1,3 +1,10 @@
+## 3.0.5
+- ✨ **TGV and other difficult files really play through FFmpeg** again: they are converted while they play, like the Classic engine of v2.x (#66).
+- 🐛 The cursor hides in fullscreen while a video plays (#60).
+- 🐛 The window stays maximised after minimising, after fullscreen and after a restart (#73), and is not resized at the screen edge when maximised (#75).
+- 🎨 Rounded corners on Windows 11 for real (#65), and the pixel cat's tricks move like in v2.x (#77).
+- 🔊 After holding 2× speed the sound lines up with the picture again (#74).
+
 ## 3.0.4
 - 🐛 **No more crash at the end of an episode** when the next one starts (#72).
 - ✨ **Bigger jumps:** Ctrl+← / → jumps 1 minute, Alt+← / → 5 minutes (#70). Change the keys in Settings → Controls.

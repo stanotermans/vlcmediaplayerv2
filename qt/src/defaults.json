@@ -2,6 +2,7 @@
  "defaults": {
   "onboarded": false,
   "lastVersion": "",
+  "winMaximized": false,
   "language": "",
   "theme": "dark",
   "accent": "#f28c1b",

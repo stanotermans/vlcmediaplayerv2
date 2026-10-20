@@ -26,6 +26,7 @@
 #include <QWindow>
 #include <QGuiApplication>
 #include <QCursor>
+#include <QMouseEvent>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <wrl.h>
@@ -302,4 +303,11 @@ void System::hideCursor(bool on) {
   m_cursorHidden = on;
   if (on) QGuiApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
   else QGuiApplication::restoreOverrideCursor();
+}
+
+void System::testMouseMove(QWindow *w, qreal x, qreal y) {
+  if (!w) return;
+  const QPointF local(x, y);
+  QMouseEvent e(QEvent::MouseMove, local, local, w->mapToGlobal(local), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+  QCoreApplication::sendEvent(w, &e);
 }

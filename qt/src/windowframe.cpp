@@ -3,6 +3,7 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <windowsx.h>
+#include <dwmapi.h>
 #endif
 
 WindowFrame::WindowFrame(QObject *parent) : QObject(parent) { QCoreApplication::instance()->installNativeEventFilter(this); }
@@ -24,6 +25,9 @@ void WindowFrame::style() {
   m_styled = true;   // before SetWindowPos: its WM_NCCALCSIZE must already cover the frame
   SetWindowLongPtrW(h, GWL_STYLE, s | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME | WS_CAPTION);
   SetWindowPos(h, nullptr, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+  // #65: and ask for round corners (Windows 11 keeps popup-style windows square otherwise; Windows 10 ignores it)
+  const DWORD round = 2;   // DWMWCP_ROUND
+  DwmSetWindowAttribute(h, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, &round, sizeof round);
 #endif
 }
 

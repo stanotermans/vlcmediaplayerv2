@@ -36,24 +36,46 @@ Item {
   })
   Timer { id: done; interval: 1400; onTriggered: { cat.trick = ""; say.visible = false; } }
 
+  // #77: the tricks as in v2.x's CSS (style.css .catbox): the same pivots, angles and timing
   Item {
     id: body
     width: parent.width; height: parent.height
-    transformOrigin: Item.Bottom
+    transformOrigin: Item.Center                          // spin: around the middle (transform-origin: center)
+    transform: [ Scale { id: jumpScale; origin.x: body.width / 2; origin.y: body.height }, Translate { id: jumpMove } ]   // jump: from the bottom
     Image { anchors.fill: parent; source: cat.svg("body"); smooth: false; sourceSize: Qt.size(180, 170) }
     Image { id: tail; anchors.fill: parent; source: cat.svg("tail"); smooth: false; sourceSize: Qt.size(180, 170)
-            transform: Rotation { id: tailRot; origin.x: cat.width * 15 / 18; origin.y: cat.height * 17 / 17 } }
+            transform: Rotation { id: tailRot; origin.x: cat.width * 14 / 18; origin.y: cat.height * 16 / 17 } }   // its bottom left (0% 100%)
     Image { id: eyes; anchors.fill: parent; source: cat.svg("eyes"); smooth: false; sourceSize: Qt.size(180, 170)
-            transform: Scale { id: eyeScale; origin.y: cat.height * 7.5 / 17 } }
+            transform: Scale { id: eyeScale; origin.y: cat.height * 7.5 / 17 } }    // their middle
     Image { id: mouth; anchors.fill: parent; source: cat.svg("mouth"); smooth: false; sourceSize: Qt.size(180, 170)
-            transform: Scale { id: mouthScale; origin.y: cat.height * 8 / 17 } }
+            transform: Scale { id: mouthScale; origin.y: cat.height * 8 / 17 } }    // its top
   }
-  SequentialAnimation { id: blinkA; loops: 2; NumberAnimation { target: eyeScale; property: "yScale"; to: 0.1; duration: 120 } NumberAnimation { target: eyeScale; property: "yScale"; to: 1; duration: 130 } }
-  SequentialAnimation { id: mouthA; NumberAnimation { target: mouthScale; property: "yScale"; to: 2.2; duration: 200 } PauseAnimation { duration: 200 } NumberAnimation { target: mouthScale; property: "yScale"; to: 1; duration: 200 } }
-  SequentialAnimation { id: wagA; loops: 3; NumberAnimation { target: tailRot; property: "angle"; to: 18; duration: 175; easing.type: Easing.InOutSine } NumberAnimation { target: tailRot; property: "angle"; to: 0; duration: 175; easing.type: Easing.InOutSine } }
+  // blink: scaleY .15 at the half, .5 s, twice
+  SequentialAnimation { id: blinkA; loops: 2
+    NumberAnimation { target: eyeScale; property: "yScale"; to: 0.15; duration: 250 } NumberAnimation { target: eyeScale; property: "yScale"; to: 1; duration: 250 } }
+  // meow: scaleY 2.2 from 20 % to 70 % of .6 s
+  SequentialAnimation { id: mouthA
+    NumberAnimation { target: mouthScale; property: "yScale"; to: 2.2; duration: 120 } PauseAnimation { duration: 300 }
+    NumberAnimation { target: mouthScale; property: "yScale"; to: 1; duration: 180 } }
+  // wag: -14° to 16°, .35 s, three times back and forth, then rest
+  SequentialAnimation { id: wagA
+    PropertyAction { target: tailRot; property: "angle"; value: -14 }
+    NumberAnimation { target: tailRot; property: "angle"; to: 16; duration: 350; easing.type: Easing.InOutSine }
+    NumberAnimation { target: tailRot; property: "angle"; to: -14; duration: 350; easing.type: Easing.InOutSine }
+    NumberAnimation { target: tailRot; property: "angle"; to: 16; duration: 350; easing.type: Easing.InOutSine }
+    PropertyAction { target: tailRot; property: "angle"; value: 0 } }
+  // jump: squash, stretch, up 28 %, land squashed, rest (.8 s)
   SequentialAnimation { id: jumpA
-    NumberAnimation { target: body; property: "y"; to: -cat.height * 0.25; duration: 320; easing.type: Easing.OutQuad }
-    NumberAnimation { target: body; property: "y"; to: 0; duration: 480; easing.type: Easing.OutBounce } }
+    PropertyAction { target: jumpScale; property: "xScale"; value: 1.08 } PropertyAction { target: jumpScale; property: "yScale"; value: 0.9 }
+    ParallelAnimation { NumberAnimation { target: jumpScale; property: "xScale"; to: 0.94; duration: 120 } NumberAnimation { target: jumpScale; property: "yScale"; to: 1.08; duration: 120 } }
+    ParallelAnimation { NumberAnimation { target: jumpScale; property: "xScale"; to: 1; duration: 240; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: jumpScale; property: "yScale"; to: 1; duration: 240; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: jumpMove; property: "y"; to: -cat.height * 0.28; duration: 240; easing.type: Easing.OutQuad } }
+    ParallelAnimation { NumberAnimation { target: jumpMove; property: "y"; to: 0; duration: 240; easing.type: Easing.InQuad }
+                        NumberAnimation { target: jumpScale; property: "xScale"; to: 1.1; duration: 240; easing.type: Easing.InQuad }
+                        NumberAnimation { target: jumpScale; property: "yScale"; to: 0.88; duration: 240; easing.type: Easing.InQuad } }
+    ParallelAnimation { NumberAnimation { target: jumpScale; property: "xScale"; to: 1; duration: 200 } NumberAnimation { target: jumpScale; property: "yScale"; to: 1; duration: 200 } } }
+  // spin: a full turn around the middle, .9 s ease-in-out
   NumberAnimation { id: spinA; target: body; property: "rotation"; from: 0; to: 360; duration: 900; easing.type: Easing.InOutQuad }
   Rectangle {   // .cat-say
     id: say

@@ -44,6 +44,8 @@ public:
   Q_INVOKABLE void keepAwake(int level);
   // #60: the blank cursor at once (a cursor shape changes only when the mouse moves again)
   Q_INVOKABLE void hideCursor(bool on);
+  // testing: a mouse move inside a window (Qt event only, the real cursor stays where it is)
+  Q_INVOKABLE void testMouseMove(QWindow *w, qreal x, qreal y);
 signals:
   void openPaths(const QStringList &paths);              // from "Open with" / a second start
   void mediaButton(const QString &button);               // "play", "pause", "next", "previous", "stop"

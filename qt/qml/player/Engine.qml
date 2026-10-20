@@ -52,7 +52,7 @@ QtObject {
   function setByFfmpeg(e, on) { const l = ffmpegTypes().filter(x => x !== e); if (on) l.push(e); Settings.set("classicTypes", l.join(", ")); }
   function options(src) {
     const o = midiRe.test(src) ? [":soundfont=" + (Settings.values.soundfont || ctl.library.builtinSoundfont())] : [];
-    if (byFfmpeg(src)) o.push(":demux=avformat,any", ":codec=avcodec,any");
+    if (byFfmpeg(src)) o.push(":vlcr-ffmpeg=" + ((ctl.library.item(src) || {}).duration || 0));   // #66: converted by FFmpeg
     const x = extra[src];
     if (x) o.push(":input-slave=" + (/^[a-z][a-z0-9+.-]*:\/\//i.test(x) ? x : "file:///" + x.replace(/\\/g, "/").replace(/^\/+/, "")));
     return o;

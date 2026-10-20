@@ -17,6 +17,7 @@ Rectangle {
   readonly property string art: audio ? (it.thumb || "") : ""
   readonly property bool hideCursor: false
   color: showVideo ? "#000000" : Theme.stage
+  property alias pixelCat: pixelCat   // testing
   clip: true
 
   Rectangle {   // .floor
@@ -140,6 +141,7 @@ Rectangle {
       Image { anchors.fill: parent; source: root.visible && root.audio ? root.art : ""; fillMode: Image.PreserveAspectCrop; sourceSize.width: 640 }
     }
     PixelCat {
+      id: pixelCat
       visible: !(root.audio && root.art !== "")
       clickable: true
       width: Math.min(parent.width * 0.32, 260)

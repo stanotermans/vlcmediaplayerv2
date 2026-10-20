@@ -321,16 +321,23 @@ C.ApplicationWindow {
   readonly property bool fsMode: fullscreen && inPlayer
   // while media plays the rail and library panel step aside (Settings → Interface → autoHideSide)
   readonly property bool focusVideo: !!Settings.values.autoHideSide && inPlayer && !!current && !sideOverride
+  // #73: after fullscreen back to how the window was (maximised or not), and maximised again after a restart
+  property bool wasMaximized: false
+  function enterFs() { wasMaximized = visibility === Window.Maximized; showFullScreen(); }
+  function leaveFs() { if (wasMaximized) showMaximized(); else showNormal(); }
+  property bool stateKept: false   // set a moment after the start: the first states are the app's own
+  Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
+  onVisibilityChanged: if (stateKept && !shotPath && (visibility === Window.Maximized || visibility === Window.Windowed)) Settings.set("winMaximized", visibility === Window.Maximized)
   function showPlayer() {
-    if (fsForLibrary && !fullscreen) { fsForLibrary = false; showFullScreen(); }
+    if (fsForLibrary && !fullscreen) { fsForLibrary = false; enterFs(); }
     inPlayer = true;
   }
   function showBrowser() {
-    if (fullscreen) { fsForLibrary = true; showNormal(); }
+    if (fullscreen) { fsForLibrary = true; leaveFs(); }
     inPlayer = false;
   }
   function toggleLibrary() { if (inPlayer) showBrowser(); else if (current) showPlayer(); }
-  function toggleFs() { fsForLibrary = false; if (fullscreen) showNormal(); else { showFullScreen(); if (current) inPlayer = true; } }
+  function toggleFs() { fsForLibrary = false; if (fullscreen) leaveFs(); else { enterFs(); if (current) inPlayer = true; } }
   function toggleHideUi() { hideUi = !hideUi; if (hideUi) showPlayer(); osd(hideUi ? qsTr("Interface hidden – press Ctrl+\\ to show it again") : qsTr("Interface visible")); }
   function flashBig(playing) { playerView.flash(playing); }
   function raiseMain() { win.show(); win.raise(); win.requestActivate(); }
@@ -432,6 +439,7 @@ C.ApplicationWindow {
       win.width = Math.min(1600, aw - 48); win.height = Math.min(1000, ah - 48);
       win.x = Screen.virtualX + Math.round((aw - win.width) / 2); win.y = Screen.virtualY + Math.round((ah - win.height) / 2);
     }
+    if (!shotPath && Settings.values.winMaximized) win.visibility = Window.Maximized;   // #73: shown maximised
     I18n.setLanguage(Settings.values.language || "");
     subs.loadFonts(Settings.values.customFonts || []);
     const opened = System.startPaths();
@@ -467,9 +475,13 @@ C.ApplicationWindow {
     library.importV2(d);
     Qt.callLater(() => osd(qsTr("Settings and library taken over from VLC Redesign 2")));
   }
-  function testSteps(steps) {
-    let delay = 600;   // the library is read first
-    steps.forEach(s => { const k = s.split(":")[0], v = s.slice(k.length + 1); delay += k === "wait" ? +v : k === "set" ? 60 : 500; timerAt(delay, () => testStep(k, v)); });
+  // one step after the other, each after its own short wait (one long timer per step could fire out of order:
+  // timers may be a few percent early or late)
+  function testSteps(steps, i) {
+    i = i || 0;
+    if (i >= steps.length) return;
+    const s = steps[i], k = s.split(":")[0], v = s.slice(k.length + 1);
+    timerAt((i === 0 ? 600 : 0) + (k === "wait" ? +v : k === "set" ? 60 : 500), () => { testStep(k, v); testSteps(steps, i + 1); });   // first: the library is read
   }
   function timerAt(ms, fn) { const t = Qt.createQmlObject("import QtQuick; Timer {}", win); t.interval = ms; t.triggered.connect(() => { fn(); t.destroy(); }); t.start(); }
   function testStep(k, v) {
@@ -513,6 +525,7 @@ C.ApplicationWindow {
     else if (k === "dvdmenu") en.showDvdMenu();
     else if (k === "playfile") playItem(library.item(library.addSources([v], true)[0]));
     else if (k === "log") player.log(eval(v));
+    else if (k === "mouse") { const xy = v.split(","); System.testMouseMove(win, +xy[0], +xy[1]); }
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });
       else if (v === "newpl0") dialog("dialogs/NewPlaylist.qml", { library: library });
@@ -755,8 +768,13 @@ C.ApplicationWindow {
   }
   HoverHandler {
     id: hover
+    // #60: Qt Quick repeats the hover with every video frame while the mouse stands still: only real moves count
+    property point last: Qt.point(-1, -1)
     onPointChanged: {
-      const y = point.position.y;
+      const pos = point.position;
+      if (Math.abs(pos.x - last.x) < 1 && Math.abs(pos.y - last.y) < 1) return;
+      last = Qt.point(pos.x, pos.y);
+      const y = pos.y;
       win.fsTop = win.fsMode && y <= 60 && win.dialogs === 0;
       win.fsBottom = win.fsMode && y >= win.height - 90;
       win.cursorHidden = false; hideCursorT.restart();
@@ -765,7 +783,7 @@ C.ApplicationWindow {
   }
   Timer { id: hideCursorT; interval: (Settings.values.hideCursorDelay || 2.5) * 1000
           onTriggered: win.cursorHidden = win.fsMode && Settings.values.hideCursor !== false && player.playing && !win.fsTop && !win.fsBottom }
-  onFsModeChanged: { fsTop = fsBottom = false; cursorHidden = false; }
+  onFsModeChanged: { fsTop = fsBottom = false; cursorHidden = false; if (fsMode) hideCursorT.restart(); }
   onCursorHiddenChanged: System.hideCursor(cursorHidden)   // #60: at once, without waiting for the mouse to move
   // #61: while something plays the computer stays awake; with a video the screen stays on too
   readonly property int awake: player.playing ? (current && current.type === "audio" ? 1 : 2) : 0
@@ -794,7 +812,7 @@ C.ApplicationWindow {
 
   // window edges: resize like a normal window (the frame is our own)
   Repeater {
-    model: win.fullscreen ? [] : [[Qt.LeftEdge, 0, 0, 5, -1], [Qt.RightEdge, -5, 0, 5, -1], [Qt.BottomEdge, 0, -5, -1, 5], [Qt.TopEdge, 0, 0, -1, 4]]
+    model: win.fullscreen || win.visibility === Window.Maximized ? [] : [[Qt.LeftEdge, 0, 0, 5, -1], [Qt.RightEdge, -5, 0, 5, -1], [Qt.BottomEdge, 0, -5, -1, 5], [Qt.TopEdge, 0, 0, -1, 4]]
     MouseArea {
       required property var modelData
       z: 40

@@ -126,8 +126,15 @@ QtObject {
   property int fastKey: 0                // the key that is held (0: the mouse)
   property Binding rateBinding: Binding { target: pb.player; property: "rate"; value: pb.fast ? Math.max(2, pb.speed) : pb.speed }
   function setSpeed(r) { r = Math.min(4, Math.max(0.25, +r.toFixed(2))); Settings.set("speed", r); osd(qsTr("Speed %1×").arg(r)); }
-  function fastStart(key) { if (fast || !it || !player.playing) return; fastKey = key; fast = true; }
-  function fastEnd() { fast = false; }
+  property real fastSince: 0
+  function fastStart(key) { if (fast || !it || !player.playing) return; fastKey = key; fast = true; fastSince = Date.now(); }
+  // #74: after a speed change libVLC 3 can leave the sound behind the picture with some formats; a seek to the same
+  // moment lines them up again (only after a real stretch at 2×, not after a tap)
+  function fastEnd() {
+    if (!fast) return;
+    fast = false;
+    if (Date.now() - fastSince > 400 && player.playing) Qt.callLater(() => player.seek(player.time));
+  }
   function frameStep(dir) {
     if (!it) return;
     if (dir > 0) return player.nextFrame();

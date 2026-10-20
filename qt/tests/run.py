@@ -33,12 +33,14 @@ def js(s): return json.dumps(s)   # a string inside a step, e.g. a path for set:
 def run(name, steps, extra_env=None, profile=None):
     """Starts the app, returns the logged values ({ name: [values] }) and the profile folder."""
     prof = profile or os.path.join(OUT, name, 'profile')
+    if not profile: shutil.rmtree(prof, ignore_errors=True)   # every test starts from a fresh profile
     os.makedirs(prof, exist_ok=True)
     log = os.path.join(OUT, name, 'log.txt')
     if os.path.exists(log): os.remove(log)
     ms = 1500 + sum(int(s[5:]) if s.startswith('wait:') else 60 if s.startswith('set:') else 500 for s in steps)
     env = dict(os.environ, VLCR_USER_DATA=prof, VLCR_FOLDER=MEDIA, VLCR_NO_IMPORT='1', VLCR_LOG=log,
-               VLCR_OPEN=';'.join(['set:language="en"'] + steps), VLCR_SHOT=os.path.join(OUT, name, 'shot.png'), VLCR_SHOT_MS=str(ms))
+               VLCR_OPEN=';'.join(['set:language="en"', 'set:volume=0'] + steps),   # (volume 0: the test tones are no fun to hear)
+               VLCR_SHOT=os.path.join(OUT, name, 'shot.png'), VLCR_SHOT_MS=str(ms))
     for k, v in (('VLCR_VLC', A.vlc), ('VLCR_FFMPEG', A.ffmpeg), ('VLCR_SOUNDFONT', A.soundfont)):
         if v: env[k] = os.path.abspath(v)
     env.pop('VLCR_PLAY', None)
@@ -217,6 +219,18 @@ def episodes(c):   # #72: at the end of an episode the next one starts (this cra
                                 'log:"now=" + (current ? current.name : "-")', 'log:"playing=" + player.playing'])
     c.eq('now', 'Show_S01E02.mp4'); c.eq('playing', 'true')
     c.ok(not os.path.exists(os.path.join(prof, 'crash.log')), 'the app crashed (crash.log)')
+
+@test
+def cursor(c):   # #60: in fullscreen the cursor hides after the delay, also while the video keeps the hover going
+    c.vals, _ = run(c.name, ['set:hideCursorDelay=1.5'] + PLAY('video.mp4', 500) + ['fs', 'wait:1000', 'mouse:600,400', 'wait:300', 'mouse:610,410',
+                    'log:"h=" + win.cursorHidden', 'wait:2500', 'log:"h=" + win.cursorHidden', 'mouse:650,420', 'log:"h=" + win.cursorHidden'])
+    c.eq('h', 'false', 0); c.eq('h', 'true', 1); c.eq('h', 'false', 2)
+
+@test
+def ffmpeg_route(c):   # #66: file types on the FFmpeg list play converted by FFmpeg (time, length and seeking still right)
+    c.vals, _ = run(c.name, ['set:classicTypes="mkv"'] + PLAY('tracks.mkv', 3000) + ['log:"a=" + player.playing + " " + player.frameSize.width + "x" + player.frameSize.height',
+                    'log:"t=" + player.time', 'log:"len=" + player.length', 'seek:5', 'wait:1500', 'log:"t=" + player.time', 'log:"err=" + player.error'])
+    c.eq('a', 'true 640x360'); c.near('t', 2900, 900, 0); c.near('len', 11000, 300); c.near('t', 6300, 900, 1); c.eq('err', '')   # (its subtitles run to 11 s)
 
 @test
 def migration(c):   # v2.x → v3: export-for-v3.json in v2.x's data folder

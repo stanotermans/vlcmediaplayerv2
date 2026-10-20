@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(vlcredesign3 VERSION 3.0.4 LANGUAGES C CXX)
+project(vlcredesign3 VERSION 3.0.5 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -55,7 +55,7 @@ target_include_directories(vlcr PRIVATE src)
 target_compile_definitions(vlcr PRIVATE VLCR_VERSION="${PROJECT_VERSION}")   # the version lives here only
 target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)
 if(WIN32)
-  target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject dbghelp)
+  target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject dbghelp dwmapi)
 elseif(APPLE)
   target_link_libraries(vlcr PRIVATE "-framework IOKit" "-framework CoreFoundation")   # keeping the screen on (#61)
 else()

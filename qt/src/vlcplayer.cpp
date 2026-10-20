@@ -2,6 +2,8 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QProcess>
+#include <QFileInfo>
 #include <QMetaObject>
 #include <cstring>
 #include <atomic>
@@ -37,6 +39,8 @@ static struct {
   const char *(*get_version)();
   libvlc_media_t *(*media_new_path)(libvlc_instance_t *, const char *);
   libvlc_media_t *(*media_new_location)(libvlc_instance_t *, const char *);
+  libvlc_media_t *(*media_new_callbacks)(libvlc_instance_t *, int (*)(void *, void **, uint64_t *), ptrdiff_t (*)(void *, unsigned char *, size_t),
+                                         int (*)(void *, uint64_t), void (*)(void *), void *);
   void (*media_add_option)(libvlc_media_t *, const char *);
   void (*media_release)(libvlc_media_t *);
   libvlc_media_player_t *(*mp_new_from_media)(libvlc_media_t *);
@@ -150,7 +154,7 @@ bool VlcPlayer::load() {
 #endif
   LOAD(new_, "libvlc_new") LOAD(get_version, "libvlc_get_version")
   LOAD(media_new_path, "libvlc_media_new_path") LOAD(media_release, "libvlc_media_release")
-  LOAD(media_new_location, "libvlc_media_new_location") LOAD(media_add_option, "libvlc_media_add_option")
+  LOAD(media_new_location, "libvlc_media_new_location") LOAD(media_new_callbacks, "libvlc_media_new_callbacks") LOAD(media_add_option, "libvlc_media_add_option")
   LOAD(audio_set_mute, "libvlc_audio_set_mute") LOAD(mp_set_rate, "libvlc_media_player_set_rate") LOAD(mp_next_frame, "libvlc_media_player_next_frame")
   LOAD(audio_get_track_description, "libvlc_audio_get_track_description") LOAD(audio_get_track, "libvlc_audio_get_track")
   LOAD(audio_set_track, "libvlc_audio_set_track") LOAD(track_description_list_release, "libvlc_track_description_list_release")
@@ -225,15 +229,69 @@ void VlcPlayer::release(void *mp, int waitMs) {
 VlcPlayer::~VlcPlayer() { stop(); }
 
 
+// ---- #66 (v2.x's Classic engine): files VLC cannot decode go through FFmpeg, converted on the fly to H.264/AAC
+// in fragmented MP4, which libVLC reads from FFmpeg's output. The process lives on libVLC's input thread (opened,
+// read and closed there by libVLC's callbacks). Seeking starts FFmpeg again at that moment.
+namespace {
+QString ffmpegPath() {
+  if (qEnvironmentVariableIsSet("VLCR_FFMPEG")) return qEnvironmentVariable("VLCR_FFMPEG");
+#ifdef Q_OS_WIN
+  const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg.exe";
+#else
+  const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg";
+#endif
+  return QFileInfo::exists(own) ? own : QStringLiteral("ffmpeg");
+}
+struct TcSource { QStringList args; QProcess *p = nullptr; };
+int tcOpen(void *opaque, void **data, uint64_t *size) {
+  auto *t = static_cast<TcSource *>(opaque);
+  t->p = new QProcess;
+  t->p->start(ffmpegPath(), t->args, QIODevice::ReadOnly);
+  *data = t; *size = UINT64_MAX;   // a stream of unknown length
+  return t->p->waitForStarted(5000) ? 0 : -1;
+}
+ptrdiff_t tcRead(void *data, unsigned char *buf, size_t len) {
+  auto *t = static_cast<TcSource *>(data);
+  while (t->p->bytesAvailable() == 0) {
+    if (t->p->state() == QProcess::NotRunning) return 0;   // the end
+    t->p->waitForReadyRead(200);
+  }
+  return ptrdiff_t(t->p->read(reinterpret_cast<char *>(buf), qint64(len)));
+}
+void tcClose(void *data) {
+  auto *t = static_cast<TcSource *>(data);
+  if (t->p) { t->p->kill(); t->p->waitForFinished(2000); delete t->p; }
+  delete t;
+}
+}
+
 void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &options) {
   if (!load()) return;
   stop();
   const bool url = QRegularExpression("^[a-z][a-z0-9+.-]*://", QRegularExpression::CaseInsensitiveOption).match(src).hasMatch();
-  libvlc_media_t *m = url ? vlc.media_new_location(inst, src.toUtf8().constData())
-                          : vlc.media_new_path(inst, QDir::toNativeSeparators(src).toUtf8().constData());   // libVLC wants backslashes on Windows
-  if (!m) return;
-  if (startMs > 0) vlc.media_add_option(m, QString(":start-time=%1").arg(startMs / 1000.0, 0, 'f', 3).toUtf8().constData());
-  for (const QString &o : options) vlc.media_add_option(m, o.toUtf8().constData());
+  // ":vlcr-ffmpeg=<seconds>": play through FFmpeg (the length comes from the library: the stream does not know it)
+  QStringList opts; double tcLen = -1;
+  for (const QString &o : options) { if (o.startsWith(":vlcr-ffmpeg=")) tcLen = o.mid(13).toDouble(); else opts << o; }
+  m_src = src; m_opts = options; m_tc = tcLen >= 0 && !url; m_tcOffset = m_tc ? startMs : 0; m_tcLength = qint64(tcLen * 1000);
+  m_tcPlayed = 0; m_tcClock.invalidate();
+  libvlc_media_t *m = nullptr;
+  if (m_tc) {
+    auto *t = new TcSource;
+    t->args = { "-hide_banner", "-loglevel", "error", "-nostdin" };
+    if (startMs > 0) t->args << "-ss" << QString::number(startMs / 1000.0, 'f', 3);
+    t->args << "-i" << QDir::toNativeSeparators(src) << "-map" << "0:v:0?" << "-map" << "0:a:0?"
+            << "-c:v" << "libx264" << "-preset" << "veryfast" << "-crf" << "20" << "-pix_fmt" << "yuv420p"
+            << "-c:a" << "aac" << "-b:a" << "192k" << "-ac" << "2"
+            << "-f" << "mp4" << "-movflags" << "frag_keyframe+empty_moov+default_base_moof" << "pipe:1";
+    m = vlc.media_new_callbacks(inst, tcOpen, tcRead, nullptr, tcClose, t);
+    if (!m) { delete t; return; }
+  } else {
+    m = url ? vlc.media_new_location(inst, src.toUtf8().constData())
+            : vlc.media_new_path(inst, QDir::toNativeSeparators(src).toUtf8().constData());   // libVLC wants backslashes on Windows
+    if (!m) return;
+    if (startMs > 0) vlc.media_add_option(m, QString(":start-time=%1").arg(startMs / 1000.0, 0, 'f', 3).toUtf8().constData());
+  }
+  for (const QString &o : opts) vlc.media_add_option(m, o.toUtf8().constData());
   auto *mp = vlc.mp_new_from_media(m); vlc.media_release(m);
   m_mp = mp; m_frames = 0; m_state = 0; m_last = QVideoFrame();
   m_spu = -1; m_spuDelay = 0; m_spuApplied = false; m_sar = 0;
@@ -262,6 +320,12 @@ void VlcPlayer::play() {
 void VlcPlayer::pause() { if (m_mp) vlc.mp_set_pause(MP(m_mp), 1); }
 void VlcPlayer::seek(qint64 ms) {
   if (!m_mp) return;
+  if (m_tc) {   // through FFmpeg: start it again there (paused stays paused)
+    const bool paused = !m_playing;
+    open(m_src, qMax<qint64>(0, m_tcLength > 0 ? qMin(ms, m_tcLength - 300) : ms), m_opts);
+    m_pauseWhenPlaying = paused;
+    return;
+  }
   ms = qMax<qint64>(0, m_length > 0 ? qMin(ms, m_length - 300) : ms);
   if (m_state == 6) { vlc.mp_stop(MP(m_mp)); vlc.mp_play(MP(m_mp)); m_state = 0; }
   vlc.mp_set_time(MP(m_mp), ms);
@@ -315,7 +379,16 @@ void VlcPlayer::poll() {
   // after each of them, stop when the player is no longer the one this pass began with
   const auto gone = [&] { return MP(m_mp) != mp; };
   const int st = vlc.mp_get_state(mp);
-  const qint64 t = vlc.mp_get_time(mp), l = vlc.mp_get_length(mp);
+  qint64 t = vlc.mp_get_time(mp), l = vlc.mp_get_length(mp);
+  if (m_tc) {
+    // libVLC gives no time for FFmpeg's stream (fragmented MP4 from a pipe): our own clock while it plays
+    if (st == 3) { if (m_tcClock.isValid()) m_tcPlayed += qint64(m_tcClock.restart() * m_rate); else m_tcClock.start(); }
+    else m_tcClock.invalidate();
+    t = m_tcOffset + m_tcPlayed;
+    l = m_tcLength > 0 ? m_tcLength : -1;
+    if (l > 0 && t > l) t = l;
+  }
+  if (m_pauseWhenPlaying && st == 3) { m_pauseWhenPlaying = false; vlc.mp_set_pause(mp, 1); }
   const bool p = st == 3, ld = st == 1 || st == 2;
   if (t >= 0 && t != m_time && st != 6) { m_time = t; emit timeChanged(); if (gone()) return; }
   if (l != m_length) { m_length = l; emit lengthChanged(); if (gone()) return; }

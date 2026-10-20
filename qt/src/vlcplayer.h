@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QVariantList>
 #include <QVideoFrame>
 #include <QVideoSink>
@@ -148,6 +149,12 @@ private:
   QStringList m_startArgs;
   bool m_logAll = false;
   bool m_dvd = false, m_recording = false, m_fastSeek = false;
+  // #66: playing through FFmpeg (the time counts from where FFmpeg started)
+  bool m_tc = false, m_pauseWhenPlaying = false;
+  qint64 m_tcOffset = 0, m_tcLength = 0, m_tcPlayed = 0;
+  QElapsedTimer m_tcClock;
+  QString m_src;
+  QStringList m_opts;
   int m_title = -1;
   void *holdChild(const char *type) const;
   void applyFx(void *o) const;
