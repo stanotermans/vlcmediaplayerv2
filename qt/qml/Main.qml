@@ -782,8 +782,10 @@ C.ApplicationWindow {
     onHoveredChanged: if (!hovered) { win.fsTop = false; win.fsBottom = false; }
   }
   Timer { id: hideCursorT; interval: (Settings.values.hideCursorDelay || 2.5) * 1000
-          onTriggered: win.cursorHidden = win.fsMode && Settings.values.hideCursor !== false && player.playing && !win.fsTop && !win.fsBottom }
+          onTriggered: win.cursorHidden = win.fsMode && Settings.values.hideCursor !== false && player.playing && !win.fsTop && !win.fsBottom && win.dialogs === 0 }
   onFsModeChanged: { fsTop = fsBottom = false; cursorHidden = false; if (fsMode) hideCursorT.restart(); }
+  // #60: Settings, dialogs and menus take the mouse moves, so the cursor stays visible while one is open
+  onDialogsChanged: { if (dialogs > 0) cursorHidden = false; else if (fsMode) hideCursorT.restart(); }
   onCursorHiddenChanged: System.hideCursor(cursorHidden)   // #60: at once, without waiting for the mouse to move
   // #61: while something plays the computer stays awake; with a video the screen stays on too
   readonly property int awake: player.playing ? (current && current.type === "audio" ? 1 : 2) : 0

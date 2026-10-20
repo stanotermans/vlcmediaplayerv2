@@ -1,3 +1,7 @@
+## 3.0.6
+- 🐛 The cursor stays visible in Settings, dialogs and menus opened in fullscreen (#60).
+- 📦 **Flatpak with updates:** `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref`, then `flatpak update` brings new versions (#54).
+
 ## 3.0.5
 - ✨ **TGV and other difficult files really play through FFmpeg** again: they are converted while they play, like the Classic engine of v2.x (#66).
 - 🐛 The cursor hides in fullscreen while a video plays (#60).

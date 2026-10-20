@@ -221,13 +221,15 @@ def episodes(c):   # #72: at the end of an episode the next one starts (this cra
     c.ok(not os.path.exists(os.path.join(prof, 'crash.log')), 'the app crashed (crash.log)')
 
 @test
-def cursor(c):   # #60: in fullscreen the cursor hides after the delay, also while the video keeps the hover going
+def cursor(c):   # #60: in fullscreen the cursor hides after the delay, also while the video keeps the hover going; not over Settings
     c.vals, _ = run(c.name, ['set:hideCursorDelay=1.5'] + PLAY('video.mp4', 500) + ['fs', 'wait:1000', 'log:"fs=" + win.fsMode', 'mouse:600,400', 'wait:300',
-                    'mouse:610,410', 'log:"h=" + win.cursorHidden', 'wait:2500', 'log:"h=" + win.cursorHidden', 'mouse:650,420', 'log:"h=" + win.cursorHidden'])
+                    'mouse:610,410', 'log:"h=" + win.cursorHidden', 'wait:2500', 'log:"h=" + win.cursorHidden', 'mouse:650,420', 'log:"h=" + win.cursorHidden',
+                    'wait:2500', 'log:"h=" + win.cursorHidden', 'settings:general', 'log:"h=" + win.cursorHidden', 'wait:2500', 'log:"h=" + win.cursorHidden'])
     # only where it means something: under xvfb the real (virtual) pointer stays at 0,0, the top edge, where the
     # controls come in and the cursor rightly stays; macOS runners have no real fullscreen either
     if c.get('fs') != 'true' or sys.platform != 'win32': return
     c.eq('h', 'false', 0); c.eq('h', 'true', 1); c.eq('h', 'false', 2)
+    c.eq('h', 'true', 3); c.eq('h', 'false', 4); c.eq('h', 'false', 5)   # Settings opened in fullscreen: the cursor comes back and stays
 
 @test
 def ffmpeg_route(c):   # #66: file types on the FFmpeg list play converted by FFmpeg (time, length and seeking still right)
