@@ -1,6 +1,7 @@
-// WindowFrame: Windows details for our own title bar. Over the maximise button the window tells Windows it is the
-// maximise button (HTMAXBUTTON), so Windows 11 shows its snap layouts there; clicks on it maximise / restore. The
-// window keeps the minimise/maximise styles, so Win+arrows and Aero snap work. Elsewhere it does nothing.
+// WindowFrame: Windows details for our own title bar. The window keeps a real frame (resize border, caption,
+// minimise/maximise), but its content covers the whole window (WM_NCCALCSIZE): Windows 11 then rounds the corners and
+// draws the shadow like for other windows (#65), and Win+arrows and Aero snap work. Over the maximise button the window
+// tells Windows it is the maximise button (HTMAXBUTTON), so Windows 11 shows its snap layouts there.
 #pragma once
 #include <QAbstractNativeEventFilter>
 #include <QObject>
@@ -31,5 +32,5 @@ private:
   bool overMaximize(int x, int y) const;
   void style();
   QPointer<QQuickItem> m_max;
-  bool m_hover = false, m_styled = false;
+  bool m_hover = false, m_styled = false, m_styleQueued = false;
 };

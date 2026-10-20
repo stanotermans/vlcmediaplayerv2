@@ -45,8 +45,14 @@ QtObject {
   readonly property var midiRe: /\.(mid|midi|kar|rmi|smf)$/i
   // "Play another media synchronously" (Open network stream → Show more options): its audio plays with the stream
   property var extra: ({})
+  // #66 (v2.x's "Always play with Classic (FFmpeg)"): file types that VLC reads and decodes with FFmpeg
+  function ext(src) { const m = /\.([a-z0-9]{1,5})$/i.exec(String(src).split(/[?#]/)[0]); return m ? m[1].toLowerCase() : ""; }
+  function ffmpegTypes() { return String(Settings.values.classicTypes || "").toLowerCase().split(/[\s,;.]+/).filter(x => x); }
+  function byFfmpeg(src) { const e = ext(src); return !!e && ffmpegTypes().indexOf(e) >= 0; }
+  function setByFfmpeg(e, on) { const l = ffmpegTypes().filter(x => x !== e); if (on) l.push(e); Settings.set("classicTypes", l.join(", ")); }
   function options(src) {
     const o = midiRe.test(src) ? [":soundfont=" + (Settings.values.soundfont || ctl.library.builtinSoundfont())] : [];
+    if (byFfmpeg(src)) o.push(":demux=avformat,any", ":codec=avcodec,any");
     const x = extra[src];
     if (x) o.push(":input-slave=" + (/^[a-z][a-z0-9+.-]*:\/\//i.test(x) ? x : "file:///" + x.replace(/\\/g, "/").replace(/^\/+/, "")));
     return o;

@@ -12,15 +12,18 @@ void WindowFrame::setMaximizeButton(QQuickItem *i) {
   m_max = i; emit changed();
   // the native window may not exist yet (asking for it now would create it in the middle of QML's setup)
   if (i && i->window()) connect(i->window(), &QWindow::visibleChanged, this, &WindowFrame::style, Qt::UniqueConnection);
-  style();
+  style();   // (and from the first message of the window below, if it did not exist yet)
 }
 void WindowFrame::style() {
 #ifdef Q_OS_WIN
+  m_styleQueued = false;
   if (m_styled || !m_max || !m_max->window() || !m_max->window()->handle()) return;
   HWND h = reinterpret_cast<HWND>(m_max->window()->winId());
+  // a real frame (WM_NCCALCSIZE below keeps the content over all of it): rounded corners and shadow on Windows 11
   LONG_PTR s = GetWindowLongPtrW(h, GWL_STYLE);
-  SetWindowLongPtrW(h, GWL_STYLE, s | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU);   // no frame styles: the client area stays the whole window
-  m_styled = true;
+  m_styled = true;   // before SetWindowPos: its WM_NCCALCSIZE must already cover the frame
+  SetWindowLongPtrW(h, GWL_STYLE, s | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME | WS_CAPTION);
+  SetWindowPos(h, nullptr, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 #endif
 }
 
@@ -54,7 +57,19 @@ bool WindowFrame::nativeEventFilter(const QByteArray &type, void *message, qintp
   MSG *msg = static_cast<MSG *>(message);
   HWND h = reinterpret_cast<HWND>(m_max->window()->winId());
   if (msg->hwnd != h) return false;
+  if (!m_styled && !m_styleQueued) { m_styleQueued = true; QMetaObject::invokeMethod(this, &WindowFrame::style, Qt::QueuedConnection); }
   switch (msg->message) {
+  case WM_NCCALCSIZE:
+    if (!m_styled || !msg->wParam) return false;
+    if (IsZoomed(h)) {   // maximised, Windows puts the frame outside the screen: keep the content on it
+      auto *p = reinterpret_cast<NCCALCSIZE_PARAMS *>(msg->lParam);
+      const UINT dpi = GetDpiForWindow(h);
+      const int fx = GetSystemMetricsForDpi(SM_CXFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+      const int fy = GetSystemMetricsForDpi(SM_CYFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+      p->rgrc[0].left += fx; p->rgrc[0].right -= fx; p->rgrc[0].top += fy; p->rgrc[0].bottom -= fy;
+    }
+    if (result) *result = 0;   // the content covers the whole window (no frame drawn)
+    return true;
   case WM_NCHITTEST: {
     POINT p { GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) }; ScreenToClient(h, &p);
     if (overMaximize(p.x, p.y)) { if (result) *result = HTMAXBUTTON; return true; }
