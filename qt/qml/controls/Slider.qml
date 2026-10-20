@@ -16,7 +16,7 @@ Column {
   property bool center: false
   property bool box: false          // the value in an editable box (v2.x's valbox): type a number, Enter sets it
   property bool editing: false      // #58: a click on the value of any slider opens the same box
-  property real value: path !== "" ? (Settings.values, Number(Settings.get(path))) : 0
+  property real value: path !== "" ? (Settings.values && Number(Settings.get(path))) : 0
   signal moved(real v)
   property bool controlled: false   // value comes from a binding and is changed by the owner (on moved)
   property bool shown: true

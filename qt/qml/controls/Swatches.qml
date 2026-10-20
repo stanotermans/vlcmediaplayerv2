@@ -6,7 +6,7 @@ Rectangle {
   id: root
   property var colors: []
   property string path: ""
-  readonly property string value: path !== "" ? String((Settings.values, Settings.get(path))).toLowerCase() : ""
+  readonly property string value: path !== "" ? String((Settings.values && Settings.get(path))).toLowerCase() : ""
   implicitWidth: row.implicitWidth + 10; implicitHeight: 36
   radius: 7; color: Theme.track
   Row {

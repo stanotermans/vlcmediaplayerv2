@@ -8,7 +8,7 @@ SettingRow {
   property string path: ""
   property string fallback: ""
   property var ctl: null
-  readonly property string folder: (Settings.values, Settings.get(path)) || fallback
+  readonly property string folder: (Settings.values && Settings.get(path)) || fallback
   Row {
     spacing: 6
     TextField { width: 260; text: root.folder; input.readOnly: true; input.color: Theme.muted }

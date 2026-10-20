@@ -6,7 +6,7 @@ import VLCR
 Rectangle {
   id: root
   property string path: ""
-  readonly property string value: (Settings.values, String(Settings.get(path) || "#ffffff"))
+  readonly property string value: (Settings.values && String(Settings.get(path) || "#ffffff"))
   implicitWidth: 180; implicitHeight: 34
   radius: Theme.radius; color: Theme.track; border.width: 1; border.color: hex.activeFocus ? Theme.accent : Theme.line
   TextInput {

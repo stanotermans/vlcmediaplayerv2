@@ -37,6 +37,7 @@
   "showThumbs": true,
   "hideCursorDelay": 2.5,
   "hideCursor": true,
+  "showRemaining": false,
   "passthrough": false,
   "audioDelay": 0,
   "engine": "vlc",

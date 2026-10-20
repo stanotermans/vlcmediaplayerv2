@@ -6,7 +6,9 @@ import VLCR
 Rectangle {
   id: root
   property string path: ""
-  property bool checked: path !== "" ? (Settings.values, !!Settings.get(path)) : false
+  // #68: "Settings.values &&" (not a comma): the QML compiler dropped the unused read of values, so the control did not
+  // follow the setting (the same in Select, Slider, Segmented, Swatches, ColorField, FolderRow)
+  property bool checked: path !== "" ? (Settings.values && !!Settings.get(path)) : false
   signal toggled(bool on)
   implicitWidth: 66; implicitHeight: 30
   radius: 7

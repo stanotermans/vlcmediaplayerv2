@@ -203,6 +203,13 @@ def probe_cache(c):   # #59: the next start shows the library complete at once, 
     c.eq('dur', 12); c.eq('busy', 0)
 
 @test
+def controls_follow(c):   # #68: a switch follows its setting while it is shown
+    make = """Qt.createQmlObject('import VLCR\\nToggle { path: "autoUpdate" }', win)"""   # (no ";": it splits steps)
+    c.vals, _ = run(c.name, ['settings:general', 'wait:500',
+        f'log:((t) => ((b) => (Settings.set("autoUpdate", false), "flip=" + b + ">" + t.checked))(t.checked))({make})'])
+    c.eq('flip', 'true>false')
+
+@test
 def migration(c):   # v2.x → v3: export-for-v3.json in v2.x's data folder
     v2 = os.path.join(OUT, c.name, 'v2data'); os.makedirs(v2, exist_ok=True)
     src = os.path.join(MEDIA, 'video.mp4')

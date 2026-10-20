@@ -34,8 +34,13 @@ Rectangle {
     id: rightCtl
     anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
     spacing: 6
-    T { visible: root.c.time !== false; width: 70; horizontalAlignment: Text.AlignHCenter; anchors.verticalCenter: parent.verticalCenter
-        text: root.pb.fmt(root.pb.curDur()); color: Theme.muted; px: 12; font.features: { "tnum": 1 } }
+    T {   // #69: a click switches between the length and the time left ("-00:53"), like VLC; the choice is kept
+      visible: root.c.time !== false; width: 70; horizontalAlignment: Text.AlignHCenter; anchors.verticalCenter: parent.verticalCenter
+      text: Settings.values.showRemaining ? "-" + root.pb.fmt(Math.max(0, root.pb.curDur() - root.player.time / 1000)) : root.pb.fmt(root.pb.curDur())
+      color: tm.containsMouse ? Theme.text : Theme.muted; px: 12; font.features: { "tnum": 1 }
+      MouseArea { id: tm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                  onClicked: Settings.set("showRemaining", !Settings.values.showRemaining) }
+    }
     IconButton { visible: root.c.volume !== false; tip: qsTr("Mute (M)"); onClicked: root.pb.toggleMute()
                  name: root.player.muted || root.pb.volume === 0 ? "vol_mute" : root.pb.volume > 0.5 ? "vol_high" : "vol_low" }
     Item {   // #vol: 90×18 bar, or a 24px cone

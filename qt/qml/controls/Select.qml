@@ -8,7 +8,7 @@ Rectangle {
   id: root
   property var options: []           // [[value, label], …]
   property string path: ""
-  property var value: path !== "" ? (Settings.values, Settings.get(path)) : undefined
+  property var value: path !== "" ? (Settings.values && Settings.get(path)) : undefined
   signal picked(var value)
   readonly property var current: options.find(o => String(o[0]) === String(value))
   implicitWidth: 220; implicitHeight: 32

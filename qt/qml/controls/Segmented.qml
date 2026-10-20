@@ -6,7 +6,7 @@ Rectangle {
   id: root
   property var options: []           // [[value, label], …]
   property string path: ""
-  property var value: path !== "" ? (Settings.values, Settings.get(path)) : undefined
+  property var value: path !== "" ? (Settings.values && Settings.get(path)) : undefined
   signal picked(var value)
   implicitWidth: row.implicitWidth + 8; implicitHeight: row.implicitHeight + 8
   radius: 7; color: Theme.track; border.width: 1; border.color: Theme.line
