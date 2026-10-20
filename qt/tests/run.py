@@ -102,9 +102,9 @@ def keys(c):   # #37: the skip keys, mute, speed
     c.near('t', 7000, 400, 0); c.near('t', 2000, 400, 1); c.eq('muted', 'true'); c.more('rate', 1.01); c.eq('delay', -20)   # #58: 10 ms steps
 
 @test
-def ab_repeat(c):   # #42
+def ab_repeat(c):   # #42 (libVLC reports the time in steps: B is seen up to a few hundred ms late)
     c.vals, _ = run(c.name, PLAY('video.mp4', 1000) + ['ab:1-2', 'wait:3500', 'log:"t="+player.time', 'wait:1100', 'log:"t="+player.time'])
-    for i in (0, 1): c.ok(1000 - 300 <= float(c.get('t', i) or -1) <= 2300, f't = {c.get("t", i)}, want 1–2 s (A-B)')
+    for i in (0, 1): c.ok(1000 - 300 <= float(c.get('t', i) or -1) <= 2450, f't = {c.get("t", i)}, want 1–2 s (A-B)')
 
 @test
 def chapters(c):   # #40: chapters from the file, jumping, bookmarks
