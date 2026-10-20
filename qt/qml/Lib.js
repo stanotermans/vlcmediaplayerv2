@@ -17,12 +17,24 @@ var TITLES = { home: 'Home', videos: 'Videos', music: 'Music', network: 'Network
 function typeOf(view) { return view === 'music' ? 'audio' : 'video'; }
 
 // Array.sort in QML's JavaScript is not stable (v2.x's Chromium is): equal entries keep their order this way
+// #62: names with numbers in their order (ep2 before ep11). QML's JavaScript ignores localeCompare's "numeric".
+function natCompare(a, b) {
+  var x = String(a).match(/\d+|\D+/g) || [], y = String(b).match(/\d+|\D+/g) || [];
+  for (var i = 0; i < Math.min(x.length, y.length); i++) {
+    var p = x[i], q = y[i], d;
+    if (/^\d/.test(p) && /^\d/.test(q)) d = (+p - +q) || (p.length - q.length);   // 2 < 11; 02 after 2
+    else d = p.toLowerCase().localeCompare(q.toLowerCase());
+    if (d) return d;
+  }
+  return (x.length - y.length) || String(a).localeCompare(String(b));   // capitals only decide between equal names
+}
+
 function stableSort(list, cmp) {
   return list.map(function (v, i) { return [v, i]; }).sort(function (a, b) { return cmp(a[0], b[0]) || a[1] - b[1]; }).map(function (p) { return p[0]; });
 }
 
 function sortItems(list, sort, desc) {
-  var num = function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); };
+  var num = function (a, b) { return natCompare(a.name, b.name); };
   var cmp = {
     name: num,
     added: function (a, b) { return b.added - a.added; },
@@ -51,7 +63,7 @@ function browse(c) {
     else folders[norm(dir) + sepOf(dir) + rest[0]] = true;
   });
   return {
-    folders: Object.keys(folders).sort(function (a, b) { return a.localeCompare(b, undefined, { numeric: true }); }).map(entry),
+    folders: Object.keys(folders).sort(natCompare).map(entry),
     files: sortItems(files, c.sort, c.sortDesc).concat(roots.length === 1 && sameDir(dir, roots[0]) ? sortItems(loose, c.sort, c.sortDesc) : []),
     dir: dir, roots: roots
   };

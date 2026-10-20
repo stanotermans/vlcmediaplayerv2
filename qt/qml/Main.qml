@@ -423,6 +423,13 @@ C.ApplicationWindow {
   Timer { id: updateTimer; interval: 5000; onTriggered: { System.checkUpdates(false); Settings.set("lastUpdateCheck", Date.now()); } }
   WindowFrame { id: frame; maximizeButton: maxBtn }
   Component.onCompleted: {
+    // #64: never bigger than the screen (1600 × 1000 is too big at 150 % on a 1080p screen), and in its middle
+    if (!shotPath) {
+      // this screen (desktopAvailable… spans all monitors), leaving room for the taskbar
+      const aw = Screen.width, ah = Screen.height - 48;
+      win.width = Math.min(1600, aw - 48); win.height = Math.min(1000, ah - 48);
+      win.x = Screen.virtualX + Math.round((aw - win.width) / 2); win.y = Screen.virtualY + Math.round((ah - win.height) / 2);
+    }
     I18n.setLanguage(Settings.values.language || "");
     subs.loadFonts(Settings.values.customFonts || []);
     const opened = System.startPaths();
@@ -753,6 +760,10 @@ C.ApplicationWindow {
   Timer { id: hideCursorT; interval: (Settings.values.hideCursorDelay || 2.5) * 1000
           onTriggered: win.cursorHidden = win.fsMode && Settings.values.hideCursor !== false && player.playing && !win.fsTop && !win.fsBottom }
   onFsModeChanged: { fsTop = fsBottom = false; cursorHidden = false; }
+  onCursorHiddenChanged: System.hideCursor(cursorHidden)   // #60: at once, without waiting for the mouse to move
+  // #61: while something plays the computer stays awake; with a video the screen stays on too
+  readonly property int awake: player.playing ? (current && current.type === "audio" ? 1 : 2) : 0
+  onAwakeChanged: System.keepAwake(awake)
 
   // drop files and folders anywhere to add them (#drop)
   DropArea {

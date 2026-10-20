@@ -39,6 +39,10 @@ public:
   Q_INVOKABLE void mediaAttach(QWindow *w);
   Q_INVOKABLE void mediaState(const QString &state);     // "playing", "paused", "stopped", "closed"
   Q_INVOKABLE void mediaInfo(const QString &title, const QString &artist, const QString &album, bool music);
+  // #61: 0 nothing, 1 keep the computer awake (music), 2 also keep the screen on (video)
+  Q_INVOKABLE void keepAwake(int level);
+  // #60: the blank cursor at once (a cursor shape changes only when the mouse moves again)
+  Q_INVOKABLE void hideCursor(bool on);
 signals:
   void openPaths(const QStringList &paths);              // from "Open with" / a second start
   void mediaButton(const QString &button);               // "play", "pause", "next", "previous", "stop"
@@ -51,4 +55,7 @@ private:
   QVariantMap m_update{ { "state", "idle" } };
   void *m_smtc = nullptr;                                // ISystemMediaTransportControls
   qint64 m_token = 0;
+  int m_awake = 0;
+  quint32 m_awakeId = 0;                                 // macOS power assertion / Linux inhibit cookie
+  bool m_cursorHidden = false;
 };

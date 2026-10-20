@@ -82,9 +82,11 @@ PLAY = lambda f, w=2000: [f'play:{f}', f'wait:{w}']
 @test
 def library(c):
     v, _ = run(c.name, ['view:videos', 'wait:1500', 'log:"items="+library.items.length', 'log:"folders="+pg.cards.filter(e => e.kind === "folder").length',
-                        'view:music', 'log:"music="+vis.length', 'view:videos', 'query:surround', 'log:"found="+vis.map(i => i.name).join(",")'])
+                        'view:music', 'log:"music="+vis.length', 'view:videos', 'query:surround', 'log:"found="+vis.map(i => i.name).join(",")',
+                        'log:"nat="+["ep11", "Ep2", "ep1", "ep10", "ep2b"].sort(Lib.natCompare).join(",")'])
     c.vals = v
     c.eq('items', 8); c.eq('folders', 1); c.eq('music', 2); c.eq('found', 'surround.mp4')
+    c.eq('nat', 'ep1,Ep2,ep2b,ep10,ep11')   # #62: numbers in their order
 
 @test
 def playback(c):

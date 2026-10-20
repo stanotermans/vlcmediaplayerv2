@@ -1,6 +1,7 @@
 ; The Windows installer of VLC Redesign 3 (Qt). Build: makensis /DVERSION=3.0.0 /DSRC=<the deployed app folder>
 ; /DOUT=<installer.exe> installer.nsi
-; Per-user or for everyone (the user chooses), like v2.x's installer; registers the file types and the app with
+; For the current user, without administrator rights (#63: the updaters of v2.x and v3 start it directly, and Windows
+; refuses that for an installer that asks for elevation); registers the file types and the app with
 ; Windows "Default apps" (Settings → Apps → Default apps), so it shows up there and "Set as default player" can open
 ; that page right on it. Windows does not let apps make themselves the default: the user picks it there.
 ; /S installs silently (updates); --force-run starts the app afterwards.
@@ -20,8 +21,7 @@ InstallDir "$PROGRAMFILES64\${NAME}"
 RequestExecutionLevel user
 BrandingText "${NAME} ${VERSION}"
 
-!define MULTIUSER_EXECUTIONLEVEL Highest
-!define MULTIUSER_MUI
+!define MULTIUSER_EXECUTIONLEVEL Standard
 !define MULTIUSER_INSTALLMODE_COMMANDLINE
 !define MULTIUSER_INSTALLMODE_DEFAULT_CURRENTUSER
 !define MULTIUSER_INSTALLMODE_INSTDIR "${NAME}"
@@ -37,7 +37,6 @@ BrandingText "${NAME} ${VERSION}"
 !define MUI_UNICON "icon.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE}"
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MULTIUSER_PAGE_INSTALLMODE
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -54,6 +53,10 @@ BrandingText "${NAME} ${VERSION}"
 
 Function .onInit
   !insertmacro MULTIUSER_INIT
+  ; where an earlier install of this user is, else %LOCALAPPDATA%\Programs (like other per-user apps)
+  ReadRegStr $0 HKCU "${UNINST}" "InstallLocation"
+  StrCmp $0 "" 0 +2
+    StrCpy $INSTDIR "$LOCALAPPDATA\Programs\${NAME}"
 FunctionEnd
 Function un.onInit
   !insertmacro MULTIUSER_UNINIT

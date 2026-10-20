@@ -20,6 +20,7 @@
 #include <QStandardPaths>
 #include <QQmlEngine>
 #include "system.h"
+#include "crashlog.h"
 
 // Settings → General → Interface size: the whole interface is scaled by Qt, so it is read before the app starts
 static void applyInterfaceSize() {
@@ -43,6 +44,7 @@ int main(int argc, char *argv[]) {
   app.setApplicationVersion(VLCR_VERSION);
   app.setApplicationName("VLC Redesign 3");
   app.setOrganizationName("VLC Redesign");
+  installCrashLog(qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)) + "/crash.log");
   QQuickStyle::setStyle("Basic");                      // popups and scrollbars only; everything is drawn by our components
 #ifdef Q_OS_WIN
   QFont f("Segoe UI Variable Text"); f.setPixelSize(13); app.setFont(f);   // v2.x: 13px "Segoe UI Variable Text"

@@ -47,6 +47,7 @@ int WindowFrame::hitTestAt(int x, int y) {
 #endif
 }
 
+// result is null for messages Qt takes from the queue (mouse clicks among them): only write it when it is there (#64)
 bool WindowFrame::nativeEventFilter(const QByteArray &type, void *message, qintptr *result) {
 #ifdef Q_OS_WIN
   if (type != "windows_generic_MSG" || !m_max || !m_max->window() || !m_max->window()->handle()) return false;
@@ -56,7 +57,7 @@ bool WindowFrame::nativeEventFilter(const QByteArray &type, void *message, qintp
   switch (msg->message) {
   case WM_NCHITTEST: {
     POINT p { GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) }; ScreenToClient(h, &p);
-    if (overMaximize(p.x, p.y)) { *result = HTMAXBUTTON; return true; }
+    if (overMaximize(p.x, p.y)) { if (result) *result = HTMAXBUTTON; return true; }
     return false;
   }
   case WM_NCMOUSEMOVE:
@@ -67,13 +68,15 @@ bool WindowFrame::nativeEventFilter(const QByteArray &type, void *message, qintp
     return false;
   case WM_NCMOUSELEAVE: case WM_MOUSEMOVE: setHover(false); return false;
   case WM_NCLBUTTONDOWN: case WM_NCLBUTTONDBLCLK:
-    if (msg->wParam == HTMAXBUTTON) { *result = 0; return true; }   // only the release counts, like a button
+    if (msg->wParam == HTMAXBUTTON) { if (result) *result = 0; return true; }   // only the release counts, like a button
     return false;
   case WM_NCLBUTTONUP:
     if (msg->wParam == HTMAXBUTTON) {
-      QQuickWindow *w = m_max->window();
-      w->visibility() == QWindow::Maximized ? w->showNormal() : w->showMaximized();
-      *result = 0; return true;
+      // #64: Windows' own command, after this message (changing Qt's window state from inside a native message made
+      // Qt's state and the real one differ, and the next maximize crashed)
+      PostMessageW(h, WM_SYSCOMMAND, IsZoomed(h) ? SC_RESTORE : SC_MAXIMIZE, 0);
+      if (result) *result = 0;
+      return true;
     }
     return false;
   }

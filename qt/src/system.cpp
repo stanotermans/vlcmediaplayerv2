@@ -1,4 +1,11 @@
 #include "system.h"
+#ifdef Q_OS_MACOS
+#include <IOKit/pwr_mgt/IOPMLib.h>
+#endif
+#ifdef VLCR_DBUS
+#include <QDBusInterface>
+#include <QDBusReply>
+#endif
 #include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
@@ -17,6 +24,8 @@
 #include <QTimer>
 #include <QUrl>
 #include <QWindow>
+#include <QGuiApplication>
+#include <QCursor>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <wrl.h>
@@ -262,4 +271,34 @@ void System::mediaInfo(const QString &title, const QString &artist, const QStrin
 #else
   Q_UNUSED(title); Q_UNUSED(artist); Q_UNUSED(album); Q_UNUSED(music);
 #endif
+}
+
+void System::keepAwake(int level) {
+  if (level == m_awake) return;
+  m_awake = level;
+#ifdef Q_OS_WIN
+  SetThreadExecutionState(ES_CONTINUOUS | (level >= 1 ? ES_SYSTEM_REQUIRED : 0) | (level >= 2 ? ES_DISPLAY_REQUIRED : 0));
+#elif defined(Q_OS_MACOS)
+  if (m_awakeId) { IOPMAssertionRelease(m_awakeId); m_awakeId = 0; }
+  if (level) {
+    IOPMAssertionID id = 0;
+    if (IOPMAssertionCreateWithName(level >= 2 ? kIOPMAssertionTypePreventUserIdleDisplaySleep : kIOPMAssertionTypePreventUserIdleSystemSleep,
+                                    kIOPMAssertionLevelOn, CFSTR("VLC Redesign is playing"), &id) == kIOReturnSuccess) m_awakeId = id;
+  }
+#elif defined(VLCR_DBUS)
+  // the desktop's screensaver / idle inhibition (GNOME, KDE, …; in a Flatpak through org.freedesktop.ScreenSaver)
+  QDBusInterface ss("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver");
+  if (m_awakeId) { ss.call("UnInhibit", m_awakeId); m_awakeId = 0; }
+  if (level && ss.isValid()) {
+    const QDBusReply<quint32> r = ss.call("Inhibit", QStringLiteral("VLC Redesign"), QStringLiteral("Playing media"));
+    if (r.isValid()) m_awakeId = r.value();
+  }
+#endif
+}
+
+void System::hideCursor(bool on) {
+  if (on == m_cursorHidden) return;
+  m_cursorHidden = on;
+  if (on) QGuiApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
+  else QGuiApplication::restoreOverrideCursor();
 }

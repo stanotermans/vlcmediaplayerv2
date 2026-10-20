@@ -14,6 +14,7 @@ finish-args:
   - --share=network           # streams, subtitles from OpenSubtitles, update check
   - --device=all              # graphics card, DVD drives
   - --filesystem=host         # media folders and files anywhere (also other disks), recordings and snapshots
+  - --talk-name=org.freedesktop.ScreenSaver   # the screen stays on while a video plays
 modules:
   - name: vlc-redesign
     buildsystem: simple

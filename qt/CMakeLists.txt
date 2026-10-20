@@ -10,6 +10,7 @@ qt_add_executable(vlcr
   src/main.cpp
   src/settings.cpp src/settings.h
   src/windowframe.cpp src/windowframe.h
+  src/crashlog.cpp src/crashlog.h
   src/vlcplayer.cpp src/vlcplayer.h
   src/library.cpp src/library.h
   src/frames.cpp src/frames.h
@@ -54,7 +55,15 @@ target_include_directories(vlcr PRIVATE src)
 target_compile_definitions(vlcr PRIVATE VLCR_VERSION="${PROJECT_VERSION}")   # the version lives here only
 target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)
 if(WIN32)
-  target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject)
+  target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject dbghelp)
+elseif(APPLE)
+  target_link_libraries(vlcr PRIVATE "-framework IOKit" "-framework CoreFoundation")   # keeping the screen on (#61)
+else()
+  find_package(Qt6 COMPONENTS DBus)                                                     # keeping the screen on (#61)
+  if(Qt6DBus_FOUND)
+    target_link_libraries(vlcr PRIVATE Qt6::DBus)
+    target_compile_definitions(vlcr PRIVATE VLCR_DBUS)
+  endif()
 endif()
 set_target_properties(vlcr PROPERTIES WIN32_EXECUTABLE ON MACOSX_BUNDLE ON)
 # the program's name: "VLC Redesign.exe", "VLC Redesign.app", "vlc-redesign" (like v2.x)
