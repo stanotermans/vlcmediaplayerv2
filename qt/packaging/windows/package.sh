@@ -45,7 +45,8 @@ fi
 
 # portable: the same folder with a "portable" file (the app keeps its data in "data" next to it)
 touch "$APP/portable"
-( cd deploy && rm -f "$OUT/Vela-Player-Portable-$VERSION-x64.zip" && (command -v 7z >/dev/null && 7z a -tzip -mx=7 "$(cygpath -w "$OUT")\\Vela-Player-Portable-$VERSION-x64.zip" "Vela Player" >/dev/null \
+# (7-Zip's exit code 1 is only a warning: the archive is made)
+( cd deploy && rm -f "$OUT/Vela-Player-Portable-$VERSION-x64.zip" && (command -v 7z >/dev/null && { 7z a -tzip -mx=7 "$(cygpath -w "$OUT")\\Vela-Player-Portable-$VERSION-x64.zip" "Vela Player" >/dev/null; [ $? -le 1 ]; } \
   || powershell -NoProfile -Command "Compress-Archive -Path 'Vela Player' -DestinationPath '$(cygpath -w "$OUT")\\Vela-Player-Portable-$VERSION-x64.zip'") )
 rm "$APP/portable"
 ls -la "$OUT"

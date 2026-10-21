@@ -22,7 +22,7 @@ cmake --build build-linux
 AD=$(realpath -m build-linux/AppDir); rm -rf "$AD"
 install -Dm755 build-linux/vela-player "$AD/usr/bin/vela-player"
 install -Dm644 packaging/linux/vela-player.desktop "$AD/usr/share/applications/vela-player.desktop"
-install -Dm644 assets/icon.png "$AD/usr/share/icons/hicolor/512x512/apps/vela-player.png"
+install -Dm644 assets/icon-512.png "$AD/usr/share/icons/hicolor/512x512/apps/vela-player.png"
 # X11 (on Wayland desktops through XWayland)
 QML_SOURCES_PATHS=qml QMAKE="$QT/bin/qmake" linuxdeploy --appdir "$AD" --plugin qt
 # only the Basic style of Qt Quick Controls is used: the other styles go
@@ -32,7 +32,7 @@ cp -a ../app/vendor/vlc "$B/vlc"
 install -m755 "$FFMPEG" "$B/ffmpeg"
 install -Dm644 ../app/assets/FluidR3Mono_GM.sf3 "$B/assets/FluidR3Mono_GM.sf3"
 [ -f keys.json ] && install -m644 keys.json "$B/" || true
-cp assets/icon.png "$AD/vela-player.png"
+cp assets/icon-512.png "$AD/vela-player.png"
 du -sh "$AD"
 
 # AppImage

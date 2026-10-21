@@ -15,7 +15,8 @@ rm -rf "$S"; mkdir -p "$S" "$OUT"
 tar -C .. --exclude='qt/build*' --exclude='qt/dist' --exclude='qt/deploy' -cf - qt | tar -C "$S" -xf -
 cp -a "$VLC" "$S/vlc"
 cp "$FFMPEG" "$S/ffmpeg"
-cp ../app/assets/FluidR3Mono_GM.sf3 assets/icon.png ../LICENSE packaging/linux/vela-player.desktop packaging/flatpak/$ID.metainfo.xml "$S/"
+cp ../app/assets/FluidR3Mono_GM.sf3 ../LICENSE packaging/linux/vela-player.desktop packaging/flatpak/$ID.metainfo.xml "$S/"
+cp assets/icon-512.png "$S/icon.png"   # (Flatpak takes icons up to 512 px)
 [ -f keys.json ] && cp keys.json "$S/" || true
 # flatpak-builder finds the SDK in the user's or the system's Flatpak installation (Flathub's build container has it)
 flatpak-builder --force-clean --disable-rofiles-fuse --repo="$B/repo" --state-dir="$B/state" "$B/app" packaging/flatpak/$ID.yml

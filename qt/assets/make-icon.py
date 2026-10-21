@@ -1,5 +1,5 @@
 # Renders icon.svg's shapes (Vela Player: a sail-shaped play button in an orange circle on a dark tile) to the icon files:
-# icon.png (1024 px, the app and the packages), ../packaging/windows/icon.ico, ../packaging/android/res/drawable/icon.png
+# icon.png (1024 px, the app and macOS), icon-512.png (Linux, Flatpak), ../packaging/windows/icon.ico, ../packaging/android/res/drawable/icon.png
 # and ../../docs/icon.png. Needs Pillow:  python qt/assets/make-icon.py
 import os
 from PIL import Image, ImageDraw
@@ -21,6 +21,7 @@ def render(size):
 
 big = render(1024)
 big.save(os.path.join(HERE, 'icon.png'))
+render(512).save(os.path.join(HERE, 'icon-512.png'))   # Linux menus and the Flatpak (at most 512 px)
 render(512).save(os.path.join(HERE, '..', '..', 'docs', 'icon.png'))
 render(192).save(os.path.join(HERE, '..', 'packaging', 'android', 'res', 'drawable', 'icon.png'))
 big.save(os.path.join(HERE, '..', 'packaging', 'windows', 'icon.ico'), sizes=[(s, s) for s in (16, 20, 24, 32, 40, 48, 64, 128, 256)])
