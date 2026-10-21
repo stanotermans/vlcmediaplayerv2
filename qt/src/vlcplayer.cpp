@@ -3,6 +3,11 @@
 #include <QDir>
 #include <QFile>
 #include <QProcess>
+#ifdef Q_OS_ANDROID
+#include <QJniEnvironment>
+#include <QJniObject>
+#include "android.h"
+#endif
 #include <QFileInfo>
 #include <QMetaObject>
 #include <cstring>
@@ -144,6 +149,14 @@ bool VlcPlayer::load() {
   if (!open(dir + "/lib/libvlccore.dylib")) open(dir + "/lib/libvlccore.9.dylib");
   void *dll = open(dir + "/lib/libvlc.dylib");
   if (!dll) dll = open(dir + "/lib/libvlc.5.dylib");
+#elif defined(Q_OS_ANDROID)
+  // #53: VideoLAN's libVLC for Android (libvlc-all, one libvlc.so with its plugins and libvlccore inside), in the APK.
+  // Java loads it, so that its JNI_OnLoad gives VLC's Android parts (audio output, hardware decoding) the Java VM.
+  Q_UNUSED(dir);
+  const QString so = Android::nativeLibraryDir() + "/libvlc.so";
+  QJniObject::callStaticMethod<void>("java/lang/System", "load", "(Ljava/lang/String;)V", QJniObject::fromString(so).object<jstring>());
+  QJniEnvironment().checkAndClearExceptions();
+  void *dll = open(so);
 #else
   // build/vlc-linux: lib/libvlc.so.5, lib/libvlccore.so.9 and lib/vlc/plugins (found next to libvlccore)
   void *dll = open(dir + "/lib/libvlc.so.5");
@@ -184,6 +197,8 @@ bool VlcPlayer::load() {
 #ifdef __APPLE__
     void *c = open(dir + "/lib/libvlccore.dylib");
     if (!c) c = open(dir + "/lib/libvlccore.9.dylib");
+#elif defined(Q_OS_ANDROID)
+    void *c = dll;                                   // libvlccore is inside libvlc.so
 #else
     void *c = open(dir + "/lib/libvlccore.so.9");
     if (!c) c = open("libvlccore.so.9");
@@ -237,6 +252,8 @@ QString ffmpegPath() {
   if (qEnvironmentVariableIsSet("VLCR_FFMPEG")) return qEnvironmentVariable("VLCR_FFMPEG");
 #ifdef Q_OS_WIN
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg.exe";
+#elif defined(Q_OS_ANDROID)
+  const QString own = QCoreApplication::applicationDirPath() + "/libffmpeg.so";   // (lib/<abi>/ of the APK: unpacked as a program)
 #else
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg";
 #endif

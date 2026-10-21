@@ -16,6 +16,8 @@ static QString ffmpeg() {
   if (qEnvironmentVariableIsSet("VLCR_FFMPEG")) return qEnvironmentVariable("VLCR_FFMPEG");
 #ifdef Q_OS_WIN
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg.exe";
+#elif defined(Q_OS_ANDROID)
+  const QString own = QCoreApplication::applicationDirPath() + "/libffmpeg.so";   // (lib/<abi>/ of the APK: unpacked as a program)
 #else
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg";
 #endif
