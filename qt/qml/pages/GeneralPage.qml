@@ -16,7 +16,7 @@ Column {
   }
   Section {
     title: "Default player"
-    SettingRow { label: "Open videos and music with VLC Redesign"
+    SettingRow { label: "Open videos and music with Vela Player"
                  Button { text: qsTr("Set as default player"); kind: "ghost"; onClicked: defNote.text = ctl.setDefaultPlayer() } }
     Note { id: defNote; visible: text !== "" }
   }

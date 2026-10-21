@@ -9,15 +9,16 @@
 | 🐧 **Debian / Ubuntu / Linux Mint / Chrome OS** | {{DEB}} | `sudo apt install ./file.deb` |
 | 🐧 **Fedora / openSUSE / Red Hat** | {{RPM}} | `sudo dnf install ./file.rpm` |
 | 🐧 **Arch Linux / Manjaro** | {{PACMAN}} | `sudo pacman -U ./file.pkg.tar.zst` |
-| 🐧 **Any Linux with Flatpak** | {{FLATPAK}} | `flatpak install ./file.flatpak`, or with updates: `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref` |
+| 🐧 **Any Linux with Flatpak** | {{FLATPAK}} | `flatpak install ./file.flatpak`, or with updates: `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vela-player.flatpakref` |
 | 🐧 **Any Linux** (Gentoo, Slackware, …) | {{APPIMAGE}} | `chmod +x` and run |
-| 🐧 Linux archive | {{TARGZ}} | Extract and run `bin/vlc-redesign` |
+| 🐧 Linux archive | {{TARGZ}} | Extract and run `bin/vela-player` |
 
 Prefer a one-click download? Use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**: it detects your system automatically.
 
-## ✨ VLC Redesign 3
+## ✨ Vela Player
 
-The number 1 best build of **Juxtopposed's VLC redesign**, now rebuilt from the ground up with **Qt** and **VLC's own engine (libVLC)** instead of a web browser:
+The number 1 best build with the design of **Juxtopposed**, built with **Qt** and **libVLC** (the engine of VLC media player) instead of a web browser.
+**Vela Player was called VLC Redesign** up to version 3.0.7: updating keeps your settings, library, playlists and positions.
 
 - Starts faster and uses far less memory and disk space than v2.x.
 - Plays everything VLC plays, with hardware decoding: no more converting with FFmpeg ("Classic" engine is gone).
@@ -26,7 +27,7 @@ The number 1 best build of **Juxtopposed's VLC redesign**, now rebuilt from the 
 
 > **First launch**
 > - **Windows:** if the blue SmartScreen dialog appears, click *More info* → *Run anyway*.
-> - **macOS:** right-click the app → *Open* → *Open*. Or: `xattr -dr com.apple.quarantine "/Applications/VLC Redesign.app"`.
+> - **macOS:** right-click the app → *Open* → *Open*. Or: `xattr -dr com.apple.quarantine "/Applications/Vela Player.app"`.
 >
 > 🌍 Available in English, Dutch, German, French, Spanish, Italian, Portuguese and Polish: pick your language on first launch.
 
@@ -39,4 +40,4 @@ The design is by **[Juxtopposed](https://www.youtube.com/@juxtopposed)** from th
 ---
 Built with Qt (LGPL), libVLC (LGPL/GPL) and FFmpeg (LGPL/GPL).
 
-Version {{VERSION}} · Unofficial fan project, not affiliated with VideoLAN. "VLC" and the cone logo are trademarks of VideoLAN.
+Version {{VERSION}} · Not made by or affiliated with VideoLAN. "VLC" is a trademark of VideoLAN.

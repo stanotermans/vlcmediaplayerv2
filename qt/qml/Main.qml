@@ -13,7 +13,7 @@ C.ApplicationWindow {
   width: 1600; height: 1000
   visible: true
   color: Theme.bg
-  title: current ? current.name : "VLC Redesign"
+  title: current ? current.name : "Vela Player"
   flags: Qt.Window | Qt.FramelessWindowHint
   property bool inPlayer: false
   property var current: null           // the item that plays
@@ -293,7 +293,7 @@ C.ApplicationWindow {
   function removeFolder(f) { Settings.set("mediaFolders", (Settings.values.mediaFolders || []).filter(x => x !== f)); nav.dir = ({}); }
   function resetVideoFilters() { const vf = Settings.defaultValue("vf"); Settings.set("vf", vf); }
   function shortcuts() { dialog("dialogs/Shortcuts.qml", { pb: pb }); }
-  // Make VLC Redesign the app that opens videos and music. The system decides how (System.setDefaultPlayer); the
+  // Make Vela Player the app that opens videos and music. The system decides how (System.setDefaultPlayer); the
   // installer registers the file types so it is listed there.
   function setDefaultPlayer() { return System.setDefaultPlayer(); }
   property Item onboarding: null
@@ -559,9 +559,9 @@ C.ApplicationWindow {
     Row {
       anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
       spacing: 4
-      Image {   // the cone
+      Image {   // the logo: Vela Player's sail in the accent colour
         width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter; sourceSize: Qt.size(36, 36)
-        source: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="' + Theme.accent + '"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#fff"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="' + Theme.accent + '"/><path d="M3 18h18l1 3H2z" fill="' + Theme.accent + '"/></svg>')
+        source: Theme.logo
       }
       IconButton { id: menuBtn; html: "menuBtn"; width: 28; height: 28; tip: qsTr("Menu")
                    onClicked: { const p = menuBtn.mapToItem(null, 0, menuBtn.height + 4); win.titleMenu(p.x, p.y); } }

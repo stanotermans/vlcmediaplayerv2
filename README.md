@@ -2,10 +2,10 @@
 
 <img src="docs/icon.png" width="96" alt="">
 
-# VLC Redesign
+# Vela Player
 
-**The number 1 best build with the design of [Juxtopposed](https://www.youtube.com/@juxtopposed): an unofficial, modern desktop media player built from their VLC redesign.**
-For Windows, macOS and Linux · plays almost anything with VLC's own engine (libVLC) · version 3 is native (Qt), no web browser inside.
+**The number 1 best build with the design of [Juxtopposed](https://www.youtube.com/@juxtopposed): a modern desktop media player built from their redesign of VLC.**
+For Windows, macOS and Linux · plays almost anything with libVLC, the engine of VLC media player · native (Qt), no web browser inside.
 
 [**⬇️ Download**](https://github.com/stanotermans/vlcmediaplayerv2/releases/latest) ·
 [Download page](https://stanotermans.github.io/vlcmediaplayerv2/) ·
@@ -16,8 +16,8 @@ For Windows, macOS and Linux · plays almost anything with VLC's own engine (lib
 </div>
 
 > [!NOTE]
-> This is an **unofficial fan project**. It is not made by, affiliated with, or endorsed by VideoLAN, the makers of the real VLC.
-> "VLC" and the cone logo are trademarks of VideoLAN.
+> **Vela Player was called VLC Redesign** up to version 3.0.7. Updating keeps your settings, library and playlists.
+> It is not made by, affiliated with, or endorsed by VideoLAN, the makers of VLC. "VLC" is a trademark of VideoLAN.
 
 ## 🎨 Design credits: Juxtopposed
 
@@ -30,7 +30,7 @@ This repository turns that design into a working app. All credit for the design 
 
 ## ✨ Version 3
 
-VLC Redesign 3 is rebuilt from the ground up with **Qt** and **libVLC**: it starts faster, uses far less memory and disk space, and plays everything VLC plays without converting. Every screen of v2.x is still there, and your settings, library, playlists, positions and bookmarks move over by themselves the first time you start it (after v2.2 or later has run once). The source is in [`qt/`](qt); v2.x (Electron) stays in [`app/`](app).
+Vela Player 3 is rebuilt from the ground up with **Qt** and **libVLC**: it starts faster, uses far less memory and disk space, and plays everything VLC plays without converting. Every screen of v2.x is still there, and your settings, library, playlists, positions and bookmarks move over by themselves the first time you start it (after v2.2 or later has run once). The source is in [`qt/`](qt); v2.x (Electron) stays in [`app/`](app).
 
 ## ⬇️ Download
 
@@ -38,13 +38,13 @@ Open the **[latest release](https://github.com/stanotermans/vlcmediaplayerv2/rel
 
 | Operating system | File |
 |---|---|
-| 🪟 **Windows 10 / 11** | `VLC-Redesign-Setup-<version>-x64.exe` (installer) or `VLC-Redesign-Portable-<version>-x64.zip` |
-| 🍎 **macOS** (Apple Silicon / Intel) | `VLC-Redesign-<version>-mac-arm64.dmg` / `…-mac-x64.dmg` |
-| 🐧 **Debian, Ubuntu, Linux Mint, Chrome OS** | `vlc-redesign-<version>-amd64.deb` |
-| 🐧 **Fedora, openSUSE, Red Hat** | `vlc-redesign-<version>-x86_64.rpm` |
-| 🐧 **Arch Linux, Manjaro** | `vlc-redesign-<version>-1-x86_64.pkg.tar.zst` |
-| 🐧 **Any Linux with Flatpak** | `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref` (updates with `flatpak update`) or `VLC-Redesign-<version>-x86_64.flatpak` |
-| 🐧 **Any Linux** (Gentoo, Slackware, …) | `vlc-redesign-<version>-x86_64.AppImage` or `.tar.gz` |
+| 🪟 **Windows 10 / 11** | `Vela-Player-Setup-<version>-x64.exe` (installer) or `Vela-Player-Portable-<version>-x64.zip` |
+| 🍎 **macOS** (Apple Silicon / Intel) | `Vela-Player-<version>-mac-arm64.dmg` / `…-mac-x64.dmg` |
+| 🐧 **Debian, Ubuntu, Linux Mint, Chrome OS** | `vela-player-<version>-amd64.deb` |
+| 🐧 **Fedora, openSUSE, Red Hat** | `vela-player-<version>-x86_64.rpm` |
+| 🐧 **Arch Linux, Manjaro** | `vela-player-<version>-1-x86_64.pkg.tar.zst` |
+| 🐧 **Any Linux with Flatpak** | `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vela-player.flatpakref` (updates with `flatpak update`) or `Vela-Player-<version>-x86_64.flatpak` |
+| 🐧 **Any Linux** (Gentoo, Slackware, …) | `vela-player-<version>-x86_64.AppImage` or `.tar.gz` |
 
 Or use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**, which detects your system automatically.
 
@@ -54,12 +54,12 @@ Or use the **[download page](https://stanotermans.github.io/vlcmediaplayerv2/)**
 <summary><b>Installing on Linux</b></summary>
 
 ```bash
-sudo apt install ./vlc-redesign-*-amd64.deb        # Debian, Ubuntu, Mint, Chrome OS
-sudo dnf install ./vlc-redesign-*-x86_64.rpm       # Fedora, Red Hat
-sudo zypper install ./vlc-redesign-*-x86_64.rpm    # openSUSE
-sudo pacman -U ./vlc-redesign-*.pkg.tar.zst        # Arch, Manjaro
-flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref   # any distribution with Flatpak; `flatpak update` brings new versions
-chmod +x vlc-redesign-*.AppImage && ./vlc-redesign-*.AppImage   # any distribution
+sudo apt install ./vela-player-*-amd64.deb        # Debian, Ubuntu, Mint, Chrome OS
+sudo dnf install ./vela-player-*-x86_64.rpm       # Fedora, Red Hat
+sudo zypper install ./vela-player-*-x86_64.rpm    # openSUSE
+sudo pacman -U ./vela-player-*.pkg.tar.zst        # Arch, Manjaro
+flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vela-player.flatpakref   # any distribution with Flatpak; `flatpak update` brings new versions
+chmod +x vela-player-*.AppImage && ./vela-player-*.AppImage   # any distribution
 ```
 
 **Chrome OS:** turn on *Settings → About ChromeOS → Developers → Linux development environment*, then open the `.deb` file from the Files app.
@@ -73,7 +73,7 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Windows:** if the blue SmartScreen dialog appears, click *More info* → *Run anyway*. Windows releases are being set up for code signing via SignPath (see the [code signing policy](CODE_SIGNING.md)); even signed, a new release can trigger SmartScreen until it has built up reputation.
 - **macOS:** right-click the app → *Open* → *Open*. Or in Terminal:
   ```bash
-  xattr -dr com.apple.quarantine "/Applications/VLC Redesign.app"
+  xattr -dr com.apple.quarantine "/Applications/Vela Player.app"
   ```
 </details>
 
@@ -85,8 +85,8 @@ The app is not code-signed (that requires a paid certificate), so your system sh
 - **Built-in updates.** The app checks GitHub for new releases and shows a notification. On Windows (installer) and Linux (AppImage) it downloads and installs the update itself; elsewhere it fetches the right file for you. You can also check manually under *Settings → ⓘ About*, which also shows the version, credits and licenses.
 - **Instant seek preview.** Hover the timeline to see a thumbnail; a storyboard of frames is generated in the background so the preview follows your mouse without delay.
 - **8 languages:** English, Nederlands, Deutsch, Français, Español, Italiano, Português and Polski, switchable instantly without restarting.
-- **Onboarding** on first launch: choose your language, pick a media folder, choose a theme and accent color (with live preview), make VLC Redesign your default player, and learn the key shortcuts.
-- **Default player:** *Settings → General → Default player* (also in the welcome screen). On Windows it opens *Default apps* right on VLC Redesign (the installer registers it there), on Linux it sets itself as default for all its file types, on macOS it explains the Finder steps.
+- **Onboarding** on first launch: choose your language, pick a media folder, choose a theme and accent color (with live preview), make Vela Player your default player, and learn the key shortcuts.
+- **Default player:** *Settings → General → Default player* (also in the welcome screen). On Windows it opens *Default apps* right on Vela Player (the installer registers it there), on Linux it sets itself as default for all its file types, on macOS it explains the Finder steps.
 - **Library** with videos, music, network streams, playlists and recently played. Browse folders with breadcrumbs (Videos ▸ Shows ▸ The Wand ▸ S01), "continue watching", and watched items dimmed.
 - **Playlists:** play `.m3u`, `.m3u8`, `.xspf` and `.pls` files by opening or dragging them, or keep them with *Playlists → Import playlist…*; drag the items of your own playlists to change their order, and export any playlist as `.xspf` or `.m3u8` (right-click it → *Export playlist…*), an *All media* playlist with everything, and a list view with title, artist/album and duration columns you can sort by.
 - **Player** with a timeline preview (hover the seek bar to see that moment), mini player, queue, resume where you left off, repeat/shuffle, playback speed, picture-in-picture, fullscreen and hide-UI mode.

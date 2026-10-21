@@ -1,4 +1,4 @@
-; The Windows installer of VLC Redesign 3 (Qt). Build: makensis /DVERSION=3.0.0 /DSRC=<the deployed app folder>
+; The Windows installer of Vela Player (Qt). Build: makensis /DVERSION=3.0.0 /DSRC=<the deployed app folder>
 ; /DOUT=<installer.exe> installer.nsi
 ; For the current user, without administrator rights (#63: the updaters of v2.x and v3 start it directly, and Windows
 ; refuses that for an installer that asks for elevation); registers the file types and the app with
@@ -10,10 +10,10 @@ SetCompressor /SOLID lzma
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 
-!define NAME "VLC Redesign"
-!define EXE "VLC Redesign.exe"
-!define UNINST "Software\Microsoft\Windows\CurrentVersion\Uninstall\VLC Redesign"
-!define CAPS "Software\VLC Redesign\Capabilities"
+!define NAME "Vela Player"
+!define EXE "Vela Player.exe"
+!define UNINST "Software\Microsoft\Windows\CurrentVersion\Uninstall\Vela Player"
+!define CAPS "Software\Vela Player\Capabilities"
 
 Name "${NAME}"
 OutFile "${OUT}"
@@ -75,38 +75,38 @@ FunctionEnd
   DeleteRegValue SHCTX "Software\Classes\${EXT}\OpenWithProgids" "${PROGID}"
 !macroend
 !macro Types T
-  !insertmacro ${T} ".mp4" "VLCRedesign.mp4" "MP4 video"
-  !insertmacro ${T} ".mkv" "VLCRedesign.mkv" "MKV video"
-  !insertmacro ${T} ".avi" "VLCRedesign.avi" "AVI video"
-  !insertmacro ${T} ".mov" "VLCRedesign.mov" "MOV video"
-  !insertmacro ${T} ".webm" "VLCRedesign.webm" "WEBM video"
-  !insertmacro ${T} ".wmv" "VLCRedesign.wmv" "WMV video"
-  !insertmacro ${T} ".flv" "VLCRedesign.flv" "FLV video"
-  !insertmacro ${T} ".m4v" "VLCRedesign.m4v" "M4V video"
-  !insertmacro ${T} ".mpg" "VLCRedesign.mpg" "MPG video"
-  !insertmacro ${T} ".mpeg" "VLCRedesign.mpeg" "MPEG video"
-  !insertmacro ${T} ".ts" "VLCRedesign.ts" "TS video"
-  !insertmacro ${T} ".m2ts" "VLCRedesign.m2ts" "M2TS video"
-  !insertmacro ${T} ".3gp" "VLCRedesign.3gp" "3GP video"
-  !insertmacro ${T} ".ogv" "VLCRedesign.ogv" "OGV video"
-  !insertmacro ${T} ".iso" "VLCRedesign.iso" "Disc image"
-  !insertmacro ${T} ".mp3" "VLCRedesign.mp3" "MP3 audio"
-  !insertmacro ${T} ".flac" "VLCRedesign.flac" "FLAC audio"
-  !insertmacro ${T} ".wav" "VLCRedesign.wav" "WAV audio"
-  !insertmacro ${T} ".m4a" "VLCRedesign.m4a" "M4A audio"
-  !insertmacro ${T} ".aac" "VLCRedesign.aac" "AAC audio"
-  !insertmacro ${T} ".ogg" "VLCRedesign.ogg" "OGG audio"
-  !insertmacro ${T} ".opus" "VLCRedesign.opus" "OPUS audio"
-  !insertmacro ${T} ".wma" "VLCRedesign.wma" "WMA audio"
-  !insertmacro ${T} ".ac3" "VLCRedesign.ac3" "AC3 audio"
-  !insertmacro ${T} ".mid" "VLCRedesign.midi" "MIDI audio"
-  !insertmacro ${T} ".midi" "VLCRedesign.midi" "MIDI audio"
-  !insertmacro ${T} ".kar" "VLCRedesign.midi" "MIDI audio"
-  !insertmacro ${T} ".rmi" "VLCRedesign.midi" "MIDI audio"
-  !insertmacro ${T} ".m3u" "VLCRedesign.m3u" "Playlist"
-  !insertmacro ${T} ".m3u8" "VLCRedesign.m3u8" "Playlist"
-  !insertmacro ${T} ".xspf" "VLCRedesign.xspf" "Playlist"
-  !insertmacro ${T} ".pls" "VLCRedesign.pls" "Playlist"
+  !insertmacro ${T} ".mp4" "VelaPlayer.mp4" "MP4 video"
+  !insertmacro ${T} ".mkv" "VelaPlayer.mkv" "MKV video"
+  !insertmacro ${T} ".avi" "VelaPlayer.avi" "AVI video"
+  !insertmacro ${T} ".mov" "VelaPlayer.mov" "MOV video"
+  !insertmacro ${T} ".webm" "VelaPlayer.webm" "WEBM video"
+  !insertmacro ${T} ".wmv" "VelaPlayer.wmv" "WMV video"
+  !insertmacro ${T} ".flv" "VelaPlayer.flv" "FLV video"
+  !insertmacro ${T} ".m4v" "VelaPlayer.m4v" "M4V video"
+  !insertmacro ${T} ".mpg" "VelaPlayer.mpg" "MPG video"
+  !insertmacro ${T} ".mpeg" "VelaPlayer.mpeg" "MPEG video"
+  !insertmacro ${T} ".ts" "VelaPlayer.ts" "TS video"
+  !insertmacro ${T} ".m2ts" "VelaPlayer.m2ts" "M2TS video"
+  !insertmacro ${T} ".3gp" "VelaPlayer.3gp" "3GP video"
+  !insertmacro ${T} ".ogv" "VelaPlayer.ogv" "OGV video"
+  !insertmacro ${T} ".iso" "VelaPlayer.iso" "Disc image"
+  !insertmacro ${T} ".mp3" "VelaPlayer.mp3" "MP3 audio"
+  !insertmacro ${T} ".flac" "VelaPlayer.flac" "FLAC audio"
+  !insertmacro ${T} ".wav" "VelaPlayer.wav" "WAV audio"
+  !insertmacro ${T} ".m4a" "VelaPlayer.m4a" "M4A audio"
+  !insertmacro ${T} ".aac" "VelaPlayer.aac" "AAC audio"
+  !insertmacro ${T} ".ogg" "VelaPlayer.ogg" "OGG audio"
+  !insertmacro ${T} ".opus" "VelaPlayer.opus" "OPUS audio"
+  !insertmacro ${T} ".wma" "VelaPlayer.wma" "WMA audio"
+  !insertmacro ${T} ".ac3" "VelaPlayer.ac3" "AC3 audio"
+  !insertmacro ${T} ".mid" "VelaPlayer.midi" "MIDI audio"
+  !insertmacro ${T} ".midi" "VelaPlayer.midi" "MIDI audio"
+  !insertmacro ${T} ".kar" "VelaPlayer.midi" "MIDI audio"
+  !insertmacro ${T} ".rmi" "VelaPlayer.midi" "MIDI audio"
+  !insertmacro ${T} ".m3u" "VelaPlayer.m3u" "Playlist"
+  !insertmacro ${T} ".m3u8" "VelaPlayer.m3u8" "Playlist"
+  !insertmacro ${T} ".xspf" "VelaPlayer.xspf" "Playlist"
+  !insertmacro ${T} ".pls" "VelaPlayer.pls" "Playlist"
 !macroend
 
 ; v2.x installed elsewhere (electron-builder, its key is a UUIDv5 of the appId): removed quietly first, before the
@@ -123,9 +123,22 @@ FunctionEnd
   v2done_${ROOT}:
 !macroend
 
+; Vela Player was called VLC Redesign up to 3.0.7 (same installer, other name): that install is removed quietly first
+; (its program files, shortcuts and file types; its data stays and the app copies it over on its first start)
+!define OLDKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\VLC Redesign"
+!macro RemoveOldName ROOT
+  ReadRegStr $0 ${ROOT} "${OLDKEY}" "QuietUninstallString"
+  StrCmp $0 "" oldname_${ROOT}
+  DetailPrint "Removing VLC Redesign (now Vela Player)"
+  ExecWait $0
+  oldname_${ROOT}:
+!macroend
+
 Section "Install"
   !insertmacro RemoveV2 HKCU
   !insertmacro RemoveV2 HKLM
+  !insertmacro RemoveOldName HKCU
+  !insertmacro RemoveOldName HKLM
   ; v2.x (Electron) installed here too: its files go, its settings stay (the app takes them over on first start)
   IfFileExists "$INSTDIR\resources\app.asar" 0 +3
     RMDir /r "$INSTDIR\resources"
@@ -139,13 +152,13 @@ Section "Install"
     CreateShortCut "$DESKTOP\${NAME}.lnk" "$INSTDIR\${EXE}"
 
   WriteRegStr SHCTX "${CAPS}" "ApplicationName" "${NAME}"
-  WriteRegStr SHCTX "${CAPS}" "ApplicationDescription" "Unofficial VLC-style media player for video, music and streams"
+  WriteRegStr SHCTX "${CAPS}" "ApplicationDescription" "Media player for video, music and streams"
   WriteRegStr SHCTX "${CAPS}" "ApplicationIcon" "$INSTDIR\${EXE},0"
   !insertmacro Types Type
   WriteRegStr SHCTX "Software\RegisteredApplications" "${NAME}" "${CAPS}"
   WriteRegStr SHCTX "Software\Classes\Applications\${EXE}\shell\open\command" "" '"$INSTDIR\${EXE}" "%1"'
 
-  WriteRegStr SHCTX "${UNINST}" "DisplayName" "${NAME} (unofficial)"
+  WriteRegStr SHCTX "${UNINST}" "DisplayName" "${NAME}"
   WriteRegStr SHCTX "${UNINST}" "DisplayVersion" "${VERSION}"
   WriteRegStr SHCTX "${UNINST}" "Publisher" "Stan Otermans"
   WriteRegStr SHCTX "${UNINST}" "DisplayIcon" "$INSTDIR\${EXE},0"
@@ -169,8 +182,8 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\${NAME}.lnk"
   Delete "$DESKTOP\${NAME}.lnk"
   DeleteRegValue SHCTX "Software\RegisteredApplications" "${NAME}"
-  DeleteRegKey SHCTX "Software\VLC Redesign\Capabilities"
-  DeleteRegKey /ifempty SHCTX "Software\VLC Redesign"
+  DeleteRegKey SHCTX "Software\Vela Player\Capabilities"
+  DeleteRegKey /ifempty SHCTX "Software\Vela Player"
   DeleteRegKey SHCTX "Software\Classes\Applications\${EXE}"
   !insertmacro Types Untype
   DeleteRegKey SHCTX "${UNINST}"

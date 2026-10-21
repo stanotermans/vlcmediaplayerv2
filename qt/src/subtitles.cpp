@@ -23,6 +23,8 @@ static QString ffmpeg() {
   if (qEnvironmentVariableIsSet("VLCR_FFMPEG")) return qEnvironmentVariable("VLCR_FFMPEG");
 #ifdef Q_OS_WIN
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg.exe";
+#elif defined(Q_OS_ANDROID)
+  const QString own = QCoreApplication::applicationDirPath() + "/libffmpeg.so";   // (lib/<abi>/ of the APK: unpacked as a program)
 #else
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg";
 #endif
@@ -37,7 +39,7 @@ static QString dataDir() {
 static QByteArray protect(const QByteArray &b, bool encrypt) {
 #ifdef Q_OS_WIN
   DATA_BLOB in{ DWORD(b.size()), (BYTE *)b.data() }, out{};
-  const BOOL ok = encrypt ? CryptProtectData(&in, L"VLC Redesign", nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &out)
+  const BOOL ok = encrypt ? CryptProtectData(&in, L"Vela Player", nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &out)
                           : CryptUnprotectData(&in, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &out);
   if (!ok) return {};
   QByteArray r((const char *)out.pbData, int(out.cbData)); LocalFree(out.pbData); return r;
@@ -146,7 +148,7 @@ void Subs::api(const QByteArray &method, const QString &route, const QVariantMap
   if (m_key.isEmpty()) { done(-1, {}, "nokey"); return; }
   QNetworkRequest r(QUrl(m_base + route));
   r.setRawHeader("Api-Key", m_key.toUtf8());
-  r.setRawHeader("User-Agent", "VLC Redesign v" + QCoreApplication::applicationVersion().toUtf8());
+  r.setRawHeader("User-Agent", "Vela Player v" + QCoreApplication::applicationVersion().toUtf8());
   r.setRawHeader("Accept", "application/json");
   if (!m_token.isEmpty() && route != "/login") r.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
   QByteArray data;

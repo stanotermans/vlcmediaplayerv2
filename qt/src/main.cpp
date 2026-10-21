@@ -1,4 +1,4 @@
-// VLC Redesign 3 (Qt/QML + libVLC). The interface is QML (qml/), playback is libVLC (vlcplayer.cpp).
+// Vela Player (Qt/QML + libVLC). The interface is QML (qml/), playback is libVLC (vlcplayer.cpp).
 #include <QFont>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -21,10 +21,34 @@
 #include <QQmlEngine>
 #include "system.h"
 #include "crashlog.h"
+#ifdef Q_OS_ANDROID
+#include "android.h"
+#endif
+
+// Vela Player was called VLC Redesign up to 3.0.7: on the first start under the new name its data folder (settings,
+// library, playlists, positions, bookmarks) is copied over. Copied, not moved: an older version still finds its own.
+static void copyDir(const QString &from, const QString &to) {
+  QDir().mkpath(to);
+  for (const QFileInfo &f : QDir(from).entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden)) {
+    if (f.isDir()) copyDir(f.absoluteFilePath(), to + "/" + f.fileName());
+    else QFile::copy(f.absoluteFilePath(), to + "/" + f.fileName());
+  }
+}
+static void takeOverOldName() {
+  if (qEnvironmentVariableIsSet("VLCR_USER_DATA")) return;
+  QCoreApplication::setApplicationName("VLC Redesign 3"); QCoreApplication::setOrganizationName("VLC Redesign");
+  QString old = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+  // the Flatpak had another ID then: its data is in that app's own folder (reachable through --filesystem=host)
+  if (qEnvironmentVariableIsSet("FLATPAK_ID") && !QFileInfo::exists(old + "/settings.json"))
+    old = QDir::homePath() + "/.var/app/io.github.stanotermans.VLCRedesign/data/VLC Redesign/VLC Redesign 3";
+  QCoreApplication::setApplicationName("Vela Player"); QCoreApplication::setOrganizationName("Vela Player");
+  const QString now = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+  if (!QFileInfo::exists(now) && QFileInfo::exists(old + "/settings.json")) copyDir(old, now);
+}
 
 // Settings → General → Interface size: the whole interface is scaled by Qt, so it is read before the app starts
 static void applyInterfaceSize() {
-  QCoreApplication::setApplicationName("VLC Redesign 3"); QCoreApplication::setOrganizationName("VLC Redesign");
+  QCoreApplication::setApplicationName("Vela Player"); QCoreApplication::setOrganizationName("Vela Player");
   const QString dir = qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
   QFile f(dir + "/settings.json");
   if (!f.open(QIODevice::ReadOnly)) return;
@@ -39,11 +63,15 @@ int main(int argc, char *argv[]) {
     const QString dir = exe.contains('\\') || exe.contains('/') ? QFileInfo(exe).absolutePath() : QDir::currentPath();
     if (QFile::exists(dir + "/portable") && !qEnvironmentVariableIsSet("VLCR_USER_DATA")) qputenv("VLCR_USER_DATA", QString(dir + "/data").toUtf8());
   }
+  takeOverOldName();
   applyInterfaceSize();
   QGuiApplication app(argc, argv);
+#ifdef Q_OS_ANDROID
+  Android::loadTestEnv();
+#endif
   app.setApplicationVersion(VLCR_VERSION);
-  app.setApplicationName("VLC Redesign 3");
-  app.setOrganizationName("VLC Redesign");
+  app.setApplicationName("Vela Player");
+  app.setOrganizationName("Vela Player");
   installCrashLog(qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)) + "/crash.log");
   QQuickStyle::setStyle("Basic");                      // popups and scrollbars only; everything is drawn by our components
 #ifdef Q_OS_WIN

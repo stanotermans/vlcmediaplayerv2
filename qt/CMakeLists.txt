@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(vlcredesign3 VERSION 3.0.7 LANGUAGES C CXX)
+project(velaplayer VERSION 3.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -18,6 +18,7 @@ qt_add_executable(vlcr
   src/subtitles.cpp src/subtitles.h
   src/i18n.cpp src/i18n.h
   src/system.cpp src/system.h
+  src/android.cpp src/android.h
 )
 set_source_files_properties(qml/Theme.qml qml/SettingsSearch.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(vlcr
@@ -53,8 +54,20 @@ qt_add_shaders(vlcr "shaders"
 )
 target_include_directories(vlcr PRIVATE src)
 target_compile_definitions(vlcr PRIVATE VLCR_VERSION="${PROJECT_VERSION}")   # the version lives here only
+math(EXPR VLCR_VERSION_CODE "${PROJECT_VERSION_MAJOR} * 10000 + ${PROJECT_VERSION_MINOR} * 100 + ${PROJECT_VERSION_PATCH}")   # Android: 3.0.7 → 30007
 target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)
-if(WIN32)
+if(ANDROID)
+  # #53: the APK (qt/packaging/android/build.sh): libVLC for Android and FFmpeg go in as extra native libraries
+  set(VLCR_ANDROID_LIBS "" CACHE STRING "libvlc.so, libc++_shared.so (libVLC's) and libffmpeg.so for the APK")
+  set_target_properties(vlcr PROPERTIES
+    QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/packaging/android
+    QT_ANDROID_VERSION_NAME ${PROJECT_VERSION}
+    QT_ANDROID_VERSION_CODE ${VLCR_VERSION_CODE}
+    QT_ANDROID_MIN_SDK_VERSION 28
+    QT_ANDROID_TARGET_SDK_VERSION 35
+    QT_ANDROID_EXTRA_LIBS "${VLCR_ANDROID_LIBS}"
+    QT_QML_IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}")   # (androiddeployqt finds our VLCR module there)
+elseif(WIN32)
   target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject dbghelp dwmapi)
 elseif(APPLE)
   target_link_libraries(vlcr PRIVATE "-framework IOKit" "-framework CoreFoundation")   # keeping the screen on (#61)
@@ -66,14 +79,14 @@ else()
   endif()
 endif()
 set_target_properties(vlcr PROPERTIES WIN32_EXECUTABLE ON MACOSX_BUNDLE ON)
-# the program's name: "VLC Redesign.exe", "VLC Redesign.app", "vlc-redesign" (like v2.x)
+# the program's name: "Vela Player.exe", "Vela Player.app", "vela-player" (like v2.x)
 if(WIN32)
-  set_target_properties(vlcr PROPERTIES OUTPUT_NAME "VLC Redesign")
+  set_target_properties(vlcr PROPERTIES OUTPUT_NAME "Vela Player")
   target_sources(vlcr PRIVATE packaging/windows/app.rc)
 elseif(APPLE)
-  set_target_properties(vlcr PROPERTIES OUTPUT_NAME "VLC Redesign"
+  set_target_properties(vlcr PROPERTIES OUTPUT_NAME "Vela Player"
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/packaging/macos/Info.plist.in
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION} MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION})
 else()
-  set_target_properties(vlcr PROPERTIES OUTPUT_NAME "vlc-redesign")
+  set_target_properties(vlcr PROPERTIES OUTPUT_NAME "vela-player")
 endif()

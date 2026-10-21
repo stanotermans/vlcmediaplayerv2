@@ -1,6 +1,6 @@
-# nFPM: the .deb, .rpm and Arch package of VLC Redesign 3 (package.sh fills in VERSION, OPT and AD). The app lives in
-# /opt/vlc-redesign with its own Qt and libVLC; the command, the menu entry and the icon go to the usual places.
-name: vlc-redesign
+# nFPM: the .deb, .rpm and Arch package of Vela Player (package.sh fills in VERSION, OPT and AD). The app lives in
+# /opt/vela-player with its own Qt and libVLC; the command, the menu entry and the icon go to the usual places.
+name: vela-player
 arch: amd64
 platform: linux
 version: ${VERSION}
@@ -8,23 +8,26 @@ section: video
 priority: optional
 maintainer: Stan Otermans <stanotermans@gmail.com>
 description: |
-  VLC Redesign – unofficial fan-made media player.
+  Vela Player – media player with the design of Juxtopposed.
   Library, playlists, subtitles, equalizer; plays with VLC's own engine (libVLC). Design by Juxtopposed.
 vendor: Stan Otermans
 homepage: https://github.com/stanotermans/vlcmediaplayerv2
 license: MIT
+# Vela Player was called VLC Redesign up to 3.0.7: installing it replaces that package
 replaces: [vlc-redesign]
+conflicts: [vlc-redesign]
+provides: [vlc-redesign]
 contents:
   - src: ${OPT}/
-    dst: /opt/vlc-redesign/
+    dst: /opt/vela-player/
     type: tree
-  - src: /opt/vlc-redesign/bin/vlc-redesign
-    dst: /usr/bin/vlc-redesign
+  - src: /opt/vela-player/bin/vela-player
+    dst: /usr/bin/vela-player
     type: symlink
-  - src: ${AD}/usr/share/applications/vlc-redesign.desktop
-    dst: /usr/share/applications/vlc-redesign.desktop
-  - src: ${AD}/usr/share/icons/hicolor/512x512/apps/vlc-redesign.png
-    dst: /usr/share/icons/hicolor/512x512/apps/vlc-redesign.png
+  - src: ${AD}/usr/share/applications/vela-player.desktop
+    dst: /usr/share/applications/vela-player.desktop
+  - src: ${AD}/usr/share/icons/hicolor/512x512/apps/vela-player.png
+    dst: /usr/share/icons/hicolor/512x512/apps/vela-player.png
 overrides:
   deb:
     depends: [libasound2t64 | libasound2, libegl1, libgl1, libfontconfig1, libfreetype6, libxkbcommon0, libxkbcommon-x11-0,

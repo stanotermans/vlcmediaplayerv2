@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Vela Player: a sail ("vela") that is a play button, in a round button on a coral tile -->
+  <rect width="120" height="120" rx="28" fill="#F5C4B3"/>
+  <circle cx="60" cy="60" r="38" fill="#4A1B0C"/>
+  <path d="M50 38 C 62 50, 64 70, 50 82 L 82 60 Z" fill="#F0997B"/>
+</svg>

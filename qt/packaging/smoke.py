@@ -1,4 +1,4 @@
-# Smoke test of a packaged VLC Redesign 3: makes a short video (Y4M, uncompressed) and a sound (WAV), lets the
+# Smoke test of a packaged Vela Player: makes a short video (Y4M, uncompressed) and a sound (WAV), lets the
 # packaged app play each for a few seconds with its own libVLC, and checks what it reports (the picture size,
 # decoded frames, the length). Used by the GitHub Actions workflow after packaging.
 #   python qt/packaging/smoke.py <path to the program> [more env, e.g. QT_QPA_PLATFORM=offscreen]

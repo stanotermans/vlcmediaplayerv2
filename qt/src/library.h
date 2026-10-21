@@ -80,7 +80,7 @@ public:
   // positions, bookmarks); {} when there is none
   Q_INVOKABLE QVariantMap v2Export() const;
   Q_INVOKABLE void importV2(const QVariantMap &data);
-  Q_INVOKABLE QString logFile() const { return QDir::toNativeSeparators(dataDir() + "/vlc-redesign.log"); }
+  Q_INVOKABLE QString logFile() const { return QDir::toNativeSeparators(dataDir() + "/vela-player.log"); }
   Q_INVOKABLE QString builtinSoundfont() const;               // FluidR3 Mono, next to the program
   Q_INVOKABLE void clearPositions();                          // and the watched marks
   Q_INVOKABLE void clearThumbs();

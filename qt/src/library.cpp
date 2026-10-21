@@ -35,6 +35,8 @@ static QString ffmpeg() {
   if (qEnvironmentVariableIsSet("VLCR_FFMPEG")) return qEnvironmentVariable("VLCR_FFMPEG");
 #ifdef Q_OS_WIN
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg.exe";
+#elif defined(Q_OS_ANDROID)
+  const QString own = QCoreApplication::applicationDirPath() + "/libffmpeg.so";   // (lib/<abi>/ of the APK: unpacked as a program)
 #else
   const QString own = QCoreApplication::applicationDirPath() + "/ffmpeg";
 #endif
@@ -508,8 +510,8 @@ void Library::reveal(const QString &path) const {
 #endif
 }
 QString Library::videosDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)); }
-QString Library::snapshotsDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/VLC Redesign"); }
-QString Library::recordingsDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) + "/VLC Redesign"); }
+QString Library::snapshotsDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + "/Vela Player"); }
+QString Library::recordingsDir() const { return QDir::toNativeSeparators(QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) + "/Vela Player"); }
 bool Library::makeDir(const QString &dir) const { return QDir().mkpath(dir); }
 
 // v2.x's data folder: "VLC Redesign" (Linux packages: "vlc-redesign") in the system's app data folder

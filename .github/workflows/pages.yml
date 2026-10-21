@@ -1,5 +1,6 @@
 # The website (docs/) and the Flatpak repository (#54) on GitHub Pages:
-#   flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref
+#   flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vela-player.flatpakref
+# (vlc-redesign.flatpakref, from before the new name, installs the same app)
 # after which `flatpak update` brings new versions. The repository is rebuilt from the latest release's .flatpak and
 # signed with the FLATPAK_GPG_PRIVATE_KEY secret. Runs on site changes, by hand, and from qt.yml after each release.
 name: Pages
@@ -20,7 +21,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ID: io.github.stanotermans.VLCRedesign
+  ID: io.github.stanotermans.VelaPlayer
+  OLD_ID: io.github.stanotermans.VLCRedesign   # the name up to 3.0.7
   URL: https://stanotermans.github.io/vlcmediaplayerv2
 
 jobs:
@@ -49,16 +51,26 @@ jobs:
           R=site/flatpak/repo
           ostree init --mode=archive-z2 --repo=$R
           flatpak build-import-bundle $S $R bundle/*.flatpak
-          flatpak build-update-repo $S --title="VLC Redesign" --default-branch=master --generate-static-deltas --prune $R
+          # installs under the old ID move over to the new one with their next "flatpak update" (end-of-life rebase)
+          APP=$OLD_ID   # (until the first release under the new name, the repository has the old ID only)
+          if ostree refs --repo=$R | grep -qx "app/$ID/x86_64/master"; then
+            APP=$ID
+            flatpak build-commit-from $S --src-ref=app/$ID/x86_64/master --end-of-life-rebase=$OLD_ID=$ID $R app/$OLD_ID/x86_64/master
+          fi
+          flatpak build-update-repo $S --title="Vela Player" --default-branch=master --generate-static-deltas --prune $R
           G=$(gpg --export "$K" | base64 -w0)
-          gpg --export --armor "$K" > site/flatpak/vlc-redesign.gpg
-          printf '%s\n' '[Flatpak Repo]' 'Title=VLC Redesign' "Url=$URL/flatpak/repo/" "Homepage=$URL/" \
-            'Comment=VLC Redesign, the media player with the design of Juxtopposed' "Icon=$URL/icon.png" "GPGKey=$G" \
-            > site/flatpak/vlc-redesign.flatpakrepo
-          printf '%s\n' '[Flatpak Ref]' "Name=$ID" 'Branch=master' 'Title=VLC Redesign' "Url=$URL/flatpak/repo/" \
-            "Homepage=$URL/" "Icon=$URL/icon.png" 'IsRuntime=false' 'SuggestRemoteName=vlc-redesign' \
+          gpg --export --armor "$K" > site/flatpak/vela-player.gpg
+          printf '%s\n' '[Flatpak Repo]' 'Title=Vela Player' "Url=$URL/flatpak/repo/" "Homepage=$URL/" \
+            'Comment=Vela Player, the media player with the design of Juxtopposed' "Icon=$URL/icon.png" "GPGKey=$G" \
+            > site/flatpak/vela-player.flatpakrepo
+          printf '%s\n' '[Flatpak Ref]' "Name=$APP" 'Branch=master' 'Title=Vela Player' "Url=$URL/flatpak/repo/" \
+            "Homepage=$URL/" "Icon=$URL/icon.png" 'IsRuntime=false' 'SuggestRemoteName=vela-player' \
             'RuntimeRepo=https://dl.flathub.org/repo/flathub.flatpakrepo' "GPGKey=$G" \
-            > site/flatpak/vlc-redesign.flatpakref
+            > site/flatpak/vela-player.flatpakref
+          # the links from before the new name keep working
+          cp site/flatpak/vela-player.flatpakref site/flatpak/vlc-redesign.flatpakref
+          cp site/flatpak/vela-player.flatpakrepo site/flatpak/vlc-redesign.flatpakrepo
+          cp site/flatpak/vela-player.gpg site/flatpak/vlc-redesign.gpg
           flatpak repo $R
           du -sh site
       - uses: actions/upload-pages-artifact@v3
@@ -85,7 +97,7 @@ jobs:
       - name: Install from the repository
         run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y --noninteractive "$URL/flatpak/vlc-redesign.flatpakref"
-          flatpak info --user "$ID"
+          flatpak install --user -y --noninteractive "$URL/flatpak/vela-player.flatpakref"
+          flatpak info --user "$ID" || flatpak info --user "$OLD_ID"
           flatpak remotes --user --show-details
           flatpak update --user -y --noninteractive

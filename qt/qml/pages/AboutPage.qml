@@ -11,13 +11,13 @@ Column {
     spacing: 16; topPadding: 18; bottomPadding: 8
     Image { width: 64; height: 64; sourceSize: Qt.size(128, 128); anchors.verticalCenter: parent.verticalCenter; source: Qt.resolvedUrl("../../assets/icon.png") }   // the app icon
     Column { anchors.verticalCenter: parent.verticalCenter; spacing: 2
-      T { text: "VLC Redesign"; px: 22; font.weight: Font.DemiBold; color: Theme.text }
+      T { text: "Vela Player"; px: 22; font.weight: Font.DemiBold; color: Theme.text }
       T { text: qsTr("Version %1").arg(System.version) + (System.portable ? " · portable" : "") + " · " + page.platform + " · Qt " + qtVersion + " · libVLC " + page.ctl.player.version; color: Theme.muted } }
   }
   Rectangle {   // .about-note
     width: parent.width; height: an.implicitHeight + 20; radius: 8; color: Theme.panel2
     T { id: an; x: 12; y: 10; width: parent.width - 24; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.muted
-        text: qsTr("Unofficial fan project. Not made by or affiliated with VideoLAN, the makers of VLC media player.") }
+        text: qsTr("Plays with libVLC, the engine of VLC media player. Not made by or affiliated with VideoLAN, the makers of VLC.") }
   }
   Section {
     title: "Updates"

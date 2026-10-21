@@ -1,4 +1,4 @@
-# The VLC Redesign 3 test suite: the v2.x tests (tests/*.mjs, issues #16 #36 #37 #40 #41 #42 #43 #44 #46 #47 #50 #51,
+# The Vela Player (formerly VLC Redesign) test suite: the v2.x tests (tests/*.mjs, issues #16 #36 #37 #40 #41 #42 #43 #44 #46 #47 #50 #51,
 # recording, snapshots, migration) as scenarios for the Qt app. Each scenario starts the app with a fresh profile,
 # runs test steps (VLCR_OPEN, see Main.qml testStep) that write "name=value" lines with log:<expression> to
 # VLCR_LOG, quits after a screenshot (VLCR_SHOT) and checks those values and the files the app made.
@@ -45,6 +45,7 @@ def run(name, steps, extra_env=None, profile=None):
         if v: env[k] = os.path.abspath(v)
     env.pop('VLCR_PLAY', None)
     env.update(extra_env or {})
+    for k in [k for k, v in env.items() if v is None]: env.pop(k)   # (None: leave that variable out)
     cmd = [A.app] if not A.app.endswith('.app') else [os.path.join(A.app, 'Contents', 'MacOS', os.path.basename(A.app)[:-4])]
     p = subprocess.run(cmd, env=env, timeout=ms / 1000 + 60, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(p.stdout)
@@ -217,6 +218,17 @@ def view360(c):   # #78: a 360° video is shown as a view to look around in (dra
                     'log:"yaw=" + Math.round(playerView.yaw)', 'log:"fov=" + playerView.fov'])
     c.eq('on', 'false', 0); c.eq('on', 'true', 1); c.eq('p', 1); c.eq('yaw', 0, 0)
     c.ok(c.get('yaw', 1) not in (None, '0'), 'dragging did not turn the view'); c.eq('fov', 70); c.eq('playing', 'true')
+
+@test
+def renamed(c):   # 3.1: VLC Redesign is now Vela Player: the first start copies the old data folder (Linux: under XDG_DATA_HOME)
+    if not sys.platform.startswith('linux'): return
+    xdg = os.path.join(OUT, c.name, 'xdg'); shutil.rmtree(xdg, ignore_errors=True)
+    old = os.path.join(xdg, 'VLC Redesign', 'VLC Redesign 3'); os.makedirs(old)
+    json.dump({'language': 'en', 'accent': '#123456', 'onboarded': True}, open(os.path.join(old, 'settings.json'), 'w'))
+    c.vals, _ = run(c.name, ['log:"accent=" + Settings.values.accent'], extra_env={'XDG_DATA_HOME': xdg, 'VLCR_USER_DATA': None})
+    c.eq('accent', '#123456')
+    c.ok(os.path.exists(os.path.join(xdg, 'Vela Player', 'Vela Player', 'settings.json')), 'no settings.json under the new name')
+    c.ok(os.path.exists(os.path.join(old, 'settings.json')), 'the old data folder is gone (it should be copied, not moved)')
 
 @test
 def probe_cache(c):   # #59: the next start shows the library complete at once, without FFmpeg reading every file again

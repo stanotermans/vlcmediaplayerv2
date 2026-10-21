@@ -16,7 +16,7 @@ Rectangle {
   // "Choose your language" in each language, so everyone can find their own
   readonly property var hello: ({ en: "Choose your language", nl: "Kies je taal", de: "Wähle deine Sprache", fr: "Choisissez votre langue", es: "Elige tu idioma",
                                   it: "Scegli la tua lingua", pt: "Escolha o seu idioma", pl: "Wybierz język" })
-  readonly property string cone: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="' + Theme.accent + '"/><path d="M8.1 7h7.8l1.1 4H7z" fill="' + Theme.bg2 + '" opacity=".9"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="' + Theme.accent + '"/><path d="M3 18h18l1 3H2z" fill="' + Theme.accent + '"/></svg>')
+  readonly property string cone: Theme.logo   // (the app's logo)
   Component.onCompleted: if (!Settings.values.language) Settings.set("language", I18n.detect())   // preselect the system language
 
   function finish() {
@@ -181,7 +181,7 @@ Rectangle {
         T { anchors.horizontalCenter: parent.horizontalCenter; topPadding: 26; bottomPadding: 22; px: 30; font.weight: Font.Light; color: Theme.text; text: qsTr("Make VLC your default player") }
         T { width: 460; anchors.horizontalCenter: parent.horizontalCenter; horizontalAlignment: Text.AlignHCenter   // .ob-default .ob-lead
             wrapMode: Text.Wrap; elide: Text.ElideNone; lineHeight: 1.7; color: Theme.muted
-            text: qsTr("Then videos and music open in VLC Redesign when you double-click them. You can also do this later in Settings → General.") }
+            text: qsTr("Then videos and music open in Vela Player when you double-click them. You can also do this later in Settings → General.") }
         Item { width: 1; height: 24 }
         Button { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("Set as default player"); kind: "primary"; onClicked: ob.defaultResult = ob.ctl.setDefaultPlayer() }
         T { visible: ob.defaultResult !== ""; width: parent.width; topPadding: 14; wrapMode: Text.Wrap; elide: Text.ElideNone; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; text: ob.defaultResult }

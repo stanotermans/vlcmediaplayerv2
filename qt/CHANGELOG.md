@@ -1,3 +1,7 @@
+## 3.1.0
+- ✨ **VLC Redesign is now Vela Player**, with a new icon: a sail (*vela*) that is a play button. Juxtopposed's design stays the same. Your settings, library, playlists and positions come along, and the update replaces the old app.
+- ℹ️ Why: "VLC" and the cone are VideoLAN's trademarks, and the app stores (Android and iOS versions are on the way) only accept apps with their own name and icon.
+
 ## 3.0.7
 - ✨ **360° video:** 360° videos are shown as a view you look around in. Drag to look, use the wheel to zoom, and use the right-click menu → Video to turn it on for files that don't say they're 360° (#78).
 - ✨ **Resume where you left off: Always, Ask or Never.** With *Ask* a video starts from the beginning and a bar offers to continue where you were (#79).

@@ -2,6 +2,9 @@
 #ifdef Q_OS_MACOS
 #include <IOKit/pwr_mgt/IOPMLib.h>
 #endif
+#ifdef Q_OS_ANDROID
+#include "android.h"
+#endif
 #ifdef VLCR_DBUS
 #include <QDBusInterface>
 #include <QDBusReply>
@@ -42,7 +45,7 @@ using namespace ABI::Windows::Foundation;
 
 static const char *REPO = "stanotermans/vlcmediaplayerv2";
 System *System::instance = nullptr;
-static QString serverName() { return "vlc-redesign-3-" + QString::fromLocal8Bit(qgetenv("USERNAME").isEmpty() ? qgetenv("USER") : qgetenv("USERNAME")); }
+static QString serverName() { return "vela-player-" + QString::fromLocal8Bit(qgetenv("USERNAME").isEmpty() ? qgetenv("USER") : qgetenv("USERNAME")); }
 
 System::System(QObject *parent) : QObject(parent) { instance = this; }
 System::~System() {
@@ -95,33 +98,33 @@ QString System::changelog() const { QFile f(":/qt/qml/VLCR/CHANGELOG.md"); retur
 bool System::portable() const { return QFile::exists(QCoreApplication::applicationDirPath() + "/portable"); }
 
 // ---------- "Set as default player" ----------
-// Windows: apps may not make themselves the default, so open Settings → Default apps, right on VLC Redesign when the
+// Windows: apps may not make themselves the default, so open Settings → Default apps, right on Vela Player when the
 // installer registered it. Linux: set it with xdg-mime for every type the app's menu entry lists. macOS: no API.
 QString System::setDefaultPlayer() {
 #ifdef Q_OS_WIN
-  auto has = [](const char *root) { return QSettings(QString(root) + "\\Software\\RegisteredApplications", QSettings::NativeFormat).contains("VLC Redesign"); };
+  auto has = [](const char *root) { return QSettings(QString(root) + "\\Software\\RegisteredApplications", QSettings::NativeFormat).contains("Vela Player"); };
   const QString where = has("HKEY_CURRENT_USER") ? "registeredAppUser" : has("HKEY_LOCAL_MACHINE") ? "registeredAppMachine" : "";
   QDesktopServices::openUrl(QUrl("ms-settings:defaultapps" + (where.isEmpty() ? QString() : "?" + where + "=VLC%20Redesign")));
   return where.isEmpty()
-    ? tr("Windows Settings is open on Default apps. Search for a file type such as .mp4 and choose VLC Redesign. (The portable version does not appear there; use the installer for that.)")
-    : tr("Windows Settings is open. Choose “Set default” at the top (Windows 11), or pick VLC Redesign for each file type you want.");
+    ? tr("Windows Settings is open on Default apps. Search for a file type such as .mp4 and choose Vela Player. (The portable version does not appear there; use the installer for that.)")
+    : tr("Windows Settings is open. Choose “Set default” at the top (Windows 11), or pick Vela Player for each file type you want.");
 #elif defined(Q_OS_MACOS)
-  return tr("In Finder, select a video or song, press ⌘I (Get Info), choose VLC Redesign under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.");
+  return tr("In Finder, select a video or song, press ⌘I (Get Info), choose Vela Player under “Open with” and click “Change All…”. Do this once for each file type, for example .mp4, .mkv and .mp3.");
 #else
   QString desktop;
   for (const QString &d : { QDir::homePath() + "/.local/share/applications", QString("/usr/local/share/applications"), QString("/usr/share/applications") }) {
     const QStringList names = QDir(d).entryList({ "*.desktop" });
-    for (const QString &n : names) if (n.contains("vlc-redesign", Qt::CaseInsensitive)) { desktop = d + "/" + n; break; }
+    for (const QString &n : names) if (n.contains("vela-player", Qt::CaseInsensitive)) { desktop = d + "/" + n; break; }
     if (!desktop.isEmpty()) break;
   }
-  if (desktop.isEmpty()) return tr("VLC Redesign is not in your app menu yet. Install the .deb, .rpm or Arch package, or add the AppImage to your app menu first (for example with Gear Lever or AppImageLauncher).");
+  if (desktop.isEmpty()) return tr("Vela Player is not in your app menu yet. Install the .deb, .rpm or Arch package, or add the AppImage to your app menu first (for example with Gear Lever or AppImageLauncher).");
   QFile f(desktop); f.open(QIODevice::ReadOnly);
   const auto m = QRegularExpression("^MimeType=(.*)$", QRegularExpression::MultilineOption).match(QString::fromUtf8(f.readAll()));
   const QStringList types = m.hasMatch() ? m.captured(1).split(';', Qt::SkipEmptyParts) : QStringList();
-  if (types.isEmpty()) return tr("VLC Redesign is not in your app menu yet. Install the .deb, .rpm or Arch package, or add the AppImage to your app menu first (for example with Gear Lever or AppImageLauncher).");
+  if (types.isEmpty()) return tr("Vela Player is not in your app menu yet. Install the .deb, .rpm or Arch package, or add the AppImage to your app menu first (for example with Gear Lever or AppImageLauncher).");
   const int r = QProcess::execute("xdg-mime", QStringList{ "default", QFileInfo(desktop).fileName() } + types);
-  return r == 0 ? tr("Done: VLC Redesign now opens %1 kinds of video and audio files.").arg(types.size())
-                : tr("That did not work here (xdg-mime is missing). Choose VLC Redesign under Default applications in your system settings.");
+  return r == 0 ? tr("Done: Vela Player now opens %1 kinds of video and audio files.").arg(types.size())
+                : tr("That did not work here (xdg-mime is missing). Choose Vela Player under Default applications in your system settings.");
 #endif
 }
 
@@ -138,7 +141,7 @@ void System::checkUpdates(bool manual) {
   m_update["manual"] = manual;
   setUpdate("checking");
   QNetworkRequest r(QUrl(QString("https://api.github.com/repos/%1/releases/latest").arg(REPO)));
-  r.setRawHeader("User-Agent", "vlc-redesign"); r.setRawHeader("Accept", "application/vnd.github+json"); r.setTransferTimeout(20000);
+  r.setRawHeader("User-Agent", "vela-player"); r.setRawHeader("Accept", "application/vnd.github+json"); r.setTransferTimeout(20000);
   QNetworkReply *rep = m_net.get(r);
   connect(rep, &QNetworkReply::finished, this, [this, rep]() {
     rep->deleteLater();
@@ -180,7 +183,7 @@ void System::installUpdate() {
   auto *out = new QFile(file + ".part");
   if (!out->open(QIODevice::WriteOnly)) { delete out; setUpdate("error", "Cannot write " + file); return; }
   m_update["progress"] = 0.0; setUpdate("downloading");
-  QNetworkRequest r(u); r.setRawHeader("User-Agent", "vlc-redesign");
+  QNetworkRequest r(u); r.setRawHeader("User-Agent", "vela-player");
   r.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
   QNetworkReply *rep = m_net.get(r);
   connect(rep, &QNetworkReply::readyRead, this, [rep, out]() { out->write(rep->readAll()); });
@@ -285,14 +288,16 @@ void System::keepAwake(int level) {
   if (level) {
     IOPMAssertionID id = 0;
     if (IOPMAssertionCreateWithName(level >= 2 ? kIOPMAssertionTypePreventUserIdleDisplaySleep : kIOPMAssertionTypePreventUserIdleSystemSleep,
-                                    kIOPMAssertionLevelOn, CFSTR("VLC Redesign is playing"), &id) == kIOReturnSuccess) m_awakeId = id;
+                                    kIOPMAssertionLevelOn, CFSTR("Vela Player is playing"), &id) == kIOReturnSuccess) m_awakeId = id;
   }
+#elif defined(Q_OS_ANDROID)
+  Android::keepScreenOn(level >= 2);   // (music plays on with the screen off)
 #elif defined(VLCR_DBUS)
   // the desktop's screensaver / idle inhibition (GNOME, KDE, …; in a Flatpak through org.freedesktop.ScreenSaver)
   QDBusInterface ss("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver");
   if (m_awakeId) { ss.call("UnInhibit", m_awakeId); m_awakeId = 0; }
   if (level && ss.isValid()) {
-    const QDBusReply<quint32> r = ss.call("Inhibit", QStringLiteral("VLC Redesign"), QStringLiteral("Playing media"));
+    const QDBusReply<quint32> r = ss.call("Inhibit", QStringLiteral("Vela Player"), QStringLiteral("Playing media"));
     if (r.isValid()) m_awakeId = r.value();
   }
 #endif

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- The app bundle of VLC Redesign 3: name, icon, version, and the files it opens (Finder → Open with) -->
+<!-- The app bundle of Vela Player: name, icon, version, and the files it opens (Finder → Open with) -->
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>VLC Redesign</string>
-  <key>CFBundleDisplayName</key><string>VLC Redesign</string>
+  <key>CFBundleName</key><string>Vela Player</string>
+  <key>CFBundleDisplayName</key><string>Vela Player</string>
   <key>CFBundleExecutable</key><string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
-  <key>CFBundleIdentifier</key><string>nl.otermans.vlcredesign</string>
+  <key>CFBundleIdentifier</key><string>nl.otermans.velaplayer</string>
   <key>CFBundleIconFile</key><string>icon.icns</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>

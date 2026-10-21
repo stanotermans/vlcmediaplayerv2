@@ -1,6 +1,6 @@
 name: Qt build (v3)
 
-# Builds VLC Redesign 3 (Qt/QML + libVLC, qt/) for Windows, macOS (Apple Silicon + Intel) and Linux, packages it
+# Builds Vela Player (Qt/QML + libVLC, qt/) for Windows, macOS (Apple Silicon + Intel) and Linux, packages it
 # (qt/packaging/*/package.sh), plays a test video and sound with each package (qt/packaging/smoke.py) and runs the
 # test suite on it (qt/tests).
 #  - By hand: "Actions" tab → "Qt build (v3)" → "Run workflow"; the packages appear under "Artifacts".
@@ -76,7 +76,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
-          V=$(sed -n 's/^project(vlcredesign3 VERSION \([0-9.]*\).*/\1/p' qt/CMakeLists.txt)
+          V=$(sed -n 's/^project(velaplayer VERSION \([0-9.]*\).*/\1/p' qt/CMakeLists.txt)
           if [ "v$V" != "${GITHUB_REF_NAME}" ]; then echo "Tag ${GITHUB_REF_NAME} does not match version v$V in qt/CMakeLists.txt"; exit 1; fi
       - uses: actions/download-artifact@v4
         with: { name: ffmpeg-win-x64, path: ffbin }
@@ -100,11 +100,11 @@ jobs:
         shell: bash
         run: bash qt/packaging/windows/package.sh "$GITHUB_WORKSPACE/ffbin/ffmpeg.exe" "$GITHUB_WORKSPACE/qt/dist"
       - name: Smoke test
-        run: python qt/packaging/smoke.py "qt/deploy/VLC Redesign/VLC Redesign.exe"
+        run: python qt/packaging/smoke.py "qt/deploy/Vela Player/Vela Player.exe"
       - uses: actions/download-artifact@v4
         with: { name: testmedia, path: testdata }
       - name: Tests
-        run: python qt/tests/run.py "qt/deploy/VLC Redesign/VLC Redesign.exe" testdata --out test-out
+        run: python qt/tests/run.py "qt/deploy/Vela Player/Vela Player.exe" testdata --out test-out
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: tests-windows, path: test-out/ }
@@ -150,13 +150,13 @@ jobs:
         run: bash qt/packaging/macos/package.sh ${{ matrix.arch }} "$GITHUB_WORKSPACE/ffbin/ffmpeg" "$GITHUB_WORKSPACE/qt/dist"
       - name: Smoke test
         if: matrix.arch == 'arm64'   # the runner is Apple Silicon; the Intel build is only packaged
-        run: python3 qt/packaging/smoke.py "qt/build-mac-arm64/VLC Redesign.app/Contents/MacOS/VLC Redesign"
+        run: python3 qt/packaging/smoke.py "qt/build-mac-arm64/Vela Player.app/Contents/MacOS/Vela Player"
       - uses: actions/download-artifact@v4
         if: matrix.arch == 'arm64'
         with: { name: testmedia, path: testdata }
       - name: Tests
         if: matrix.arch == 'arm64'
-        run: python3 qt/tests/run.py "qt/build-mac-arm64/VLC Redesign.app/Contents/MacOS/VLC Redesign" testdata --out test-out
+        run: python3 qt/tests/run.py "qt/build-mac-arm64/Vela Player.app/Contents/MacOS/Vela Player" testdata --out test-out
       - uses: actions/upload-artifact@v4
         if: failure() && matrix.arch == 'arm64'
         with: { name: tests-macos, path: test-out/ }
@@ -296,7 +296,7 @@ jobs:
           cat notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          name: VLC Redesign ${{ github.ref_name }}
+          name: Vela Player ${{ github.ref_name }}
           body_path: notes.md
           files: artifacts/*
       - name: Update the Flatpak repository on the website

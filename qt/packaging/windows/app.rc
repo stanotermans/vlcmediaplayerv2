@@ -10,13 +10,13 @@ BEGIN
     BLOCK "040904b0"
     BEGIN
       VALUE "CompanyName", "Stan Otermans"
-      VALUE "FileDescription", "VLC Redesign"
+      VALUE "FileDescription", "Vela Player"
       VALUE "FileVersion", "3.0.0"
-      VALUE "InternalName", "VLC Redesign"
+      VALUE "InternalName", "Vela Player"
       VALUE "LegalCopyright", "© 2026 Stan Otermans. MIT license."
-      VALUE "LegalTrademarks", "VLC is a trademark of VideoLAN. VLC Redesign is an unofficial fan project and is not affiliated with VideoLAN."
-      VALUE "OriginalFilename", "VLC Redesign.exe"
-      VALUE "ProductName", "VLC Redesign"
+      VALUE "LegalTrademarks", "VLC is a trademark of VideoLAN. Vela Player plays with libVLC and is not made by or affiliated with VideoLAN."
+      VALUE "OriginalFilename", "Vela Player.exe"
+      VALUE "ProductName", "Vela Player"
       VALUE "ProductVersion", "3.0.0"
     END
   END

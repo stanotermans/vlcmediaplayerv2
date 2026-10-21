@@ -1,25 +1,25 @@
 #!/bin/bash
-# Packages VLC Redesign 3 for macOS (on a Mac with Qt 6.8 and Xcode's tools):
+# Packages Vela Player for macOS (on a Mac with Qt 6.8 and Xcode's tools):
 #   qt/packaging/macos/package.sh <arm64|x64> <ffmpeg for that arch> [out dir]
-# Builds for that processor, makes "VLC Redesign.app" (Qt's frameworks by macdeployqt; libVLC from
+# Builds for that processor, makes "Vela Player.app" (Qt's frameworks by macdeployqt; libVLC from
 # app/scripts/fetch-vlc.js mac-<arch> in Contents/MacOS/vlc; the slim FFmpeg; the SoundFont; keys.json), signs it
-# ad hoc (not notarized, like v2.x) and puts it in VLC-Redesign-<version>-mac-<arch>.dmg.
+# ad hoc (not notarized, like v2.x) and puts it in Vela-Player-<version>-mac-<arch>.dmg.
 set -euo pipefail
 cd "$(dirname "$0")/../.."                       # qt/
 ARCH=${1:?arm64 or x64}; FFMPEG=${2:?ffmpeg}; OUT=$(cd "$(dirname "${3:-dist}")" 2>/dev/null && pwd)/$(basename "${3:-dist}")
-VERSION=$(sed -n 's/^project(vlcredesign3 VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+VERSION=$(sed -n 's/^project(velaplayer VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
 QT=${QT_ROOT_DIR:?QT_ROOT_DIR (Qt for macOS)}
 OSXARCH=$([ "$ARCH" = x64 ] && echo x86_64 || echo arm64)
 B=build-mac-$ARCH
 cmake -S . -B $B -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT" -DCMAKE_OSX_ARCHITECTURES=$OSXARCH -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
 cmake --build $B
-APP="$B/VLC Redesign.app"
+APP="$B/Vela Player.app"
 
 # the icon, from v2.x's 512px PNG
 ICONSET=$B/icon.iconset; rm -rf $ICONSET; mkdir -p $ICONSET
 for s in 16 32 128 256 512; do
-  sips -z $s $s ../app/build/icon.png --out $ICONSET/icon_${s}x${s}.png >/dev/null
-  sips -z $((s * 2)) $((s * 2)) ../app/build/icon.png --out $ICONSET/icon_${s}x${s}@2x.png >/dev/null
+  sips -z $s $s assets/icon.png --out $ICONSET/icon_${s}x${s}.png >/dev/null
+  sips -z $((s * 2)) $((s * 2)) assets/icon.png --out $ICONSET/icon_${s}x${s}@2x.png >/dev/null
 done
 mkdir -p "$APP/Contents/Resources" && iconutil -c icns $ICONSET -o "$APP/Contents/Resources/icon.icns"
 
@@ -37,13 +37,13 @@ mkdir -p "$M/assets" && cp ../app/assets/FluidR3Mono_GM.sf3 "$M/assets/"
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep "$APP" && echo "signature ok"
 
-mkdir -p "$OUT"; DMG="$OUT/VLC-Redesign-$VERSION-mac-$ARCH.dmg"
+mkdir -p "$OUT"; DMG="$OUT/Vela-Player-$VERSION-mac-$ARCH.dmg"
 STAGE=$B/dmg; rm -rf $STAGE; mkdir -p $STAGE
 cp -R "$APP" $STAGE/ && ln -s /Applications $STAGE/Applications
 # hdiutil fails now and then on build servers ("Resource busy"): a few tries
 rm -f "$DMG"
 for i in 1 2 3 4 5; do
-  hdiutil create -volname "VLC Redesign" -srcfolder $STAGE -ov -format UDZO "$DMG" && break
+  hdiutil create -volname "Vela Player" -srcfolder $STAGE -ov -format UDZO "$DMG" && break
   [ $i = 5 ] && exit 1; echo "hdiutil failed, try $((i + 1))"; sleep 10
 done
 ls -la "$OUT"

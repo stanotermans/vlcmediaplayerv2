@@ -1,11 +1,11 @@
-# Flatpak of VLC Redesign 3 (#54). package.sh puts the sources and the prebuilt parts in build-flatpak/stage and runs
+# Flatpak of Vela Player (#54). package.sh puts the sources and the prebuilt parts in build-flatpak/stage and runs
 # flatpak-builder with this. The app is built from source on KDE's runtime (Qt 6.11); libVLC (app/build/vlc-linux),
 # the slim FFmpeg and the SoundFont go next to the program, like in the other Linux packages.
-app-id: io.github.stanotermans.VLCRedesign
+app-id: io.github.stanotermans.VelaPlayer
 runtime: org.kde.Platform
 runtime-version: '6.11'
 sdk: org.kde.Sdk
-command: vlc-redesign
+command: vela-player
 finish-args:
   - --share=ipc
   - --socket=x11              # the app draws its own window frame; on Wayland desktops it runs through XWayland
@@ -16,7 +16,7 @@ finish-args:
   - --filesystem=host         # media folders and files anywhere (also other disks), recordings and snapshots
   - --talk-name=org.freedesktop.ScreenSaver   # the screen stays on while a video plays
 modules:
-  - name: vlc-redesign
+  - name: vela-player
     buildsystem: simple
     build-options:
       no-debuginfo: true      # the program is stripped below; libVLC's libraries (patched with patchelf) stay as they are
@@ -24,12 +24,12 @@ modules:
     build-commands:
       - cmake -S qt -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr
       - cmake --build build
-      - strip build/vlc-redesign && install -Dm755 build/vlc-redesign /app/bin/vlc-redesign
+      - strip build/vela-player && install -Dm755 build/vela-player /app/bin/vela-player
       - cp -a vlc /app/bin/vlc
       - install -Dm755 ffmpeg /app/bin/ffmpeg
       - install -Dm644 FluidR3Mono_GM.sf3 /app/bin/assets/FluidR3Mono_GM.sf3
       - if [ -f keys.json ]; then install -Dm644 keys.json /app/bin/keys.json; fi
-      - install -Dm644 vlc-redesign.desktop /app/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 vela-player.desktop /app/share/applications/${FLATPAK_ID}.desktop
       - desktop-file-edit --set-icon=${FLATPAK_ID} /app/share/applications/${FLATPAK_ID}.desktop
       - install -Dm644 icon.png /app/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png
       - install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
