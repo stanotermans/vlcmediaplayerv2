@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!-- Vela Player for Android (#53), from Qt 6.8's template (src/android/templates). Media access: the videos and
-     music (Android 13+: READ_MEDIA_*), or all files when allowed in Android's settings (subtitles next to videos). -->
+     music (Android 13+: READ_MEDIA_*; before: READ_EXTERNAL_STORAGE). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.stanotermans.velaplayer"
     android:installLocation="auto"
@@ -10,7 +10,6 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- %%INSERT_PERMISSIONS -->
     <!-- %%INSERT_FEATURES -->

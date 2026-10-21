@@ -4,6 +4,8 @@
 #   qt/packaging/android/build.sh <abi: arm64-v8a | x86_64> <Qt for that ABI> [ffmpeg] [out dir]
 # Needs ANDROID_SDK_ROOT, ANDROID_NDK_ROOT (r26b), JAVA_HOME (JDK 17), CMake and Ninja; QT_HOST_PATH = the desktop
 # Qt of the same version. Signing: APK_KEYSTORE (+ APK_KEYSTORE_PASS, APK_KEY_ALIAS), else Android's debug key.
+# FORMAT=aab: the app bundle for Google Play instead (signed with the upload key); ANDROID_BUILD: raises the version
+# code for another upload of the same version.
 set -euo pipefail
 ABI=${1:?abi}; QT=$(cd "${2:?Qt for Android}" && pwd); FF=${3:-}; OUT=${4:-qt/dist}
 [ -n "$FF" ] && FF=$(cd "$(dirname "$FF")" && pwd)/$(basename "$FF")
@@ -22,16 +24,21 @@ if [ -n "$FF" ]; then cp "$FF" "$B/libffmpeg.so"; LIBS="$LIBS;$B/libffmpeg.so"; 
 
 QTCMAKE="$QT/bin/qt-cmake"; [ "${OS:-}" = Windows_NT ] && QTCMAKE="$QTCMAKE.bat"   # (Qt for Android has both)
 "$QTCMAKE" -S . -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=Release -DQT_ANDROID_ABIS="$ABI" -DVLCR_ANDROID_LIBS="$LIBS" \
-  ${QT_HOST_PATH:+-DQT_HOST_PATH="$QT_HOST_PATH"} -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
-cmake --build "$B" --target apk
+  ${QT_HOST_PATH:+-DQT_HOST_PATH="$QT_HOST_PATH"} -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"   -DVLCR_BUILD="${ANDROID_BUILD:-0}"
+FORMAT=${FORMAT:-apk}
+cmake --build "$B" --target "$FORMAT"
 
 # libVLC's libc++_shared.so (a newer NDK than Qt's) replaces the one Qt put in: it serves both
-APK=$(ls "$B"/android-build/build/outputs/apk/release/*.apk | head -1)
+if [ "$FORMAT" = aab ]; then
+  APK=$(ls "$B"/android-build/build/outputs/bundle/release/*.aab | head -1); LIBIN=base/lib/$ABI/libc++_shared.so
+else
+  APK=$(ls "$B"/android-build/build/outputs/apk/release/*.apk | head -1); LIBIN=lib/$ABI/libc++_shared.so
+fi
 BT=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -1)
 EXE=""; [ -f "$BT/zipalign.exe" ] && EXE=".exe"
 W="$B/apk-work"; rm -rf "$W"; mkdir -p "$W"
 PY=$(command -v python3 || command -v python)
-"$PY" - "$APK" "$W/app.apk" "lib/$ABI/libc++_shared.so" "$B/libvlc/jni/$ABI/libc++_shared.so" <<'EOF'
+"$PY" - "$APK" "$W/app.apk" "$LIBIN" "$B/libvlc/jni/$ABI/libc++_shared.so" <<'EOF'
 import sys, zipfile
 src, dst, name, repl = sys.argv[1:]
 with zipfile.ZipFile(src) as zi, zipfile.ZipFile(dst, 'w') as zo:
@@ -39,14 +46,22 @@ with zipfile.ZipFile(src) as zi, zipfile.ZipFile(dst, 'w') as zo:
         if i.filename.startswith('META-INF/') and i.filename.rsplit('.', 1)[-1] in ('SF', 'RSA', 'EC', 'DSA', 'MF'): continue   # an old signature
         zo.writestr(i, open(repl, 'rb').read() if i.filename == name else zi.read(i.filename))
 EOF
-"$BT/zipalign$EXE" -f -p 4 "$W/app.apk" "$W/aligned.apk"
 if [ -n "${APK_KEYSTORE:-}" ]; then
-  KS=$APK_KEYSTORE; PASS=${APK_KEYSTORE_PASS:?}; ALIAS=${APK_KEY_ALIAS:-vlcredesign}
+  KS=$APK_KEYSTORE; PASS=${APK_KEYSTORE_PASS:?}; ALIAS=${APK_KEY_ALIAS:-vela-upload}
 else   # Android's debug key (made once, like Android Studio does)
   KS="$HOME/.android/debug.keystore"; PASS=android; ALIAS=androiddebugkey
   [ -f "$KS" ] || { mkdir -p "$HOME/.android"; keytool -genkeypair -keystore "$KS" -storepass android -keypass android -alias androiddebugkey \
                     -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null; }
 fi
+if [ "$FORMAT" = aab ]; then   # a bundle is signed like a jar; Google Play signs the app itself with its own key
+  [ -n "${APK_KEYSTORE:-}" ] || { echo "a bundle for Google Play needs the upload key (APK_KEYSTORE)"; exit 1; }
+  NAME="Vela-Player-$VERSION-android.aab"
+  cp "$W/app.apk" "$OUT/$NAME"
+  jarsigner -keystore "$KS" -storetype PKCS12 -storepass "$PASS" -keypass "$PASS" -sigalg SHA256withRSA -digestalg SHA-256 "$OUT/$NAME" "$ALIAS" > /dev/null
+  jarsigner -verify "$OUT/$NAME" | tail -1
+  ls -la "$OUT/$NAME"; exit 0
+fi
+"$BT/zipalign$EXE" -f -p 4 "$W/app.apk" "$W/aligned.apk"
 NAME="Vela-Player-$VERSION-android-$ABI.apk"
 java -jar "$BT/lib/apksigner.jar" sign --ks "$KS" --ks-pass "pass:$PASS" --ks-key-alias "$ALIAS" --out "$OUT/$NAME" "$W/aligned.apk"
 ls -la "$OUT/$NAME"

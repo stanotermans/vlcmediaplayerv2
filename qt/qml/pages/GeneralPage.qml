@@ -17,6 +17,7 @@ Column {
     SettingRow { shown: Store.pro; label: "Accent color"; Swatches { path: "accent"; colors: Settings.accents } }
   }
   Section {
+    visible: !Theme.mobile   // (a phone: Android asks which app opens a file)
     title: "Default player"
     SettingRow { label: "Open videos and music with Vela Player"
                  Button { text: qsTr("Set as default player"); kind: "ghost"; onClicked: defNote.text = ctl.setDefaultPlayer() } }

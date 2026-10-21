@@ -19,6 +19,7 @@ class System : public QObject {
   // Android (#53): allowed to read the videos and music (elsewhere always); the folders the library starts with there
   Q_PROPERTY(bool mediaAccess READ mediaAccess NOTIFY mediaAccessChanged)
   Q_PROPERTY(QStringList mobileFolders READ mobileFolders CONSTANT)
+  Q_PROPERTY(QVariantMap insets READ insets NOTIFY insetsChanged)   // the phone's status / navigation bars over the app (device-independent px)
 public:
   explicit System(QObject *parent = nullptr);
   ~System() override;
@@ -54,13 +55,17 @@ public:
   Q_INVOKABLE bool allFilesAccess() const;               // Android 11+: also subtitles and lyrics next to the media
   Q_INVOKABLE void askAllFilesAccess();
   QStringList mobileFolders() const;
+  QVariantMap insets() const { return m_insets; }
+  Q_INVOKABLE void readInsets(qreal dpr);               // again after the window changed (rotation)
 signals:
+  void insetsChanged();
   void openPaths(const QStringList &paths);              // from "Open with" / a second start
   void mediaButton(const QString &button);               // "play", "pause", "next", "previous", "stop"
   void updateChanged();
   void mediaAccessChanged();
 private:
   bool m_access = true;
+  QVariantMap m_insets{ { "top", 0 }, { "bottom", 0 }, { "left", 0 }, { "right", 0 } };
   void setUpdate(const QString &state, const QString &error = {});
   QLocalServer m_server;
   QStringList m_startPaths;

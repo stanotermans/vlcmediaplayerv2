@@ -55,7 +55,11 @@ qt_add_shaders(vlcr "shaders"
 )
 target_include_directories(vlcr PRIVATE src)
 target_compile_definitions(vlcr PRIVATE VLCR_VERSION="${PROJECT_VERSION}")   # the version lives here only
-math(EXPR VLCR_VERSION_CODE "${PROJECT_VERSION_MAJOR} * 10000 + ${PROJECT_VERSION_MINOR} * 100 + ${PROJECT_VERSION_PATCH}")   # Android: 3.0.7 → 30007
+# Android's version code: 3.1.0 → 3010000, plus a build number for more uploads of one version (ANDROID_BUILD)
+if(NOT DEFINED VLCR_BUILD)
+  set(VLCR_BUILD 0)
+endif()
+math(EXPR VLCR_VERSION_CODE "(${PROJECT_VERSION_MAJOR} * 10000 + ${PROJECT_VERSION_MINOR} * 100 + ${PROJECT_VERSION_PATCH}) * 100 + ${VLCR_BUILD}")
 target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)
 if(ANDROID)
   # #53: the APK (qt/packaging/android/build.sh): libVLC for Android and FFmpeg go in as extra native libraries
@@ -65,7 +69,7 @@ if(ANDROID)
     QT_ANDROID_VERSION_NAME ${PROJECT_VERSION}
     QT_ANDROID_VERSION_CODE ${VLCR_VERSION_CODE}
     QT_ANDROID_MIN_SDK_VERSION 28
-    QT_ANDROID_TARGET_SDK_VERSION 35
+    QT_ANDROID_TARGET_SDK_VERSION 36
     QT_ANDROID_EXTRA_LIBS "${VLCR_ANDROID_LIBS}"
     QT_QML_IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}")   # (androiddeployqt finds our VLCR module there)
 elseif(WIN32)

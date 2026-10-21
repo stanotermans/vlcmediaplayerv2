@@ -66,6 +66,26 @@ void Android::askAllFilesAccess() {
   context().callMethod<void>("startActivity", "(Landroid/content/Intent;)V", intent.object());
 }
 
+QVariantMap Android::insets() {
+  QVariantMap m;
+  QAndroidApplication::runOnAndroidMainThread([&m]() {
+    const QJniObject w = context().callObjectMethod("getWindow", "()Landroid/view/Window;");
+    const QJniObject in = w.isValid() ? w.callObjectMethod("getDecorView", "()Landroid/view/View;")
+                                         .callObjectMethod("getRootWindowInsets", "()Landroid/view/WindowInsets;") : QJniObject();
+    if (!in.isValid()) return;
+    if (sdk() >= 30) {   // WindowInsets.Type.systemBars() | displayCutout()
+      const jint types = QJniObject::callStaticMethod<jint>("android/view/WindowInsets$Type", "systemBars")
+                       | QJniObject::callStaticMethod<jint>("android/view/WindowInsets$Type", "displayCutout");
+      const QJniObject i = in.callObjectMethod("getInsets", "(I)Landroid/graphics/Insets;", types);
+      for (const char *k : { "top", "bottom", "left", "right" }) m[k] = i.getField<jint>(k);
+    } else {
+      m["top"] = in.callMethod<jint>("getSystemWindowInsetTop"); m["bottom"] = in.callMethod<jint>("getSystemWindowInsetBottom");
+      m["left"] = in.callMethod<jint>("getSystemWindowInsetLeft"); m["right"] = in.callMethod<jint>("getSystemWindowInsetRight");
+    }
+  }).waitForFinished();
+  return m;
+}
+
 void Android::keepScreenOn(bool on) {
   QAndroidApplication::runOnAndroidMainThread([on]() {
     const QJniObject w = context().callObjectMethod("getWindow", "()Landroid/view/Window;");

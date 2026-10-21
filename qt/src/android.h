@@ -3,6 +3,7 @@
 // on, and the test settings (no environment variables on Android: <app files>/env.txt holds them).
 #pragma once
 #include <QString>
+#include <QVariantMap>
 
 namespace Android {
 void loadTestEnv();               // <external app files>/env.txt: KEY=VALUE lines → the environment (tests)
@@ -13,4 +14,5 @@ void askMediaAccess();            // Android's own question (READ_MEDIA_VIDEO/AU
 bool allFilesAccess();            // Android 11+: "all files" (subtitles and lyrics next to the videos)
 void askAllFilesAccess();         // opens Android's settings page for it
 void keepScreenOn(bool on);
+QVariantMap insets();             // the status / navigation bars over the app: { top, bottom, left, right } in pixels
 }

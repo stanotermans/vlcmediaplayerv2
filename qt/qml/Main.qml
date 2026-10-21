@@ -309,6 +309,11 @@ C.ApplicationWindow {
   // a phone (#53): the views in a bar at the bottom, no library panel, a simpler control bar. compactTest: the same on the
   // desktop (testing)
   readonly property bool compact: (Theme.mobile || !!Settings.values.compactTest) && width < 760
+  // a phone (#53): the status and navigation bars lie over the app (Android 15+); the bars of the app stay clear of them
+  readonly property int safeTop: Theme.mobile && !fsMode ? (System.insets.top || 0) : 0
+  readonly property int safeBottom: Theme.mobile && !fsMode ? (System.insets.bottom || 0) : 0
+  onWidthChanged: if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio))
+  onHeightChanged: if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio))
   Connections { target: System; function onMediaAccessChanged() { if (System.mediaAccess) library.scanFolders(Settings.values.mediaFolders || []); } }
   function osd(text) { osdText.text = text; osdBox.opacity = 1; osdTimer.restart(); }
 
@@ -456,12 +461,13 @@ C.ApplicationWindow {
     Settings.set("lastVersion", System.version);
     System.mediaAttach(win);
     if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
-    if (Settings.values.autoUpdate !== false && !shotPath) updateTimer.start();
+    if (Settings.values.autoUpdate !== false && !shotPath && !Theme.mobile) updateTimer.start();   // (a phone: the store updates it)
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
     // Android (#53): the phone's own media folders, and Android's question for access to them
     if (Qt.platform.os === "android") {
       if (!(Settings.values.mediaFolders || []).length) Settings.set("mediaFolders", System.mobileFolders);
       if (!System.mediaAccess) System.askMediaAccess();
+      System.readInsets(Screen.devicePixelRatio);
     }
     library.load();
     importFromV2();
@@ -560,7 +566,7 @@ C.ApplicationWindow {
     id: titlebar
     visible: !win.hideUi
     anchors { left: parent.left; right: parent.right }
-    y: win.fsMode ? (win.fsTop ? 0 : -height) : 0
+    y: win.fsMode ? (win.fsTop ? 0 : -height) : win.safeTop
     opacity: win.fsMode && !win.fsTop ? 0 : 1
     Behavior on y { enabled: win.fsMode; NumberAnimation { duration: 200 } }
     Behavior on opacity { NumberAnimation { duration: 200 } }
@@ -791,7 +797,7 @@ C.ApplicationWindow {
     ctl: win
     visible: !win.hideUi
     anchors { left: parent.left; right: parent.right }
-    y: win.fsMode ? (win.fsBottom ? win.height - height : win.height) : win.height - height
+    y: win.fsMode ? (win.fsBottom ? win.height - height : win.height) : win.height - height - win.safeBottom
     opacity: win.fsMode && !win.fsBottom ? 0 : 1
     Behavior on y { enabled: win.fsMode; NumberAnimation { duration: 200 } }
     Behavior on opacity { NumberAnimation { duration: 200 } }

@@ -1,10 +1,15 @@
 name: Android
 
 # Vela Player for Android (#53): the app for the emulator (x86_64) and for phones (arm64-v8a), tried in an Android 14
-# emulator that plays a test video. By hand for now ("Actions" → "Android" → "Run workflow"); the APKs are only
-# build artifacts here: the app goes out through Google Play, not through GitHub releases.
+# emulator that plays a test video, and the app bundle for Google Play (.aab, signed with the upload key from the
+# ANDROID_UPLOAD_KEYSTORE / ANDROID_UPLOAD_PASS secrets; "android-bundle" under the run's artifacts). Nothing goes to
+# GitHub releases: the app goes out through Google Play. Upload number: "Run workflow" asks for it (version code).
 on:
   workflow_dispatch:
+    inputs:
+      build:
+        description: 'Upload number for this version (raises the version code: 0, 1, 2, …)'
+        default: '0'
   push:
     branches: [android]     # (work in progress on the Android version)
 
@@ -50,7 +55,7 @@ jobs:
       - name: Ninja and the NDK
         run: |
           sudo apt-get update -q && sudo apt-get install -yq ninja-build
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" "platforms;android-36" "build-tools;36.0.0" > /dev/null
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
       - name: Qt for the build machine
         uses: jurplel/install-qt-action@v4
@@ -99,3 +104,36 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: android-emulator, path: emu-out/ }
+
+  bundle:
+    needs: ffmpeg
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - name: Ninja and the NDK
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq ninja-build
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Qt for the build machine
+        uses: jurplel/install-qt-action@v4
+        with: { version: '${{ env.QT_VERSION }}', host: linux, target: desktop, arch: linux_gcc_64, modules: qtmultimedia qtshadertools, cache: true }
+      - run: echo "QT_HOST_PATH=$QT_ROOT_DIR" >> "$GITHUB_ENV"
+      - name: Qt for Android
+        uses: jurplel/install-qt-action@v4
+        with: { version: '${{ env.QT_VERSION }}', host: all_os, target: android, arch: android_arm64_v8a, modules: qtmultimedia qtshadertools, cache: true }
+      - uses: actions/download-artifact@v4
+        with: { name: ffmpeg-android-arm64, path: ffbin }
+      - name: The app bundle for Google Play
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE }}
+          APK_KEYSTORE_PASS: ${{ secrets.ANDROID_UPLOAD_PASS }}
+          ANDROID_BUILD: ${{ inputs.build || '0' }}
+        run: |
+          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload.p12"
+          FORMAT=aab APK_KEYSTORE="$RUNNER_TEMP/upload.p12" bash qt/packaging/android/build.sh arm64-v8a "$QT_ROOT_DIR" ffbin/ffmpeg bundle
+          rm -f "$RUNNER_TEMP/upload.p12"
+      - uses: actions/upload-artifact@v4
+        with: { name: android-bundle, path: 'bundle/*.aab', if-no-files-found: error }

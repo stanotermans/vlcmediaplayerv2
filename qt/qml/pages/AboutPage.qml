@@ -20,6 +20,7 @@ Column {
         text: qsTr("Plays with libVLC, the engine of VLC media player. Not made by or affiliated with VideoLAN, the makers of VLC.") }
   }
   Section {
+    visible: !Theme.mobile   // (a phone: the store updates the app)
     title: "Updates"
     SettingRow { label: "Check for updates automatically"; Toggle { path: "autoUpdate" } }
     T {   // .upd-status
