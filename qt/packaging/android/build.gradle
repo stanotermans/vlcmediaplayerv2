@@ -23,6 +23,7 @@ dependencies {
     //noinspection GradleDependency
     implementation 'androidx.core:core:1.13.1'
     implementation 'com.android.billingclient:billing:7.1.1'   // Vela Player Pro (src/.../VelaStore.java)
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')   // (one Kotlin version for billing and androidx)
 }
 
 android {
