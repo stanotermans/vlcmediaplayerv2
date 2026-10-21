@@ -233,9 +233,14 @@ app/
 docs/              Download page for GitHub Pages
 ```
 
-## ❓ Why not iOS, Android, …?
+## 📱 iOS, Android, …?
 
 We are working on making a port to iOS and Android.
+
+- **Android** is on its way to **Google Play**: the same app with a layout for phones, the phone's videos and music, and the same libVLC engine.
+- **iOS** follows after Android, through the **App Store**.
+- **Apple TV** needs a separate app (the toolkit, Qt, doesn't run on tvOS); that may come later.
+- **Windows Phone** has been discontinued. **FreeBSD and OpenBSD** can [run it from source](#bsd).
 
 ## 🤝 Community
 
