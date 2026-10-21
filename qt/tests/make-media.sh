@@ -35,7 +35,7 @@ ff -f lavfi -i "sine=f=523:d=10" -c:a flac "$M/song.flac"
 printf '[ti:Test song]\n[00:01.00]Line one\n[00:03.00]Line two\n[00:05.00]Line three\n' > "$M/song.lrc"
 
 # a 360° video (#78): 2:1, marked as equirectangular in its Matroska track (FFmpeg cannot write that itself)
-ff -f lavfi -i "testsrc2=s=1280x640:r=25:d=6" -c:v libx264 -g 25 -pix_fmt yuv420p "$OUT/flat360.mkv"
+ff -f lavfi -i "testsrc2=s=1280x640:r=25:d=12" -c:v libx264 -g 25 -pix_fmt yuv420p "$OUT/flat360.mkv"
 python3 "$(dirname "$0")/mark360.py" "$OUT/flat360.mkv" "$M/sphere.mkv"; rm "$OUT/flat360.mkv"
 
 # a folder with episodes

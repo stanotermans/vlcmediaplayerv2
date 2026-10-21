@@ -36,7 +36,8 @@ Rectangle {
     pitch = Math.max(-90, Math.min(90, pitch + dy * k));
   }
   function zoom360(steps) { fov = Math.max(30, Math.min(120, fov - steps * 5)); }
-  onItChanged: { force360 = null; reset360(); }
+  readonly property string src: it ? it.src : ""
+  onSrcChanged: { force360 = null; reset360(); }   // another file (not the same one with fresh library data)
   Connections { target: root.ctl.player; function onProjectionChanged() { root.reset360(); } }
   onOn360Changed: if (on360 && force360 === null) ctl.osd(qsTr("360° video: drag to look around"))
 

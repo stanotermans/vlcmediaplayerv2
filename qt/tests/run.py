@@ -212,8 +212,9 @@ def resume_ask(c):   # #79: Resume set to Ask starts from the beginning and offe
 @test
 def view360(c):   # #78: a 360° video is shown as a view to look around in (drag) and zoom (wheel); a flat one is not
     c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['log:"on=" + playerView.on360'] + PLAY('sphere.mkv', 2000) + [
+                    'log:"playing=" + player.playing', 'pause',   # (paused: the next file in the folder must not start during the test)
                     'log:"on=" + playerView.on360', 'log:"p=" + player.projection', 'log:"yaw=" + playerView.yaw', 'look:-100,0', 'zoom:2',
-                    'log:"yaw=" + Math.round(playerView.yaw)', 'log:"fov=" + playerView.fov', 'log:"playing=" + player.playing', 'pause'])
+                    'log:"yaw=" + Math.round(playerView.yaw)', 'log:"fov=" + playerView.fov'])
     c.eq('on', 'false', 0); c.eq('on', 'true', 1); c.eq('p', 1); c.eq('yaw', 0, 0)
     c.ok(c.get('yaw', 1) not in (None, '0'), 'dragging did not turn the view'); c.eq('fov', 70); c.eq('playing', 'true')
 
