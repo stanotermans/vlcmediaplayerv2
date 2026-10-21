@@ -40,6 +40,7 @@
     <category>Player</category>
   </categories>
   <releases>
+    <release version="3.0.7" date="2026-10-21"/>
     <release version="3.0.6" date="2026-10-20"/>
     <release version="3.0.5" date="2026-10-20"/>
     <release version="3.0.4" date="2026-10-20"/>

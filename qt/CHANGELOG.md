@@ -1,3 +1,7 @@
+## 3.0.7
+- ✨ **360° video:** 360° videos are shown as a view you look around in. Drag to look, use the wheel to zoom, and use the right-click menu → Video to turn it on for files that don't say they're 360° (#78).
+- ✨ **Resume where you left off: Always, Ask or Never.** With *Ask* a video starts from the beginning and a bar offers to continue where you were (#79).
+
 ## 3.0.6
 - 🐛 The cursor stays visible in Settings, dialogs and menus opened in fullscreen (#60).
 - 📦 **Flatpak with updates:** `flatpak install https://stanotermans.github.io/vlcmediaplayerv2/flatpak/vlc-redesign.flatpakref`, then `flatpak update` brings new versions (#54).
