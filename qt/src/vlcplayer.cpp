@@ -31,8 +31,8 @@ typedef unsigned (*format_cb)(void **, char *, unsigned *, unsigned *, unsigned 
 typedef void (*cleanup_cb)(void *);
 struct track_desc { int id; char *name; track_desc *next; };   // libvlc_track_description_t
 struct title_desc { int64_t duration; char *name; unsigned flags; };   // libvlc_title_description_t
-// libvlc_media_track_t and libvlc_video_track_t (libVLC 3), for the pixel aspect ratio
-struct video_track { unsigned height, width, sar_num, sar_den, fr_num, fr_den; };
+// libvlc_media_track_t and libvlc_video_track_t (libVLC 3), for the pixel aspect ratio and 360° video (#78)
+struct video_track { unsigned height, width, sar_num, sar_den, fr_num, fr_den; int orientation, projection; float yaw, pitch, roll, fov; };
 struct media_track { uint32_t codec, fourcc; int id; int type; int profile, level; void *detail; unsigned bitrate; char *language, *description; };
 static struct {
   libvlc_instance_t *(*new_)(int, const char *const *);
@@ -295,6 +295,7 @@ void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &opti
   auto *mp = vlc.mp_new_from_media(m); vlc.media_release(m);
   m_mp = mp; m_frames = 0; m_state = 0; m_last = QVideoFrame();
   m_spu = -1; m_spuDelay = 0; m_spuApplied = false; m_sar = 0;
+  if (m_projection) { m_projection = 0; emit projectionChanged(); }
   if (!m_error.isEmpty()) { m_error.clear(); emit errorChanged(); }
   vlc.video_set_callbacks(mp, onLock, onUnlock, onDisplay, this);
   vlc.video_set_format_callbacks(mp, onFormat, onCleanup);
@@ -409,8 +410,15 @@ void VlcPlayer::poll() {
       m_sar = 1;
       if (libvlc_media_t *m = vlc.mp_get_media(mp)) {
         media_track **t = nullptr; const unsigned n = vlc.media_tracks_get(m, &t);
+        bool first = true;
         for (unsigned i = 0; i < n; i++) if (t[i]->type == 1 && t[i]->detail) {   // libvlc_track_video
           const auto *v = static_cast<video_track *>(t[i]->detail);
+          if (first) {   // #78: a 360° video (libvlc_video_projection_equirectangular) and the view it starts at
+            first = false;
+            const int p = v->projection == 1 ? 1 : 0;
+            m_pose = { double(v->yaw), double(v->pitch), double(v->fov) };
+            if (p != m_projection) { m_projection = p; emit projectionChanged(); if (gone()) { vlc.media_tracks_release(t, n); vlc.media_release(m); return; } }
+          }
           if (v->sar_num && v->sar_den && v->width == vw) { m_sar = double(v->sar_num) / v->sar_den; break; }
         }
         if (t) vlc.media_tracks_release(t, n);

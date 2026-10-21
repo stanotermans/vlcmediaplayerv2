@@ -87,7 +87,7 @@ def library(c):
                         'view:music', 'log:"music="+vis.length', 'view:videos', 'query:surround', 'log:"found="+vis.map(i => i.name).join(",")',
                         'log:"nat="+["ep11", "Ep2", "ep1", "ep10", "ep2b"].sort(Lib.natCompare).join(",")'])
     c.vals = v
-    c.eq('items', 8); c.eq('folders', 1); c.eq('music', 2); c.eq('found', 'surround.mp4')
+    c.eq('items', 9); c.eq('folders', 1); c.eq('music', 2); c.eq('found', 'surround.mp4')
     c.eq('nat', 'ep1,Ep2,ep2b,ep10,ep11')   # #62: numbers in their order
 
 @test
@@ -208,6 +208,14 @@ def resume_ask(c):   # #79: Resume set to Ask starts from the beginning and offe
     c.eq('offer', 6, 0); c.eq('bar', 'true', 0); c.near('t', 2500, 1700, 0)   # from the beginning (each step takes 0.5 s), with the bar
     c.eq('offer', 0, 1); c.eq('bar', 'false', 1); c.near('t', 8000, 1300, 1)   # Resume: on from the saved place
     c.eq('offer', 0, 2); c.near('t', 2500, 1700, 2)                            # Never: from the beginning, no bar
+
+@test
+def view360(c):   # #78: a 360° video is shown as a view to look around in (drag) and zoom (wheel); a flat one is not
+    c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['log:"on=" + playerView.on360'] + PLAY('sphere.mkv', 2000) + [
+                    'log:"on=" + playerView.on360', 'log:"p=" + player.projection', 'log:"yaw=" + playerView.yaw', 'look:-100,0', 'zoom:2',
+                    'log:"yaw=" + Math.round(playerView.yaw)', 'log:"fov=" + playerView.fov', 'log:"playing=" + player.playing', 'pause'])
+    c.eq('on', 'false', 0); c.eq('on', 'true', 1); c.eq('p', 1); c.eq('yaw', 0, 0)
+    c.ok(c.get('yaw', 1) not in (None, '0'), 'dragging did not turn the view'); c.eq('fov', 70); c.eq('playing', 'true')
 
 @test
 def probe_cache(c):   # #59: the next start shows the library complete at once, without FFmpeg reading every file again

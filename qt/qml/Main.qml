@@ -498,6 +498,8 @@ C.ApplicationWindow {
     else if (k === "query") { browser.search.text = v; setQuery(v); }
     else if (k === "settings") openSettings(v);
     else if (k === "resume") pb.acceptResume();
+    else if (k === "look") playerView.look360(+v.split(",")[0], +v.split(",")[1]);
+    else if (k === "zoom") playerView.zoom360(+v);
     else if (k === "play") { const i = vis.find(x => x.name === v) || vis[+v || 0]; playItem(i, vis); }
     else if (k === "seek") pb.seekTo(+v);
     else if (k === "pause") player.pause();
@@ -713,6 +715,8 @@ C.ApplicationWindow {
           { label: qsTr("Fullscreen"), icon: "fullscreen", kbd: "F", action: toggleFs },
           { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !it },
           { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !it },
+          { label: qsTr("360° video"), checked: playerView.on360, action: () => { playerView.force360 = !playerView.on360; playerView.reset360(); }, disabled: !it || !playerView.showVideo },
+          { label: qsTr("Reset 360° view"), action: () => playerView.reset360(), disabled: !playerView.on360 },
           { sep: true }, { header: qsTr("Aspect ratio") }
         ].concat([["", "Default"], ["fill", "Fill"], ["stretch", "Stretch"]].map(([v, l]) => ({ label: qsTr(l), checked: (Settings.values.aspect || "") === v, action: () => Settings.set("aspect", v) })), [
           { sep: true },

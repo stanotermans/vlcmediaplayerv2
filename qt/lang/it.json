@@ -674,5 +674,8 @@
 "Ask": "Chiedi",
 "Never": "Mai",
 "Resume": "Riprendi",
-"Continue from {time}?": "Riprendere da {time}?"
+"Continue from {time}?": "Riprendere da {time}?",
+"360° video: drag to look around": "Video a 360°: trascina per guardarti intorno",
+"360° video": "Video a 360°",
+"Reset 360° view": "Ripristina la vista a 360°"
 }

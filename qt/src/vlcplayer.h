@@ -35,6 +35,8 @@ class VlcPlayer : public QObject {
   Q_PROPERTY(bool logAll READ logAll WRITE setLogAll NOTIFY logChanged)              // more libVLC start options (passthrough), before the first file
   Q_PROPERTY(bool isDvd READ isDvd NOTIFY stateChanged)
   Q_PROPERTY(QSize frameSize READ frameSize NOTIFY videoSizeChanged)   // the picture in pixels (before the pixel aspect)
+  Q_PROPERTY(int projection READ projection NOTIFY projectionChanged)  // #78: 1 = a 360° video (equirectangular), 0 = flat
+  Q_PROPERTY(QVariantList pose READ pose NOTIFY projectionChanged)     // its starting view: [yaw, pitch, field of view] in degrees
   Q_PROPERTY(int title READ title NOTIFY titleChanged)               // DVD: the title that plays (menus are titles too)
   Q_PROPERTY(bool recording READ recording NOTIFY recordingChanged)
   Q_PROPERTY(QString error READ error NOTIFY errorChanged)
@@ -65,6 +67,8 @@ public:
   bool logAll() const { return m_logAll; }
   void setLogAll(bool a);
   QSize frameSize() const { return m_frameSize; }
+  int projection() const { return m_projection; }
+  QVariantList pose() const { return m_pose; }
   int title() const { return m_title; }
   bool recording() const { return m_recording; }
   QString error() const { return m_error; }
@@ -115,6 +119,7 @@ signals:
   void volumeChanged();
   void rateChanged();
   void videoSizeChanged();
+  void projectionChanged();
   void errorChanged();
   void ended();          // played to the end
   void failed();         // libVLC could not play it
@@ -160,6 +165,8 @@ private:
   void applyFx(void *o) const;
   void applyStereo() const;
   double m_sar = 0;                       // pixel aspect ratio of the video track (0: not read yet)
+  int m_projection = 0;
+  QVariantList m_pose;
   int m_spu = -1;
   qint64 m_spuDelay = 0;
   bool m_keepSpu = false, m_spuApplied = false;

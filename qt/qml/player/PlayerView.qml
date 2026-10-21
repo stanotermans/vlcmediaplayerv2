@@ -20,6 +20,26 @@ Rectangle {
   property alias pixelCat: pixelCat   // testing
   clip: true
 
+  // ---------- #78: 360° video: drag to look around, the wheel zooms (VLC's own default view: 80°) ----------
+  property var force360: null          // the menu's choice for this file (null: the file says it)
+  readonly property bool on360: showVideo && (force360 !== null ? force360 : ctl.player.projection === 1)
+  property real yaw: 0                 // degrees
+  property real pitch: 0
+  property real fov: 80
+  function reset360() {
+    const p = ctl.player.pose || [];
+    yaw = p[0] || 0; pitch = p[1] || 0; fov = p[2] > 0 ? Math.max(30, Math.min(120, p[2])) : 80;
+  }
+  function look360(dx, dy) {           // a drag of dx, dy pixels: the picture follows the mouse
+    const k = fov / Math.max(1, height);
+    yaw = ((yaw - dx * k) % 360 + 540) % 360 - 180;
+    pitch = Math.max(-90, Math.min(90, pitch + dy * k));
+  }
+  function zoom360(steps) { fov = Math.max(30, Math.min(120, fov - steps * 5)); }
+  onItChanged: { force360 = null; reset360(); }
+  Connections { target: root.ctl.player; function onProjectionChanged() { root.reset360(); } }
+  onOn360Changed: if (on360 && force360 === null) ctl.osd(qsTr("360° video: drag to look around"))
+
   Rectangle {   // .floor
     visible: !root.showVideo && !root.abOn && !root.ctl.sb.lyricsOn
     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
@@ -86,6 +106,24 @@ Rectangle {
           onClicked: m => root.ctl.en.dvdMouse(video, m.x, m.y, true)
         }
       }
+    }
+    ShaderEffectSource {   // #78: the whole picture (at its own size) for the 360° view
+      id: src360
+      sourceItem: root.on360 ? video : null
+      hideSource: root.on360
+      visible: false
+      wrapMode: ShaderEffectSource.Repeat
+      textureSize: Qt.size(Math.min(4096, root.ctl.player.frameSize.width), Math.min(4096, root.ctl.player.frameSize.height))
+    }
+    ShaderEffect {
+      anchors.fill: parent
+      visible: root.on360
+      readonly property var source: src360
+      readonly property real yaw: root.yaw * Math.PI / 180
+      readonly property real pitch: root.pitch * Math.PI / 180
+      readonly property real fov: root.fov * Math.PI / 180
+      readonly property real aspect: width / Math.max(1, height)
+      fragmentShader: "qrc:/shaders/view360.frag.qsb"
     }
   }
 
@@ -156,9 +194,18 @@ Rectangle {
     z: -1
     acceptedButtons: Qt.LeftButton | Qt.RightButton
     hoverEnabled: true
-    cursorShape: root.ctl.cursorHidden ? Qt.BlankCursor : Qt.ArrowCursor
+    cursorShape: root.ctl.cursorHidden ? Qt.BlankCursor : root.on360 ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor) : Qt.ArrowCursor
     property bool skipClick: false
-    onPressed: m => { if (m.button === Qt.LeftButton) hold.restart(); }
+    property point last
+    property bool dragged: false
+    onPressed: m => { last = Qt.point(m.x, m.y); dragged = false; if (m.button === Qt.LeftButton) hold.restart(); }
+    onPositionChanged: m => {   // #78: dragging a 360° video looks around (and is no click or 2× hold)
+      if (!root.on360 || !(m.buttons & Qt.LeftButton)) return;
+      const dx = m.x - last.x, dy = m.y - last.y;
+      if (!dragged && Math.abs(dx) + Math.abs(dy) < 4) return;
+      if (!dragged) { dragged = true; hold.stop(); skipClick = true; }
+      root.look360(dx, dy); last = Qt.point(m.x, m.y);
+    }
     onReleased: { hold.stop(); if (root.ctl.pb.fast && root.ctl.pb.fastKey === 0) root.ctl.pb.fastEnd(); }
     onCanceled: { hold.stop(); if (root.ctl.pb.fast && root.ctl.pb.fastKey === 0) root.ctl.pb.fastEnd(); }
     onClicked: m => {
@@ -169,6 +216,7 @@ Rectangle {
     }
     onDoubleClicked: { click.stop(); if ((Settings.values.dblclick || "fullscreen") === "fullscreen") root.ctl.toggleFs(); else root.ctl.pb.togglePlay(); }
     onWheel: w => {
+      if (root.on360) return root.zoom360(w.angleDelta.y / 120);   // #78: zoom in and out of a 360° video
       const mode = Settings.values.wheel || "volume";
       if (mode === "volume") { root.ctl.player.muted = false; root.ctl.pb.setVol(root.ctl.pb.volume + (w.angleDelta.y > 0 ? 0.05 : -0.05)); root.ctl.pb.volOsd(); }
       else if (mode === "seek") root.ctl.pb.seekTo(root.ctl.pb.curTime() + (w.angleDelta.y > 0 ? 5 : -5));
