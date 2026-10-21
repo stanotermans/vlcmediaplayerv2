@@ -44,7 +44,7 @@ jobs:
       - name: Build the APK
         run: bash qt/packaging/android/build.sh ${{ matrix.abi }} "$QT_ROOT_DIR" "" apk
       - uses: actions/upload-artifact@v4
-        with: { name: android-${{ matrix.abi }}, path: apk/*.apk, if-no-files-found: error }
+        with: { name: 'android-${{ matrix.abi }}', path: 'apk/*.apk', if-no-files-found: error }
 
   emulator:
     needs: build
