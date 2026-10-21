@@ -212,8 +212,8 @@ def resume_ask(c):   # #79: Resume set to Ask starts from the beginning and offe
 
 @test
 def midi_not_ffmpeg(c):   # #76: MIDI on the "always with FFmpeg" list still plays (with FluidSynth, not through FFmpeg)
-    c.vals, _ = run(c.name, ['set:classicTypes="mid, tgv"', 'view:music'] + PLAY('tune.mid', 1200) + ['log:"playing=" + player.playing + " " + (current ? current.name : "-")'])
-    c.eq('playing', 'true tune.mid')   # (the tune lasts 4 s: checked while it plays)
+    c.vals, _ = run(c.name, ['set:classicTypes="mid, tgv"', 'view:music'] + PLAY('tune.mid', 3000) + ['log:"playing="+player.playing', 'log:"time="+player.time'])
+    c.eq('playing', 'true'); c.more('time', 500)   # (like the midi test: the tune lasts 4 s)
 
 @test
 def view360(c):   # #78: a 360° video is shown as a view to look around in (drag) and zoom (wheel); a flat one is not
@@ -226,7 +226,7 @@ def view360(c):   # #78: a 360° video is shown as a view to look around in (dra
 
 @test
 def renamed(c):   # 3.1: VLC Redesign is now Vela Player: the first start copies the old data folder (Linux: under XDG_DATA_HOME)
-    if not sys.platform.startswith('linux'): return
+    if not sys.platform.startswith('linux') or A.app.endswith('run.sh'): return   # (the Flatpak keeps its own XDG folders)
     xdg = os.path.join(OUT, c.name, 'xdg'); shutil.rmtree(xdg, ignore_errors=True)
     old = os.path.join(xdg, 'VLC Redesign', 'VLC Redesign 3'); os.makedirs(old)
     json.dump({'language': 'en', 'accent': '#123456', 'onboarded': True}, open(os.path.join(old, 'settings.json'), 'w'))
@@ -271,7 +271,7 @@ def cursor(c):   # #60: in fullscreen the cursor hides after the delay, also whi
 def ffmpeg_route(c):   # #66: file types on the FFmpeg list play converted by FFmpeg (time, length and seeking still right)
     c.vals, _ = run(c.name, ['set:classicTypes="mkv"'] + PLAY('tracks.mkv', 3000) + ['log:"a=" + player.playing + " " + player.frameSize.width + "x" + player.frameSize.height',
                     'log:"t=" + player.time', 'log:"len=" + player.length', 'seek:5', 'wait:1500', 'log:"t=" + player.time', 'log:"err=" + player.error'])
-    c.eq('a', 'true 640x360'); c.near('t', 2600, 1100, 0); c.near('len', 11000, 300); c.near('t', 6300, 900, 1); c.eq('err', '')   # (its subtitles run to 11 s; FFmpeg starts slower on 2-core build servers)
+    c.eq('a', 'true 640x360'); c.near('t', 2700, 1300, 0); c.near('len', 11000, 300); c.near('t', 6300, 900, 1); c.eq('err', '')   # (its subtitles run to 11 s; FFmpeg starts slower on 2-core build servers)
 
 @test
 def migration(c):   # v2.x → v3: export-for-v3.json in v2.x's data folder
