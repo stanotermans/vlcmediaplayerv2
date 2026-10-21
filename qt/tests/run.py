@@ -200,6 +200,16 @@ def settings_kept(c):   # settings and positions survive a restart
     c.eq('accent', '#3b82f6'); c.eq('jump', 30); c.near('pos', 6, 1)
 
 @test
+def resume_ask(c):   # #79: Resume set to Ask starts from the beginning and offers the saved place; Never starts over
+    c.vals, _ = run(c.name, ['set:resumeMode="ask"'] + PLAY('video.mp4', 1500) + ['pause', 'seek:6', 'wait:800', 'play:video.mp4', 'wait:1500',
+                    'log:"offer=" + Math.round(pb.resumeOffer)', 'log:"bar=" + resumeBar.visible', 'log:"t=" + player.time', 'resume', 'wait:800',
+                    'log:"offer=" + Math.round(pb.resumeOffer)', 'log:"bar=" + resumeBar.visible', 'log:"t=" + player.time',
+                    'set:resumeMode="never"', 'pause', 'seek:6', 'wait:800', 'play:video.mp4', 'wait:1500', 'log:"offer=" + Math.round(pb.resumeOffer)', 'log:"t=" + player.time'])
+    c.eq('offer', 6, 0); c.eq('bar', 'true', 0); c.near('t', 2500, 1700, 0)   # from the beginning (each step takes 0.5 s), with the bar
+    c.eq('offer', 0, 1); c.eq('bar', 'false', 1); c.near('t', 8000, 1300, 1)   # Resume: on from the saved place
+    c.eq('offer', 0, 2); c.near('t', 2500, 1700, 2)                            # Never: from the beginning, no bar
+
+@test
 def probe_cache(c):   # #59: the next start shows the library complete at once, without FFmpeg reading every file again
     _, prof = run(c.name, ['view:videos', 'wait:4000'])
     c.vals, _ = run(c.name, ['view:videos', 'log:"dur="+Math.round(vis.find(i => i.name === "video.mp4").duration)', 'log:"busy="+library.busy'],

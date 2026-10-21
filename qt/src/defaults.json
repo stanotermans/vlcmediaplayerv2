@@ -52,6 +52,7 @@
   "showBadge": true,
   "rememberRecent": true,
   "resume": true,
+  "resumeMode": "always",
   "speed": 1,
   "jump": 10,
   "repeat": "off",

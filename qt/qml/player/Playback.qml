@@ -29,6 +29,8 @@ QtObject {
   function mrl(i) { return i.remote ? i.src : dvdRe.test(i.src) ? dvdMrl(i.src) : i.src; }
 
   property bool fit: false               // resize the window to the next video once its size is known
+  property real resumeOffer: 0           // #79: the saved place the resume bar offers (seconds; 0 = no bar)
+  function acceptResume() { const t = resumeOffer; resumeOffer = 0; if (t) { seekTo(t); osd(qsTr("Resuming from %1").arg(Lib.shortFmt(t))); } }
   function playItem(i, list) {
     if (!i) return;
     savePos();
@@ -37,7 +39,11 @@ QtObject {
     ctl.current = i; ctl.sideOverride = false;
     library.playing = i.src; library.hurry(i.src);
     const pos = library.positions[i.src];
-    const resumeAt = Settings.values.resume && pos && pos < (i.duration || 1e9) - 5 ? pos : 0;
+    const saved = Settings.values.resume && pos && pos < (i.duration || 1e9) - 5 ? pos : 0;
+    // #79: "always" resumes, "ask" starts from the beginning and offers the saved place (the bar), "never" starts over
+    const mode = Settings.values.resumeMode || "always";
+    const resumeAt = mode === "always" ? saved : 0;
+    resumeOffer = mode === "ask" ? saved : 0;
     fit = true;
     player.keepSpu = dvdRe.test(i.src);              // a DVD's menus and subtitles stay libVLC's
     player.open(mrl(i), resumeAt * 1000, ctl.en.options(i.src));
@@ -94,6 +100,7 @@ QtObject {
   function savePos() {
     if (!it) return;
     const d = curDur(), t = curTime(); if (!d) return;
+    if (resumeOffer) return;                         // #79: the offered place stays saved until it is taken or turned down
     if (t > d * 0.95) library.setWatched([it.src], true);
     library.setPosition(it.src, Settings.values.resume && t > 5 && t < d - 5 ? Math.floor(t) : 0);
   }

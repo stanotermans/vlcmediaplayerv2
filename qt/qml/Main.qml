@@ -497,6 +497,7 @@ C.ApplicationWindow {
     else if (k === "watched") library.setWatched([vis[0].src], true);
     else if (k === "query") { browser.search.text = v; setQuery(v); }
     else if (k === "settings") openSettings(v);
+    else if (k === "resume") pb.acceptResume();
     else if (k === "play") { const i = vis.find(x => x.name === v) || vis[+v || 0]; playItem(i, vis); }
     else if (k === "seek") pb.seekTo(+v);
     else if (k === "pause") player.pause();
@@ -657,6 +658,22 @@ C.ApplicationWindow {
         Behavior on opacity { NumberAnimation { duration: 250 } }
         T { id: osdText; anchors.centerIn: parent; color: "#ffffff" }
         Timer { id: osdTimer; interval: 1500; onTriggered: osdBox.opacity = 0 }
+      }
+      Rectangle {   // #79: "Continue from 12:34?" when Resume is set to Ask (like VLC's own bar); goes after 10 s
+        id: resumeBar
+        readonly property real at: pb.resumeOffer
+        anchors.horizontalCenter: parent.horizontalCenter; y: 16
+        width: resumeRow.implicitWidth + 24; height: 44; radius: 22; color: "#e6000000"
+        visible: at > 0 && win.inPlayer; z: 6
+        onAtChanged: if (at > 0) resumeT.restart()
+        Timer { id: resumeT; interval: 10000; onTriggered: pb.resumeOffer = 0 }
+        Row {
+          id: resumeRow
+          anchors.centerIn: parent; spacing: 10
+          T { anchors.verticalCenter: parent.verticalCenter; color: "#ffffff"; text: qsTr("Continue from %1?").arg(Lib.shortFmt(resumeBar.at)) }
+          Button { anchors.verticalCenter: parent.verticalCenter; compact: true; kind: "primary"; text: qsTr("Resume"); onClicked: pb.acceptResume() }
+          IconButton { anchors.verticalCenter: parent.verticalCenter; name: "x"; tip: qsTr("Close"); onClicked: pb.resumeOffer = 0 }
+        }
       }
     }
   }

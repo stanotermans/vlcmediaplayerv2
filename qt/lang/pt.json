@@ -669,5 +669,10 @@
 "Always play with Classic (FFmpeg)": "Reproduzir sempre com Clássico (FFmpeg)",
 "File types (extensions) that always play with the Classic engine, for files the VLC engine shows wrongly. Separate them with commas. Also in the right-click menu of a file.": "Tipos de ficheiro (extensões) que são sempre reproduzidos com o motor Clássico, para ficheiros que o motor VLC mostra mal. Separe-os com vírgulas. Também no menu do clique direito de um ficheiro.",
 "e.g. tgv, bik": "p. ex. tgv, bik",
-"Always play .{ext} files with FFmpeg (Classic)": "Reproduzir sempre ficheiros .{ext} com o FFmpeg (Clássico)"
+"Always play .{ext} files with FFmpeg (Classic)": "Reproduzir sempre ficheiros .{ext} com o FFmpeg (Clássico)",
+"Always": "Sempre",
+"Ask": "Perguntar",
+"Never": "Nunca",
+"Resume": "Retomar",
+"Continue from {time}?": "Continuar a partir de {time}?"
 }

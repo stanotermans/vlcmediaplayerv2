@@ -81,7 +81,7 @@ Rectangle {
         SettingRow { label: "Shuffle"; Toggle { path: "shuffle" } }
         SettingRow { label: "Autoplay next item"; Toggle { path: "autoNext" } }
         SettingRow { label: "Skip interval"; Select { width: 160; path: "jump"; options: [[5, "5 s"], [10, "10 s"], [30, "30 s"], [60, "1 min"]] } }
-        SettingRow { label: "Resume where you left off"; Toggle { path: "resume" } }
+        SettingRow { label: "Resume where you left off"; Select { width: 160; path: "resumeMode"; options: [["always", "Always"], ["ask", "Ask"], ["never", "Never"]] } }
       }
     }
   }
