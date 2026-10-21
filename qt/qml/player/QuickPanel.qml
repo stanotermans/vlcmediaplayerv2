@@ -13,7 +13,7 @@ Rectangle {
   readonly property var sb: ctl.sb
   function toggle(t) { if (open && (!t || t === tab)) { open = false; return; } open = true; if (t) tab = t; }
   visible: open
-  width: 400
+  width: Math.min(400, ctl.width - 24)
   radius: 10; color: Theme.panel; border.width: 1; border.color: Theme.line
   clip: true
   // keep clicks inside the panel from reaching the player

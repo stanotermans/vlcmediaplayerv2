@@ -20,6 +20,7 @@ QtObject {
   function alpha(c, a) { if (typeof c === "string") c = Qt.lighter(c, 1); return Qt.rgba(c.r, c.g, c.b, a); }   // also "#rrggbb"
 
   readonly property color accent: Settings.values.accent || "#f28c1b"
+  readonly property bool mobile: Qt.platform.os === "android" || Qt.platform.os === "ios"   // touch, no window frame
   // readable text on the accent (a light grey accent needs dark text)
   // the logo (assets/icon.svg without its tile): the sail-shaped play button in a circle of the accent colour
   readonly property string logo: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 20 80 80"><circle cx="60" cy="60" r="38" fill="' + accent + '"/><path d="M50 38 C 62 50, 64 70, 50 82 L 82 60 Z" fill="' + accentText + '"/></svg>')

@@ -1,10 +1,10 @@
-# Renders icon.svg's shapes (Vela Player: a sail-shaped play button in a circle on a coral tile) to the icon files:
+# Renders icon.svg's shapes (Vela Player: a sail-shaped play button in an orange circle on a dark tile) to the icon files:
 # icon.png (1024 px, the app and the packages), ../packaging/windows/icon.ico, ../packaging/android/res/drawable/icon.png
 # and ../../docs/icon.png. Needs Pillow:  python qt/assets/make-icon.py
 import os
 from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
-TILE, DARK, SAIL = (0xF5, 0xC4, 0xB3), (0x4A, 0x1B, 0x0C), (0xF0, 0x99, 0x7B)
+TILE, DARK, SAIL = (0x14, 0x14, 0x14), (0xF2, 0x8C, 0x1B), (0x14, 0x14, 0x14)   # the app's colours: its dark background and orange accent
 
 def bezier(p0, p1, p2, p3, n=64):
     return [tuple((1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t ** 2 * c + t ** 3 * d

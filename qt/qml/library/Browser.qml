@@ -17,10 +17,10 @@ Item {
     height: 56
     Row {
       id: tl
-      anchors { left: parent.left; leftMargin: 18; verticalCenter: parent.verticalCenter }
+      anchors { left: parent.left; leftMargin: root.ctl.compact ? 0 : 18; verticalCenter: parent.verticalCenter }
       spacing: 6
       IconButton { html: "navBack"; tip: qsTr("Back"); opacity: root.ctl.nav.back.length || root.ctl.inPlayer ? 1 : 0.35; onClicked: root.ctl.goBack() }
-      IconButton { html: "navFwd"; tip: qsTr("Forward"); opacity: root.ctl.nav.fwd.length ? 1 : 0.35; onClicked: root.ctl.goFwd() }
+      IconButton { html: "navFwd"; visible: !root.ctl.compact; tip: qsTr("Forward"); opacity: root.ctl.nav.fwd.length ? 1 : 0.35; onClicked: root.ctl.goFwd() }
     }
     Row {   // .path: the breadcrumb
       anchors { left: tl.right; leftMargin: 6; right: tr.left; rightMargin: 6; verticalCenter: parent.verticalCenter }
@@ -45,14 +45,14 @@ Item {
     }
     Row {
       id: tr
-      anchors { right: parent.right; rightMargin: 18; verticalCenter: parent.verticalCenter }
+      anchors { right: parent.right; rightMargin: root.ctl.compact ? 0 : 18; verticalCenter: parent.verticalCenter }
       spacing: 6
-      T { text: root.pg.count ? root.ctl.itemsLabel(root.pg.count) : ""; color: Theme.muted; px: 12; anchors.verticalCenter: parent.verticalCenter; leftPadding: 6; rightPadding: 6 }
+      T { visible: !root.ctl.compact; text: root.pg.count ? root.ctl.itemsLabel(root.pg.count) : ""; color: Theme.muted; px: 12; anchors.verticalCenter: parent.verticalCenter; leftPadding: 6; rightPadding: 6 }
       IconButton { html: "sortBtn2"; tip: qsTr("Sort"); onClicked: root.ctl.toggleSort() }
-      IconButton { html: "viewToggle"; tip: qsTr("Grid / list"); onClicked: root.ctl.toggleList() }
+      IconButton { html: "viewToggle"; visible: !root.ctl.compact; tip: qsTr("Grid / list"); onClicked: root.ctl.toggleList() }
       TextField {
         id: search
-        width: 230; height: 30; color: Theme.panel2; border.color: input.activeFocus ? Theme.accent : "transparent"
+        width: root.ctl.compact ? 120 : 230; height: 30; color: Theme.panel2; border.color: input.activeFocus ? Theme.accent : "transparent"
         placeholder: "Search"; iconLeft: 20
         Icon { x: 9; anchors.verticalCenter: parent.verticalCenter; width: 14; height: 14; name: "search"; color: Theme.muted }
         input.onTextEdited: root.ctl.setQuery(input.text)

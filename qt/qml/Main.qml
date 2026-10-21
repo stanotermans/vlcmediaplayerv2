@@ -306,6 +306,9 @@ C.ApplicationWindow {
     onboarding.done.connect(() => { dialogs--; onboarding.destroy(); onboarding = null; });
   }
   property int dialogs: 0              // open dialogs and menus (the keys wait)
+  // a phone (#53): the views in a bar at the bottom, no library panel, a simpler control bar. compactTest: the same on the
+  // desktop (testing)
+  readonly property bool compact: (Theme.mobile || !!Settings.values.compactTest) && width < 760
   Connections { target: System; function onMediaAccessChanged() { if (System.mediaAccess) library.scanFolders(Settings.values.mediaFolders || []); } }
   function osd(text) { osdText.text = text; osdBox.opacity = 1; osdTimer.restart(); }
 
@@ -345,7 +348,7 @@ C.ApplicationWindow {
   // Resize the window to the video's shape once per new video (Settings → Interface → fitWindow), at most 70 % of
   // the screen
   function fitWindow(size) {
-    if (!Settings.values.fitWindow || visibility !== Window.Windowed || !inPlayer) return;
+    if (!Settings.values.fitWindow || visibility !== Window.Windowed || !inPlayer || Theme.mobile || compact) return;
     Qt.callLater(() => {
       const chromeW = win.width - playerView.width, chromeH = win.height - playerView.height;
       const sw = Screen.desktopAvailableWidth, sh = Screen.desktopAvailableHeight;
@@ -506,6 +509,7 @@ C.ApplicationWindow {
     else if (k === "resume") pb.acceptResume();
     else if (k === "look") playerView.look360(+v.split(",")[0], +v.split(",")[1]);
     else if (k === "zoom") playerView.zoom360(+v);
+    else if (k === "size") { win.showNormal(); win.width = +v.split("x")[0]; win.height = +v.split("x")[1]; }
     else if (k === "play") { const i = vis.find(x => x.name === v) || vis[+v || 0]; playItem(i, vis); }
     else if (k === "seek") pb.seekTo(+v);
     else if (k === "pause") player.pause();
@@ -559,9 +563,9 @@ C.ApplicationWindow {
     Behavior on y { enabled: win.fsMode; NumberAnimation { duration: 200 } }
     Behavior on opacity { NumberAnimation { duration: 200 } }
     z: 30
-    height: 36; color: Theme.bg
+    height: win.compact ? 44 : 36; color: Theme.bg
     Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.edge }
-    MouseArea { anchors.fill: parent; onPressed: if (!win.fullscreen) win.startSystemMove(); onDoubleClicked: win.toggleMax() }
+    MouseArea { anchors.fill: parent; enabled: !Theme.mobile; onPressed: if (!win.fullscreen) win.startSystemMove(); onDoubleClicked: win.toggleMax() }
     Row {
       anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
       spacing: 4
@@ -571,9 +575,10 @@ C.ApplicationWindow {
       }
       IconButton { id: menuBtn; html: "menuBtn"; width: 28; height: 28; tip: qsTr("Menu")
                    onClicked: { const p = menuBtn.mapToItem(null, 0, menuBtn.height + 4); win.titleMenu(p.x, p.y); } }
-      Rectangle { width: 1; height: 16; color: Theme.line; anchors.verticalCenter: parent.verticalCenter }
-      IconButton { html: "sideToggle"; width: 28; height: 28; tip: qsTr("Sidebar (Q)"); onClicked: win.sideToggle() }
+      Rectangle { visible: !win.compact; width: 1; height: 16; color: Theme.line; anchors.verticalCenter: parent.verticalCenter }
+      IconButton { html: "sideToggle"; visible: !win.compact; width: 28; height: 28; tip: qsTr("Sidebar (Q)"); onClicked: win.sideToggle() }
       Row {
+        visible: !win.compact
         spacing: 6; anchors.verticalCenter: parent.verticalCenter; leftPadding: 4
         Icon { html: "crumbs"; color: Theme.muted; anchors.verticalCenter: parent.verticalCenter }
         T { text: win.pg.title; color: Theme.muted; anchors.verticalCenter: parent.verticalCenter }
@@ -581,6 +586,7 @@ C.ApplicationWindow {
     }
     T { anchors.centerIn: parent; text: win.title; color: Theme.text2; width: Math.min(implicitWidth, parent.width * 0.4) }
     Row {
+      visible: !Theme.mobile && !Settings.values.compactTest
       anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
       Repeater {
         model: ["minBtn", "maxBtn", "fsBtn2", "closeBtn"]
@@ -619,13 +625,20 @@ C.ApplicationWindow {
     Rail {
       id: rail
       ctl: win
-      visible: !body.bare
+      visible: !body.bare && !win.compact
       anchors { left: parent.left; top: parent.top; bottom: parent.bottom; topMargin: expanded ? 6 : 0; bottomMargin: expanded ? 6 : 0 }
+    }
+    Rail {   // a phone: the views in a bar at the bottom (not while playing)
+      id: bottomRail
+      ctl: win
+      horizontal: true
+      visible: !body.bare && win.compact && !win.inPlayer
+      anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
     }
     SidePanel {
       id: side
       ctl: win
-      width: body.bare || win.sideHidden || Settings.values.navExpanded ? 0 : 250
+      width: body.bare || win.sideHidden || win.compact || Settings.values.navExpanded ? 0 : 250
       Behavior on width { NumberAnimation { duration: 200 } }
       visible: width > 0
       anchors { left: rail.visible ? rail.right : parent.left; top: parent.top; bottom: parent.bottom }
@@ -633,7 +646,8 @@ C.ApplicationWindow {
 
     Rectangle {   // main area: library or player
       id: main
-      anchors { left: side.visible ? side.right : rail.visible ? rail.right : parent.left; right: parent.right; top: parent.top; bottom: parent.bottom }
+      anchors { left: side.visible ? side.right : rail.visible ? rail.right : parent.left; right: parent.right; top: parent.top
+                bottom: bottomRail.visible ? bottomRail.top : parent.bottom }
       color: Theme.panel
 
       Browser { id: browser; ctl: win; anchors.fill: parent; visible: !win.inPlayer }
