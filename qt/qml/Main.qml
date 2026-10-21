@@ -404,7 +404,9 @@ C.ApplicationWindow {
   FileDialog { id: subDlg; title: qsTr("Add subtitle file"); nameFilters: [qsTr("Subtitles") + " (*.srt *.vtt *.ass *.ssa *.sub *.lrc)", qsTr("All files") + " (*)"]
     onAccepted: sb.addFile(library.toLocal(selectedFile), true) }
   function addSubtitleFile() { if (!current) return osd(qsTr("Play something first")); subDlg.currentFolder = "file:///" + current.src.replace(/\\/g, "/").replace(/\/[^/]*$/, ""); subDlg.open(); }
-  function searchSubtitles() { if (!current) return osd(qsTr("Play something first")); dialog("dialogs/SearchSubs.qml", { ctl: win, subs: subs, it: current }); }
+  // Vela Player Pro (#53): the Pro screen, with the part that led there first
+  function pro(what) { dialog("dialogs/ProDialog.qml", { ctl: win, what: what || "" }); }
+  function searchSubtitles() { if (!Store.pro) return pro("extras"); if (!current) return osd(qsTr("Play something first")); dialog("dialogs/SearchSubs.qml", { ctl: win, subs: subs, it: current }); }
   function subtitleMenu() {
     return [
       { label: qsTr("Off"), checked: sb.active < 0, action: () => sb.select(-1) }
@@ -735,7 +737,7 @@ C.ApplicationWindow {
           { label: qsTr("Fullscreen"), icon: "fullscreen", kbd: "F", action: toggleFs },
           { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !it },
           { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !it },
-          { label: qsTr("360° video"), checked: playerView.on360, action: () => { playerView.force360 = !playerView.on360; playerView.reset360(); }, disabled: !it || !playerView.showVideo },
+          { label: qsTr("360° video"), checked: playerView.on360, action: () => { if (!Store.pro) return pro("video"); playerView.force360 = !playerView.on360; playerView.reset360(); }, disabled: !it || !playerView.showVideo },
           { label: qsTr("Reset 360° view"), action: () => playerView.reset360(), disabled: !playerView.on360 },
           { sep: true }, { header: qsTr("Aspect ratio") }
         ].concat([["", "Default"], ["fill", "Fill"], ["stretch", "Stretch"]].map(([v, l]) => ({ label: qsTr(l), checked: (Settings.values.aspect || "") === v, action: () => Settings.set("aspect", v) })), [

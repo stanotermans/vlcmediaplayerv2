@@ -124,6 +124,8 @@ Rectangle {
         }
       }
       Section { title: "Filters"; last: true
+        ProLock { ctl: root.ctl; what: "video" }
+        Column { visible: Store.pro; width: parent.width
         Slider { label: "Brightness"; min: 0; max: 200; path: "vf.brightness"; fmt: v => v + "%" }
         Slider { label: "Contrast"; min: 0; max: 200; path: "vf.contrast"; fmt: v => v + "%" }
         Slider { label: "Saturation"; min: 0; max: 300; path: "vf.saturate"; fmt: v => v + "%"; ticks: 2 }
@@ -139,6 +141,7 @@ Rectangle {
           SettingRow { label: "Posterize"; Toggle { path: "vf.posterize" } }
           SettingRow { label: "Grayscale"; Toggle { path: "vf.gray" } }
           Slider { label: "Sepia intensity"; min: 0; max: 100; path: "vf.sepia"; fmt: v => v + "%"; ticks: 2 }
+        }
         }
       }
     }
@@ -157,10 +160,12 @@ Rectangle {
         Slider { label: "Audio delay"; min: -1000; max: 1000; step: 10; path: "audioDelay"; fmt: v => (v > 0 ? "+" : "") + v + " ms"; center: true; ticks: 2 }
       }
       Section { title: "Equalizer"
-        EffectRows { vertical: false; part: "eq" }
+        ProLock { ctl: root.ctl; what: "eq" }
+        EffectRows { visible: Store.pro; vertical: false; part: "eq" }
       }
       Section { title: "Effects"; last: true
-        EffectRows { vertical: false; part: "fx" }
+        ProLock { ctl: root.ctl; what: "eq" }
+        EffectRows { visible: Store.pro; vertical: false; part: "fx" }
       }
     }
   }
@@ -203,7 +208,7 @@ Rectangle {
       id: col
       x: 16; y: 10; width: parent.width - 32
       SettingRow {
-        visible: root.tab !== "playback"
+        visible: root.tab !== "playback" && (Store.pro || root.tab === "subs")   // (#53: the video and audio presets are Pro)
         label: "Preset"
         Loader { sourceComponent: root.tab === "video" ? vpC : root.tab === "audio" ? apC : spC }
         Component { id: vpC; Select { width: 160; options: Object.keys(root.vpresets).map(k => [k, root.vpresets[k][0]]); value: root.vpreset; onPicked: v => root.videoPreset(v) } }

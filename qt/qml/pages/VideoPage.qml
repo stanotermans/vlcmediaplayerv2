@@ -18,6 +18,7 @@ Column {
   Section {
     title: "Filters"
     last: true
+    ProLock { ctl: page.ctl; what: "video"; text: qsTr("Video filters and 360° video are part of Vela Player Pro") }
     Row { topPadding: 10; bottomPadding: 10; visible: SettingsSearch.q === ""
           Button { text: qsTr("Reset video filters"); kind: "ghost"; onClicked: { page.ctl.resetVideoFilters(); page.ctl.osd(qsTr("Video filters reset")); } } }
   }

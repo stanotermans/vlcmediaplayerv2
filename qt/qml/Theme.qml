@@ -7,7 +7,7 @@ import VLCR
 QtObject {
   id: theme
   readonly property string mode: {
-    const t = Settings.values.theme || "dark";
+    const t = Store.pro ? Settings.values.theme || "dark" : "dark";   // (#53: other themes with Pro)
     if (t !== "system") return t;
     return Qt.styleHints.colorScheme === Qt.ColorScheme.Light ? "light" : "dark";
   }
@@ -19,7 +19,7 @@ QtObject {
     return Qt.rgba(a.r * t + b.r * (1 - t), a.g * t + b.g * (1 - t), a.b * t + b.b * (1 - t), a.a * t + b.a * (1 - t)); }
   function alpha(c, a) { if (typeof c === "string") c = Qt.lighter(c, 1); return Qt.rgba(c.r, c.g, c.b, a); }   // also "#rrggbb"
 
-  readonly property color accent: Settings.values.accent || "#f28c1b"
+  readonly property color accent: Store.pro && Settings.values.accent || "#f28c1b"   // (#53: other colours with Pro)
   readonly property bool mobile: Qt.platform.os === "android" || Qt.platform.os === "ios"   // touch, no window frame
   // readable text on the accent (a light grey accent needs dark text)
   // the logo (assets/icon.svg without its tile): the sail-shaped play button in a circle of the accent colour

@@ -22,7 +22,9 @@ Rectangle {
 
   // ---------- #78: 360° video: drag to look around, the wheel zooms (VLC's own default view: 80°) ----------
   property var force360: null          // the menu's choice for this file (null: the file says it)
-  readonly property bool on360: showVideo && (force360 !== null ? force360 : ctl.player.projection === 1)
+  readonly property bool want360: showVideo && (force360 !== null ? force360 : ctl.player.projection === 1)
+  readonly property bool on360: want360 && Store.pro   // (#53: Pro)
+  onWant360Changed: if (want360 && !Store.pro) ctl.osd(qsTr("360° view is part of Vela Player Pro"))
   property real yaw: 0                 // degrees
   property real pitch: 0
   property real fov: 80
@@ -78,8 +80,8 @@ Rectangle {
         height: box.height * (stage.full.height > 0 ? stage.full.height / stage.ch : 1)
         x: -stage.crop.l * stage.sx * box.width / stage.cw
         y: -stage.crop.t * box.height / stage.ch
-        readonly property bool filtered: stage.vf.brightness !== 100 || stage.vf.contrast !== 100 || stage.vf.saturate !== 100 || !!stage.vf.hue || !!stage.vf.sepia
-                                         || !!stage.vf.gray || !!stage.vf.negate || !!stage.vf.posterize || (stage.vf.gamma ?? 1) !== 1 || !!stage.vf.sharpen || !!stage.vf.grain
+        readonly property bool filtered: Store.pro && (stage.vf.brightness !== 100 || stage.vf.contrast !== 100 || stage.vf.saturate !== 100 || !!stage.vf.hue || !!stage.vf.sepia
+                                         || !!stage.vf.gray || !!stage.vf.negate || !!stage.vf.posterize || (stage.vf.gamma ?? 1) !== 1 || !!stage.vf.sharpen || !!stage.vf.grain)
         layer.enabled: filtered
         layer.effect: ShaderEffect {
           readonly property real brightness: (stage.vf.brightness ?? 100) / 100

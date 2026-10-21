@@ -10,9 +10,10 @@ QtObject {
   property var ctl: null
   readonly property VlcPlayer player: ctl ? ctl.player : null
 
-  function applyEq() { player.setEqualizer(Settings.values.eqOn ? Settings.values.eq : null); }
+  function applyEq() { player.setEqualizer(Settings.values.eqOn && Store.pro ? Settings.values.eq : null); }   // (#53: Pro)
   function applyFx() {
     const f = [], o = [], c = Settings.values.comp || {}, r = Settings.values.reverb || {}, w = Settings.values.widen || {};
+    if (!Store.pro) return player.setAudioFx("", o);   // (#53: Pro)
     if (Settings.values.compOn) { f.push("compressor"); o.push(["compressor-threshold", "f", c.threshold], ["compressor-ratio", "f", c.ratio], ["compressor-knee", "f", c.knee],
                                    ["compressor-attack", "f", c.attack], ["compressor-release", "f", c.release], ["compressor-makeup-gain", "f", c.makeup]); }
     if (Settings.values.reverbOn) { f.push("spatializer"); o.push(["spatializer-roomsize", "f", r.size / 10], ["spatializer-width", "f", r.width / 10], ["spatializer-wet", "f", r.wet / 10],
@@ -36,6 +37,7 @@ QtObject {
       else if (p === "fastSeek") en.player.setFastSeek(!!Settings.values.fastSeek);
     }
   }
+  property Connections store: Connections { target: Store; function onChanged() { en.applyEq(); en.applyFx(); } }
   property Connections started: Connections { target: en.player; function onVersionChanged() { en.applyAll(); } }
   // passthrough (Settings → Audio): Dolby/DTS go to the receiver as they are; a libVLC start option
   // (Windows: WASAPI incl. the HD formats; elsewhere VLC's S/PDIF option)
@@ -62,6 +64,7 @@ QtObject {
   property real recStart: 0
   function toggleRecord() {
     if (player.recording) return stopRecord();
+    if (!Store.pro) return ctl.pro("extras");
     if (!ctl.current) return ctl.osd(qsTr("Play something first"));
     const dir = Settings.values.recDir || ctl.library.recordingsDir();
     ctl.library.makeDir(dir);

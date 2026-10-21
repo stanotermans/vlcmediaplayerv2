@@ -3,16 +3,18 @@ import QtQuick
 import VLCR
 
 Column {
+  id: page
   property var ctl: null
   width: parent ? parent.width : 600
   Section {
     title: "Appearance"
     SettingRow { label: "Interface language"
                  Select { options: I18n.languages; value: I18n.language; onPicked: v => Settings.set("language", v) } }
-    SettingRow { label: "Theme"; info: "Black is pure black (AMOLED): easier on the eyes in the dark and saves battery on OLED screens."
+    ProLock { ctl: page.ctl; what: "theme"; text: qsTr("Other themes and accent colours are part of Vela Player Pro") }
+    SettingRow { shown: Store.pro; label: "Theme"; info: "Black is pure black (AMOLED): easier on the eyes in the dark and saves battery on OLED screens."
                  Segmented { path: "theme"; options: [["dark", "Dark"], ["black", "Black"], ["light", "Light"], ["system", "System"]] } }
     Slider { label: "Interface size"; min: 75; max: 150; step: 5; path: "uiScale"; fmt: v => v + "%"; ticks: 2 }
-    SettingRow { label: "Accent color"; Swatches { path: "accent"; colors: Settings.accents } }
+    SettingRow { shown: Store.pro; label: "Accent color"; Swatches { path: "accent"; colors: Settings.accents } }
   }
   Section {
     title: "Default player"

@@ -19,6 +19,7 @@ qt_add_executable(vlcr
   src/i18n.cpp src/i18n.h
   src/system.cpp src/system.h
   src/android.cpp src/android.h
+  src/store.cpp src/store.h
 )
 set_source_files_properties(qml/Theme.qml qml/SettingsSearch.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(vlcr
@@ -43,7 +44,7 @@ qt_add_qml_module(vlcr
     qml/pages/NetworkPage.qml qml/pages/PerformancePage.qml qml/pages/RecordingPage.qml qml/pages/ExtensionsPage.qml
     qml/pages/AboutPage.qml qml/pages/EffectRows.qml qml/pages/VSlider.qml qml/pages/FontSelect.qml qml/pages/Effects.js
     qml/controls/KeyCaps.qml qml/controls/FolderRow.qml qml/controls/LinkButton.qml
-    qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml qml/dialogs/WhatsNew.qml
+    qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml qml/dialogs/WhatsNew.qml qml/dialogs/ProDialog.qml qml/controls/ProLock.qml
   RESOURCES
     src/defaults.json assets/icon.png CHANGELOG.md
     lang/de.json lang/es.json lang/fr.json lang/it.json lang/nl.json lang/pl.json lang/pt.json

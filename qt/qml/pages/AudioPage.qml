@@ -9,7 +9,8 @@ Column {
   width: parent ? parent.width : 600
   Section {
     title: "Effects"
-    EffectRows { vertical: true }
+    ProLock { ctl: page.ctl; what: "eq" }
+    EffectRows { visible: Store.pro; vertical: true }
   }
   Section {
     title: "Speakers"

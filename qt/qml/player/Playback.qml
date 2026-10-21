@@ -203,6 +203,7 @@ QtObject {
 
   // ---------- snapshot (Shift+S): the picture on screen, into Pictures (or Settings → Video → Snapshot folder) ----------
   function snapshot() {
+    if (!Store.pro) return ctl.pro("extras");   // (#53: Pro)
     if (!it || it.type === "audio") return osd(qsTr("Nothing to take a snapshot of"));
     const dir = Settings.values.snapshotDir || library.snapshotsDir();
     library.makeDir(dir);

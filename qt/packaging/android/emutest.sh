@@ -16,7 +16,7 @@ adb shell content call --method scan_volume --uri content://media --arg external
 adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Movies/vela/video.mp4 || true
 sleep 5
 echo "--- in Android's media store:"; adb shell content query --uri content://media/external/video/media --projection _data | tee "$OUT/mediastore.txt"
-STEPS='set:language="en";set:volume=0;set:onboarded=true;view:videos;wait:2500;log:"access=" + System.mediaAccess + " " + System.allFilesAccess();log:"folders=" + JSON.stringify(Settings.values.mediaFolders);log:"items=" + library.items.length;play:video.mp4;wait:4000'
+STEPS='set:language="en";set:volume=0;set:onboarded=true;view:videos;wait:2500;log:"access=" + System.mediaAccess + " " + System.allFilesAccess();log:"folders=" + JSON.stringify(Settings.values.mediaFolders);log:"items=" + library.items.length;log:"x1=" + JSON.stringify(library.expandMedia(["/sdcard/Movies/vela"]));log:"x2=" + JSON.stringify(library.expandMedia(["/storage/emulated/0/Movies/vela"]));log:"x3=" + JSON.stringify(library.expandMedia(["/storage/emulated/0/Movies/vela/video.mp4"]));play:video.mp4;wait:4000'
 STEPS="$STEPS"';log:"playing=" + player.playing;log:"size=" + player.frameSize.width + "x" + player.frameSize.height;log:"t=" + player.time;log:"err=" + player.error;log:"vlc=" + player.version'
 printf '%s\n' "VLCR_FOLDER=/sdcard/Movies/vela" "VLCR_NO_IMPORT=1" "VLCR_LOG=$FILES/log.txt" "VLCR_SHOT=$FILES/shot.png" "VLCR_SHOT_MS=14000" "VLCR_OPEN=$STEPS" > "$OUT/env.txt"
 adb push "$OUT/env.txt" "$FILES/env.txt"
