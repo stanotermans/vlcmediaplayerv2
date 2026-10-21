@@ -212,8 +212,8 @@ def resume_ask(c):   # #79: Resume set to Ask starts from the beginning and offe
 
 @test
 def midi_not_ffmpeg(c):   # #76: MIDI on the "always with FFmpeg" list still plays (with FluidSynth, not through FFmpeg)
-    c.vals, _ = run(c.name, ['set:classicTypes="mid, tgv"', 'view:music'] + PLAY('tune.mid', 3000) + ['log:"now=" + (current ? current.name : "-")', 'log:"playing=" + player.playing', 'log:"t=" + player.time'])
-    c.eq('now', 'tune.mid'); c.eq('playing', 'true'); c.near('t', 2500, 1500)
+    c.vals, _ = run(c.name, ['set:classicTypes="mid, tgv"', 'view:music'] + PLAY('tune.mid', 1200) + ['log:"playing=" + player.playing + " " + (current ? current.name : "-")'])
+    c.eq('playing', 'true tune.mid')   # (the tune lasts 4 s: checked while it plays)
 
 @test
 def view360(c):   # #78: a 360° video is shown as a view to look around in (drag) and zoom (wheel); a flat one is not

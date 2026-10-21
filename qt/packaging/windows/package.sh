@@ -11,7 +11,7 @@ FFMPEG=${1:?ffmpeg.exe}
 OUT=$(realpath -m "${2:-dist}")
 VERSION=$(sed -n 's/^project(velaplayer VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
 QT_DIR=${QT_DIR:-$([ -n "${QT_ROOT_DIR:-}" ] && cygpath -u "$QT_ROOT_DIR" || echo /c/Qt/6.8.3/msvc2022_64)}
-APP=deploy/VLC\ Redesign
+APP=deploy/Vela\ Player
 rm -rf deploy; mkdir -p "$APP" "$OUT"
 cp "build/Vela Player.exe" "$APP/"
 "$QT_DIR/bin/windeployqt.exe" --release --qmldir qml --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime "$APP/Vela Player.exe"
@@ -45,8 +45,7 @@ fi
 
 # portable: the same folder with a "portable" file (the app keeps its data in "data" next to it)
 touch "$APP/portable"
-# (7-Zip's exit code 1 is only a warning: the archive is made)
-( cd deploy && rm -f "$OUT/Vela-Player-Portable-$VERSION-x64.zip" && (command -v 7z >/dev/null && { 7z a -tzip -mx=7 "$(cygpath -w "$OUT")\\Vela-Player-Portable-$VERSION-x64.zip" "Vela Player" >/dev/null; [ $? -le 1 ]; } \
+( cd deploy && rm -f "$OUT/Vela-Player-Portable-$VERSION-x64.zip" && (command -v 7z >/dev/null && 7z a -tzip -mx=7 "$(cygpath -w "$OUT")\\Vela-Player-Portable-$VERSION-x64.zip" "Vela Player" >/dev/null \
   || powershell -NoProfile -Command "Compress-Archive -Path 'Vela Player' -DestinationPath '$(cygpath -w "$OUT")\\Vela-Player-Portable-$VERSION-x64.zip'") )
 rm "$APP/portable"
 ls -la "$OUT"
