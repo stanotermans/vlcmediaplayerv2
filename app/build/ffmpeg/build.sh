@@ -4,13 +4,13 @@
 # parsers stay in (so it still plays almost anything); encoders, muxers and filters are limited to the
 # handful the app uses (live H.264/AAC transcode to fragmented MP4, JPEG thumbnails, WebVTT subtitles).
 #
-#   bash build.sh <target>        target: linux-x64 | win-x64 | mac-arm64 | mac-x64
+#   bash build.sh <target>        target: linux-x64 | win-x64 | mac-arm64 | mac-x64 | android-arm64 | android-x64
 #
 # linux-x64 and win-x64 run inside Docker (see docker.sh); mac-* run on macOS with Xcode command line tools.
 # Result: out/<target>/ffmpeg[.exe]. The binary is GPL (because of x264); this script is its build recipe.
 set -euo pipefail
 
-TARGET=${1:?usage: build.sh linux-x64|win-x64|mac-arm64|mac-x64}
+TARGET=${1:?usage: build.sh linux-x64|win-x64|mac-arm64|mac-x64|android-arm64|android-x64}
 FFMPEG_VERSION=8.1.2                                       # same release as VLC 3.0.24
 X264_HASH=e067ab0b530395f90b578f6d05ab0a225e2efdf9         # same commit as VLC 3.0.24
 DVDREAD_VERSION=6.1.3                                      # DVD ISOs and VIDEO_TS folders (ffmpeg's dvdvideo demuxer),
@@ -59,6 +59,15 @@ case "$TARGET" in
     FF_CROSS=(--enable-cross-compile --target-os=darwin --arch=$ARCH --cc="clang -arch $ARCH")
     FF_TLS=(--enable-securetransport)
     ;;
+  android-arm64|android-x64)   # Vela Player for Android (#53): a program next to the app's libraries (lib/<abi>/libffmpeg.so),
+                               # built with the NDK (ANDROID_NDK_ROOT) against Android 9 (API 28) like the app; no TLS: local files only
+    ARCH=aarch64; [ "$TARGET" = android-x64 ] && ARCH=x86_64
+    TC=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin
+    export CC=$TC/$ARCH-linux-android28-clang CXX=$TC/$ARCH-linux-android28-clang++ AR=$TC/llvm-ar RANLIB=$TC/llvm-ranlib STRIP=$TC/llvm-strip NM=$TC/llvm-nm
+    X264_HOST=(--host=$ARCH-linux-android --cross-prefix=$TC/llvm-)
+    AC_HOST=(--host=$ARCH-linux-android)
+    FF_CROSS=(--enable-cross-compile --target-os=android --arch=$ARCH --cc=$CC --cxx=$CXX --ar=$AR --ranlib=$RANLIB --nm=$NM --strip=$STRIP --enable-pic)
+    ;;
   *) echo "unknown target $TARGET"; exit 1 ;;
 esac
 
@@ -97,5 +106,5 @@ esac
   make -j"$JOBS" && make install )
 
 cp "$PREFIX/bin/ffmpeg$EXT" "$OUT/ffmpeg$EXT"
-case "$TARGET" in win-x64) x86_64-w64-mingw32-strip "$OUT/ffmpeg$EXT" ;; mac-*) strip -x "$OUT/ffmpeg" ;; *) strip "$OUT/ffmpeg" ;; esac
+case "$TARGET" in win-x64) x86_64-w64-mingw32-strip "$OUT/ffmpeg$EXT" ;; mac-*) strip -x "$OUT/ffmpeg" ;; android-*) "$STRIP" "$OUT/ffmpeg" ;; *) strip "$OUT/ffmpeg" ;; esac
 ls -l "$OUT/ffmpeg$EXT"

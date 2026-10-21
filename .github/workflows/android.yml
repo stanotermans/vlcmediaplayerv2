@@ -13,7 +13,31 @@ env:
   NDK_VERSION: 26.1.10909125
 
 jobs:
+  # the slim FFmpeg (app/build/ffmpeg/build.sh), built with the NDK: thumbnails, lengths and tracks of the library
+  ffmpeg:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [android-x64, android-arm64]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: app/build/ffmpeg/out/${{ matrix.target }}
+          key: ffmpeg-${{ matrix.target }}-${{ hashFiles('app/build/ffmpeg/*.sh', 'app/build/ffmpeg/patches/**') }}
+      - name: Build with the NDK
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq nasm pkgconf
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" > /dev/null
+          ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" bash app/build/ffmpeg/build.sh ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with: { name: 'ffmpeg-${{ matrix.target }}', path: 'app/build/ffmpeg/out/${{ matrix.target }}/', if-no-files-found: error }
+
   build:
+    needs: ffmpeg
     strategy:
       fail-fast: false
       matrix:
@@ -41,8 +65,10 @@ jobs:
           arch: ${{ matrix.abi == 'x86_64' && 'android_x86_64' || 'android_arm64_v8a' }}
           modules: qtmultimedia qtshadertools
           cache: true
+      - uses: actions/download-artifact@v4
+        with: { name: "ffmpeg-${{ matrix.abi == 'x86_64' && 'android-x64' || 'android-arm64' }}", path: ffbin }
       - name: Build the APK
-        run: bash qt/packaging/android/build.sh ${{ matrix.abi }} "$QT_ROOT_DIR" "" apk
+        run: bash qt/packaging/android/build.sh ${{ matrix.abi }} "$QT_ROOT_DIR" ffbin/ffmpeg apk
       - uses: actions/upload-artifact@v4
         with: { name: 'android-${{ matrix.abi }}', path: 'apk/*.apk', if-no-files-found: error }
 

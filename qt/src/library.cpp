@@ -386,8 +386,10 @@ void Library::probed(const QString &src, const QVariantMap &info) {
   QVariantMap it = m_items[i].toMap();
   if (info.isEmpty()) {
     // FFmpeg could not open it (not media, or an unsupported/encrypted format): out of the library again. Files you
-    // opened yourself get a message; files found while scanning a folder disappear quietly.
-    if (!it["remote"].toBool()) {
+    // opened yourself get a message; files found while scanning a folder disappear quietly. Without FFmpeg at all
+    // nothing can be checked: then everything with a media extension stays (libVLC plays it).
+    static const bool haveFfmpeg = QFileInfo::exists(ffmpeg()) || !QStandardPaths::findExecutable(ffmpeg()).isEmpty();
+    if (!it["remote"].toBool() && haveFfmpeg) {
       if (it["manual"].toBool()) emit message(tr("Cannot play this file: %1").arg(it["name"].toString()));
       if (src != m_playing) { remove({ src }); return; }
     }
