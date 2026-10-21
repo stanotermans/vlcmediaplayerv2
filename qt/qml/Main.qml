@@ -173,7 +173,7 @@ C.ApplicationWindow {
         { label: library.watched[it.src] ? qsTr("Mark as unwatched") : qsTr("Mark as watched"), icon: "eye", action: () => library.setWatched([it.src], !library.watched[it.src]) },
         !it.remote ? { label: qsTr("Show in folder"), icon: "folder", action: () => library.reveal(it.src) } : null,
         { label: qsTr("Media information"), icon: "info", action: () => dialog("dialogs/MediaInfo.qml", { it: library.item(it.src) }) },
-        en.ext(it.src) && !pb.dvdRe.test(it.src) ? { label: qsTr("Always play .%1 files with FFmpeg").arg(en.ext(it.src)), checked: en.byFfmpeg(it.src),
+        en.ext(it.src) && !pb.dvdRe.test(it.src) && !en.midiRe.test(it.src) ? { label: qsTr("Always play .%1 files with FFmpeg").arg(en.ext(it.src)), checked: en.byFfmpeg(it.src),
                                                      action: () => en.setByFfmpeg(en.ext(it.src), !en.byFfmpeg(it.src)) } : null,
         isCard ? { label: sel[it.src] ? qsTr("Deselect") : qsTr("Select"), icon: "check", kbd: "Ctrl + click", action: () => selectClick(it, false) } : null
       ].concat(p ? [{ sep: true },

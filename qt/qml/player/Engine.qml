@@ -50,7 +50,8 @@ QtObject {
   // #66 (v2.x's "Always play with Classic (FFmpeg)"): file types that VLC reads and decodes with FFmpeg
   function ext(src) { const m = /\.([a-z0-9]{1,5})$/i.exec(String(src).split(/[?#]/)[0]); return m ? m[1].toLowerCase() : ""; }
   function ffmpegTypes() { return String(Settings.values.classicTypes || "").toLowerCase().split(/[\s,;.]+/).filter(x => x); }
-  function byFfmpeg(src) { const e = ext(src); return !!e && ffmpegTypes().indexOf(e) >= 0; }
+  // (#76: never MIDI: FFmpeg cannot turn it into sound, libVLC's FluidSynth plays it)
+  function byFfmpeg(src) { const e = ext(src); return !!e && !midiRe.test(src) && ffmpegTypes().indexOf(e) >= 0; }
   function setByFfmpeg(e, on) { const l = ffmpegTypes().filter(x => x !== e); if (on) l.push(e); Settings.set("classicTypes", l.join(", ")); }
   function options(src) {
     const o = midiRe.test(src) ? [":soundfont=" + (Settings.values.soundfont || ctl.library.builtinSoundfont())] : [];

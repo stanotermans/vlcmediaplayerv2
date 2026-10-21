@@ -1,6 +1,7 @@
 ## 3.1.0
 - ✨ **VLC Redesign is now Vela Player**, with a new icon: a sail (*vela*) that is a play button. Juxtopposed's design stays the same. Your settings, library, playlists and positions come along, and the update replaces the old app.
 - ℹ️ Why: "VLC" and the cone are VideoLAN's trademarks, and the app stores (Android and iOS versions are on the way) only accept apps with their own name and icon.
+- 🎹 **MIDI plays again** when .mid was on the "always play with FFmpeg" list: MIDI always goes to the built-in synthesizer (#76).
 - 🐱 The pixel cat says meow out loud again (at the player's volume), and its mouth opens wide enough to see (#77).
 
 ## 3.0.7
