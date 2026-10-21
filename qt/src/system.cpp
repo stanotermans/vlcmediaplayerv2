@@ -303,6 +303,49 @@ void System::keepAwake(int level) {
 #endif
 }
 
+bool System::mediaAccess() const {
+#ifdef Q_OS_ANDROID
+  return Android::mediaAccess();
+#else
+  return true;
+#endif
+}
+// Android answers in its own dialog (or settings page): watch for the change for a minute
+void System::askMediaAccess() {
+#ifdef Q_OS_ANDROID
+  m_access = Android::mediaAccess();
+  Android::askMediaAccess();
+  auto *t = new QTimer(this); t->setInterval(700); int *n = new int(0);
+  connect(t, &QTimer::timeout, this, [this, t, n]() {
+    const bool now = Android::mediaAccess();
+    if (now != m_access) { m_access = now; emit mediaAccessChanged(); }
+    if (now || ++*n > 90) { t->deleteLater(); delete n; }
+  });
+  t->start();
+#endif
+}
+bool System::allFilesAccess() const {
+#ifdef Q_OS_ANDROID
+  return Android::allFilesAccess();
+#else
+  return true;
+#endif
+}
+void System::askAllFilesAccess() {
+#ifdef Q_OS_ANDROID
+  Android::askAllFilesAccess();
+  askMediaAccess();   // (watches for the change)
+#endif
+}
+QStringList System::mobileFolders() const {
+#ifdef Q_OS_ANDROID
+  const QString s = Android::storage();
+  return { s + "/Movies", s + "/Music", s + "/Download", s + "/DCIM" };
+#else
+  return {};
+#endif
+}
+
 void System::hideCursor(bool on) {
   if (on == m_cursorHidden) return;
   m_cursorHidden = on;

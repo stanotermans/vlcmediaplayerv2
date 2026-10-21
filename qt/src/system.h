@@ -16,6 +16,9 @@ class System : public QObject {
   Q_PROPERTY(QString version READ version CONSTANT)
   Q_PROPERTY(bool portable READ portable CONSTANT)
   Q_PROPERTY(QVariantMap update READ update NOTIFY updateChanged)   // { state, info, error, progress }
+  // Android (#53): allowed to read the videos and music (elsewhere always); the folders the library starts with there
+  Q_PROPERTY(bool mediaAccess READ mediaAccess NOTIFY mediaAccessChanged)
+  Q_PROPERTY(QStringList mobileFolders READ mobileFolders CONSTANT)
 public:
   explicit System(QObject *parent = nullptr);
   ~System() override;
@@ -46,11 +49,18 @@ public:
   Q_INVOKABLE void hideCursor(bool on);
   // testing: a mouse move inside a window (Qt event only, the real cursor stays where it is)
   Q_INVOKABLE void testMouseMove(QWindow *w, qreal x, qreal y);
+  bool mediaAccess() const;
+  Q_INVOKABLE void askMediaAccess();                     // Android's question; mediaAccessChanged once answered
+  Q_INVOKABLE bool allFilesAccess() const;               // Android 11+: also subtitles and lyrics next to the media
+  Q_INVOKABLE void askAllFilesAccess();
+  QStringList mobileFolders() const;
 signals:
   void openPaths(const QStringList &paths);              // from "Open with" / a second start
   void mediaButton(const QString &button);               // "play", "pause", "next", "previous", "stop"
   void updateChanged();
+  void mediaAccessChanged();
 private:
+  bool m_access = true;
   void setUpdate(const QString &state, const QString &error = {});
   QLocalServer m_server;
   QStringList m_startPaths;

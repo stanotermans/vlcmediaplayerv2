@@ -11,7 +11,7 @@ adb install -r -g "$APK"
 for p in READ_MEDIA_VIDEO READ_MEDIA_AUDIO; do adb shell pm grant $PKG android.permission.$p || true; done
 adb shell mkdir -p /sdcard/Movies/vela "$FILES"
 adb push "$VIDEO" /sdcard/Movies/vela/video.mp4
-STEPS='set:language="en";set:volume=0;set:onboarded=true;view:videos;wait:2500;log:"items=" + library.items.length;play:video.mp4;wait:4000'
+STEPS='set:language="en";set:volume=0;set:onboarded=true;view:videos;wait:2500;log:"access=" + System.mediaAccess + " " + System.allFilesAccess();log:"folders=" + JSON.stringify(Settings.values.mediaFolders);log:"items=" + library.items.length;play:video.mp4;wait:4000'
 STEPS="$STEPS"';log:"playing=" + player.playing;log:"size=" + player.frameSize.width + "x" + player.frameSize.height;log:"t=" + player.time;log:"err=" + player.error;log:"vlc=" + player.version'
 printf '%s\n' "VLCR_FOLDER=/sdcard/Movies/vela" "VLCR_NO_IMPORT=1" "VLCR_LOG=$FILES/log.txt" "VLCR_SHOT=$FILES/shot.png" "VLCR_SHOT_MS=14000" "VLCR_OPEN=$STEPS" > "$OUT/env.txt"
 adb push "$OUT/env.txt" "$FILES/env.txt"

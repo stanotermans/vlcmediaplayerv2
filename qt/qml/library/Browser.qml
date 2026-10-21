@@ -135,7 +135,7 @@ Item {
     Image {
       anchors.horizontalCenter: parent.horizontalCenter
       width: 90; height: 90; sourceSize: Qt.size(180, 180)
-      source: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.6 2h4.8l1.2 4H8.4z" fill="' + Theme.accent + '"/><path d="M8.1 7h7.8l1.1 4H7z" fill="#ddd"/><path d="M6.7 12h10.6l1.2 4.5H5.5z" fill="' + Theme.accent + '"/><path d="M3 18h18l1 3H2z" fill="' + Theme.accent + '"/></svg>')
+      source: Theme.logo
     }
     T { anchors.horizontalCenter: parent.horizontalCenter; text: root.pg.empty ? root.pg.empty.title : ""; px: 18; font.weight: Font.Medium; color: Theme.text }
     T { anchors.horizontalCenter: parent.horizontalCenter; text: root.pg.empty ? root.pg.empty.text : ""; color: Theme.muted }

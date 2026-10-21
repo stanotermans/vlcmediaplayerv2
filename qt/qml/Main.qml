@@ -306,6 +306,7 @@ C.ApplicationWindow {
     onboarding.done.connect(() => { dialogs--; onboarding.destroy(); onboarding = null; });
   }
   property int dialogs: 0              // open dialogs and menus (the keys wait)
+  Connections { target: System; function onMediaAccessChanged() { if (System.mediaAccess) library.scanFolders(Settings.values.mediaFolders || []); } }
   function osd(text) { osdText.text = text; osdBox.opacity = 1; osdTimer.restart(); }
 
   // ---------- library / player, fullscreen, the interface (app.js showPlayer / showBrowser / toggleFs) ----------
@@ -452,6 +453,11 @@ C.ApplicationWindow {
     if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
     if (Settings.values.autoUpdate !== false && !shotPath) updateTimer.start();
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
+    // Android (#53): the phone's own media folders, and Android's question for access to them
+    if (Qt.platform.os === "android") {
+      if (!(Settings.values.mediaFolders || []).length) Settings.set("mediaFolders", System.mobileFolders);
+      if (!System.mediaAccess) System.askMediaAccess();
+    }
     library.load();
     importFromV2();
     library.scanFolders(Settings.values.mediaFolders || []);
