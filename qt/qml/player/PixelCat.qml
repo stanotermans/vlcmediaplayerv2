@@ -1,11 +1,15 @@
 // The pixel cat of the idle player (v2.x catSVG). Its pixels are grouped (body, eyes, mouth, tail) so a click can
 // animate them (#48): it blinks, wags, jumps, spins, says meow or sends hearts.
 import QtQuick
+import QtMultimedia
 import VLCR
 
 Item {
   id: cat
   property bool clickable: false
+  property real volume: 1             // the player's volume (0…1) and mute: the meow follows them, like in v2.x
+  property bool muted: false
+  SoundEffect { id: meowSound; source: Qt.resolvedUrl("../../assets/meow.wav"); volume: Math.min(1, cat.volume) * 0.5 }   // #77
   readonly property var rows: [
     "..K..........K....", "..KW........WK....", "..KWW......WWK....", "..KWWWWWWWWWWK....", "..KWWWWWWWWWWK....",
     "KKWKKWWWWWWKKWKK..", "..WWWWWWWWWWWWW...", "KKWPPWKWWKWPPWKK..", "..WWWWWKKKWWWWW...", "....WWWWWWWWW.....",
@@ -30,7 +34,7 @@ Item {
     done.restart();
   }
   readonly property var anim: ({
-    meow: () => { mouthA.restart(); say.visible = true; sayA.restart(); },
+    meow: () => { mouthA.restart(); say.visible = true; sayA.restart(); if (!cat.muted && cat.volume > 0) meowSound.play(); },
     blink: () => blinkA.restart(), wag: () => wagA.restart(), jump: () => jumpA.restart(), spin: () => spinA.restart(),
     hearts: () => { for (let i = 0; i < 5; i++) heart.createObject(cat, { x: cat.width * (0.15 + Math.random() * 0.7), delay: i * 120 }); }
   })
@@ -53,10 +57,10 @@ Item {
   // blink: scaleY .15 at the half, .5 s, twice
   SequentialAnimation { id: blinkA; loops: 2
     NumberAnimation { target: eyeScale; property: "yScale"; to: 0.15; duration: 250 } NumberAnimation { target: eyeScale; property: "yScale"; to: 1; duration: 250 } }
-  // meow: scaleY 2.2 from 20 % to 70 % of .6 s
+  // meow: the mouth opens wide while the sound plays (#77: v2.x's 2.2× was hard to see)
   SequentialAnimation { id: mouthA
-    NumberAnimation { target: mouthScale; property: "yScale"; to: 2.2; duration: 120 } PauseAnimation { duration: 300 }
-    NumberAnimation { target: mouthScale; property: "yScale"; to: 1; duration: 180 } }
+    NumberAnimation { target: mouthScale; property: "yScale"; to: 3.4; duration: 110 } PauseAnimation { duration: 420 }
+    NumberAnimation { target: mouthScale; property: "yScale"; to: 1; duration: 160 } }
   // wag: -14° to 16°, .35 s, three times back and forth, then rest
   SequentialAnimation { id: wagA
     PropertyAction { target: tailRot; property: "angle"; value: -14 }

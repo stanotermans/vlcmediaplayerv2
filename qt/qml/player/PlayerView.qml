@@ -185,6 +185,7 @@ Rectangle {
       id: pixelCat
       visible: !(root.audio && root.art !== "")
       clickable: true
+      volume: root.ctl.pb.volume; muted: root.ctl.player.muted
       width: Math.min(parent.width * 0.32, 260)
       anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; verticalCenterOffset: -height * 0.06 }
     }

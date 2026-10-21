@@ -450,7 +450,7 @@ C.ApplicationWindow {
       win.width = Math.min(1600, aw - 48); win.height = Math.min(1000, ah - 48);
       win.x = Screen.virtualX + Math.round((aw - win.width) / 2); win.y = Screen.virtualY + Math.round((ah - win.height) / 2);
     }
-    if (!shotPath && Settings.values.winMaximized) win.visibility = Window.Maximized;   // #73: shown maximised
+    if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) win.visibility = Window.Maximized;   // #73: shown maximised (testStartMax: also in a test)
     I18n.setLanguage(Settings.values.language || "");
     subs.loadFonts(Settings.values.customFonts || []);
     const opened = System.startPaths();
