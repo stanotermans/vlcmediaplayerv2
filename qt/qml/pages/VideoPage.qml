@@ -19,6 +19,8 @@ Column {
     title: "Filters"
     last: true
     ProLock { ctl: page.ctl; what: "video"; text: qsTr("Video filters and 360° video are part of Vela Player Pro") }
+    SettingRow { shown: Store.pro; label: "Sharp upscaling"; info: "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS)."
+                 Toggle { path: "vf.upscale" } }
     Row { topPadding: 10; bottomPadding: 10; visible: SettingsSearch.q === ""
           Button { text: qsTr("Reset video filters"); kind: "ghost"; onClicked: { page.ctl.resetVideoFilters(); page.ctl.osd(qsTr("Video filters reset")); } } }
   }

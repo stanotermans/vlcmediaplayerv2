@@ -11,7 +11,7 @@ DialogBox {
   buttons: [{ label: "Not now", value: null }]
   readonly property var parts: [
     ["eq", "audio", "Equalizer and audio effects", "10-band equalizer with presets, compressor, reverb, stereo widening and volume boost"],
-    ["video", "video", "Video filters and 360° video", "Brightness, contrast, colour, sharpness and film grain; look around in 360° videos"],
+    ["video", "video", "Video filters and 360° video", "Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos"],
     ["theme", "eye", "Themes and accent colours", "Light and black (AMOLED) themes, the system theme and every accent colour"],
     ["extras", "subtitle", "Subtitles online, recording and snapshots", "Find subtitles on OpenSubtitles, record what plays and save snapshots"]
   ]

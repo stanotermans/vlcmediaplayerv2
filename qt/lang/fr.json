@@ -682,7 +682,6 @@
 "Equalizer and audio effects": "Égaliseur et effets audio",
 "10-band equalizer with presets, compressor, reverb, stereo widening and volume boost": "Égaliseur 10 bandes avec préréglages, compresseur, réverbération, élargissement stéréo et amplification du volume",
 "Video filters and 360° video": "Filtres vidéo et vidéo 360°",
-"Brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Luminosité, contraste, couleur, netteté et grain ; regarder autour de soi dans les vidéos 360°",
 "Themes and accent colours": "Thèmes et couleurs d'accent",
 "Light and black (AMOLED) themes, the system theme and every accent colour": "Thèmes clair et noir (AMOLED), le thème du système et toutes les couleurs d'accent",
 "Subtitles online, recording and snapshots": "Sous-titres en ligne, enregistrement et captures",
@@ -699,5 +698,8 @@
 "360° view is part of Vela Player Pro": "La vue 360° fait partie de Vela Player Pro",
 "Video filters and 360° video are part of Vela Player Pro": "Les filtres vidéo et la vidéo 360° font partie de Vela Player Pro",
 "Other themes and accent colours are part of Vela Player Pro": "Les autres thèmes et couleurs d'accent font partie de Vela Player Pro",
-"Google Play is not available": "Google Play n'est pas disponible"
+"Google Play is not available": "Google Play n'est pas disponible",
+"Sharp upscaling": "Mise à l'échelle nette",
+"Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Agrandit les vidéos en basse résolution avec une méthode plus nette et accentue les contours (RCAS d'AMD FidelityFX).",
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Mise à l'échelle nette, luminosité, contraste, couleur, netteté et grain ; regarder autour de soi dans les vidéos 360°"
 }

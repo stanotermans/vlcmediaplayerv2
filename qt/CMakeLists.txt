@@ -51,7 +51,7 @@ qt_add_qml_module(vlcr
 )
 qt_add_shaders(vlcr "shaders"
   PREFIX "/"
-  FILES shaders/videofx.frag shaders/view360.frag
+  FILES shaders/videofx.frag shaders/view360.frag shaders/upscale.frag shaders/rcas.frag
 )
 target_include_directories(vlcr PRIVATE src)
 target_compile_definitions(vlcr PRIVATE VLCR_VERSION="${PROJECT_VERSION}")   # the version lives here only

@@ -126,6 +126,8 @@ Rectangle {
       Section { title: "Filters"; last: true
         ProLock { ctl: root.ctl; what: "video" }
         Column { visible: Store.pro; width: parent.width
+        SettingRow { label: "Sharp upscaling"; info: "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS)."
+                     Toggle { path: "vf.upscale" } }
         Slider { label: "Brightness"; min: 0; max: 200; path: "vf.brightness"; fmt: v => v + "%" }
         Slider { label: "Contrast"; min: 0; max: 200; path: "vf.contrast"; fmt: v => v + "%" }
         Slider { label: "Saturation"; min: 0; max: 300; path: "vf.saturate"; fmt: v => v + "%"; ticks: 2 }

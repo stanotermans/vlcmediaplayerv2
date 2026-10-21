@@ -64,6 +64,7 @@
   "snapshotFormat": "png",
   "snapshotDir": "",
   "vf": {
+   "upscale": false,
    "hue": 0,
    "brightness": 100,
    "contrast": 100,

@@ -682,7 +682,6 @@
 "Equalizer and audio effects": "Equalizer en audio-effecten",
 "10-band equalizer with presets, compressor, reverb, stereo widening and volume boost": "10-bands equalizer met voorinstellingen, compressor, galm, stereoverbreding en volumeversterking",
 "Video filters and 360° video": "Videofilters en 360°-video",
-"Brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Helderheid, contrast, kleur, scherpte en filmkorrel; rondkijken in 360°-video's",
 "Themes and accent colours": "Thema's en accentkleuren",
 "Light and black (AMOLED) themes, the system theme and every accent colour": "Lichte en zwarte (AMOLED) thema's, het systeemthema en alle accentkleuren",
 "Subtitles online, recording and snapshots": "Ondertitels online, opnemen en snapshots",
@@ -699,5 +698,8 @@
 "360° view is part of Vela Player Pro": "360°-weergave is onderdeel van Vela Player Pro",
 "Video filters and 360° video are part of Vela Player Pro": "Videofilters en 360°-video zijn onderdeel van Vela Player Pro",
 "Other themes and accent colours are part of Vela Player Pro": "Andere thema's en accentkleuren zijn onderdeel van Vela Player Pro",
-"Google Play is not available": "Google Play is niet beschikbaar"
+"Google Play is not available": "Google Play is niet beschikbaar",
+"Sharp upscaling": "Scherp opschalen",
+"Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Schaalt video's met een lage resolutie op met een scherpere methode en verscherpt de randen (RCAS van AMD FidelityFX).",
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Scherp opschalen, helderheid, contrast, kleur, scherpte en filmkorrel; rondkijken in 360°-video's"
 }

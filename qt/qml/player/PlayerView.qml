@@ -2,6 +2,7 @@
 // blurred copy of it, the play/pause flash, the spinner and the 2× badge. A click plays/pauses (after a short wait,
 // so a double click only goes fullscreen, #32), holding the button plays at 2× (#46), the wheel sets the volume.
 import QtQuick
+import QtQuick.Window
 import QtQuick.Effects
 import QtQuick.Shapes
 import QtMultimedia
@@ -38,6 +39,10 @@ Rectangle {
     pitch = Math.max(-90, Math.min(90, pitch + dy * k));
   }
   function zoom360(steps) { fov = Math.max(30, Math.min(120, fov - steps * 5)); }
+  // #81: sharp upscaling (Video → Filters): a picture smaller than its place on screen is scaled up with Catmull-Rom and
+  // sharpened with FSR's RCAS instead of the graphics card's soft bilinear scaling
+  readonly property bool upscale: Store.pro && !!(Settings.values.vf || {}).upscale && showVideo && !on360
+                                  && video.width * Screen.devicePixelRatio > ctl.player.frameSize.width * 1.05
   readonly property string src: it ? it.src : ""
   onSrcChanged: { force360 = null; reset360(); }   // another file (not the same one with fresh library data)
   Connections { target: root.ctl.player; function onProjectionChanged() { root.reset360(); } }
@@ -108,6 +113,27 @@ Rectangle {
           onPositionChanged: m => root.ctl.en.dvdMouse(video, m.x, m.y, false)
           onClicked: m => root.ctl.en.dvdMouse(video, m.x, m.y, true)
         }
+      }
+    }
+    ShaderEffectSource {   // #81: the picture at its own size for the sharp upscaling
+      id: srcUp
+      sourceItem: root.upscale ? video : null
+      hideSource: root.upscale
+      visible: false
+      textureSize: root.ctl.player.frameSize
+    }
+    ShaderEffect {
+      parent: box
+      x: video.x; y: video.y; width: video.width; height: video.height
+      visible: root.upscale
+      readonly property var source: srcUp
+      readonly property size srcSize: root.ctl.player.frameSize
+      fragmentShader: "qrc:/shaders/upscale.frag.qsb"
+      layer.enabled: visible
+      layer.effect: ShaderEffect {
+        readonly property size texel: Qt.size(1 / Math.max(1, width * Screen.devicePixelRatio), 1 / Math.max(1, height * Screen.devicePixelRatio))
+        readonly property real sharpness: 0.1   // (stops below the strongest)
+        fragmentShader: "qrc:/shaders/rcas.frag.qsb"
       }
     }
     ShaderEffectSource {   // #78: the whole picture (at its own size) for the 360° view
