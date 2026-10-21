@@ -22,8 +22,9 @@ QtObject {
   readonly property color accent: Store.pro && Settings.values.accent || "#f28c1b"   // (#53: other colours with Pro)
   readonly property bool mobile: Qt.platform.os === "android" || Qt.platform.os === "ios"   // touch, no window frame
   // readable text on the accent (a light grey accent needs dark text)
-  // the logo (assets/icon.svg without its tile): the sail-shaped play button in a circle of the accent colour
-  readonly property string logo: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 20 80 80"><circle cx="60" cy="60" r="38" fill="' + accent + '"/><path d="M50 38 C 62 50, 64 70, 50 82 L 82 60 Z" fill="' + accentText + '"/></svg>')
+  // the logo (assets/icon.svg without its tile): the sail-shaped play button, always in the app's own colours
+  // (orange and dark, like the app icon), whatever the accent colour
+  readonly property string logo: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 20 80 80"><circle cx="60" cy="60" r="38" fill="#f28c1b"/><path d="M50 38 C 62 50, 64 70, 50 82 L 82 60 Z" fill="#141414"/></svg>')
   readonly property color accentText: (0.299 * accent.r + 0.587 * accent.g + 0.114 * accent.b) > 0.6 ? "#111111" : "#ffffff"
   readonly property color white: Qt.rgba(1, 1, 1, 1)
   readonly property color black0: Qt.rgba(0, 0, 0, 1)
