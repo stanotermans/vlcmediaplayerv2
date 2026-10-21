@@ -20,7 +20,7 @@ unzip -o -q "$AAR" "jni/$ABI/*" -d "$B/libvlc"
 LIBS="$B/libvlc/jni/$ABI/libvlc.so;$B/libvlc/jni/$ABI/libc++_shared.so"
 if [ -n "$FF" ]; then cp "$FF" "$B/libffmpeg.so"; LIBS="$LIBS;$B/libffmpeg.so"; fi
 
-QTCMAKE="$QT/bin/qt-cmake"; [ -f "$QTCMAKE.bat" ] && QTCMAKE="$QTCMAKE.bat"
+QTCMAKE="$QT/bin/qt-cmake"; [ "${OS:-}" = Windows_NT ] && QTCMAKE="$QTCMAKE.bat"   # (Qt for Android has both)
 "$QTCMAKE" -S . -B "$B" -G Ninja -DCMAKE_BUILD_TYPE=Release -DQT_ANDROID_ABIS="$ABI" -DVLCR_ANDROID_LIBS="$LIBS" \
   ${QT_HOST_PATH:+-DQT_HOST_PATH="$QT_HOST_PATH"} -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
 cmake --build "$B" --target apk
