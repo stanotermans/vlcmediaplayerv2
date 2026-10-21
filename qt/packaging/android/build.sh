@@ -48,5 +48,5 @@ else   # Android's debug key (made once, like Android Studio does)
                     -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null; }
 fi
 NAME="Vela-Player-$VERSION-android-$ABI.apk"
-"$BT/apksigner${EXE:+.bat}" sign --ks "$KS" --ks-pass "pass:$PASS" --ks-key-alias "$ALIAS" --out "$OUT/$NAME" "$W/aligned.apk"
+java -jar "$BT/lib/apksigner.jar" sign --ks "$KS" --ks-pass "pass:$PASS" --ks-key-alias "$ALIAS" --out "$OUT/$NAME" "$W/aligned.apk"
 ls -la "$OUT/$NAME"

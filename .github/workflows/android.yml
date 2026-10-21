@@ -1,0 +1,75 @@
+name: Android
+
+# Vela Player for Android (#53): the app for the emulator (x86_64) and for phones (arm64-v8a), tried in an Android 14
+# emulator that plays a test video. By hand for now ("Actions" → "Android" → "Run workflow"); the APKs are only
+# build artifacts here: the app goes out through Google Play, not through GitHub releases.
+on:
+  workflow_dispatch:
+  push:
+    branches: [android]     # (work in progress on the Android version)
+
+env:
+  QT_VERSION: 6.8.3
+  NDK_VERSION: 26.1.10909125
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [x86_64, arm64-v8a]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - name: Ninja and the NDK
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq ninja-build
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Qt for the build machine
+        uses: jurplel/install-qt-action@v4
+        with: { version: '${{ env.QT_VERSION }}', host: linux, target: desktop, arch: linux_gcc_64, modules: qtmultimedia qtshadertools, cache: true }
+      - run: echo "QT_HOST_PATH=$QT_ROOT_DIR" >> "$GITHUB_ENV"
+      - name: Qt for Android
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '${{ env.QT_VERSION }}'
+          host: linux
+          target: android
+          arch: ${{ matrix.abi == 'x86_64' && 'android_x86_64' || 'android_arm64_v8a' }}
+          modules: qtmultimedia qtshadertools
+          cache: true
+      - name: Build the APK
+        run: bash qt/packaging/android/build.sh ${{ matrix.abi }} "$QT_ROOT_DIR" "" apk
+      - uses: actions/upload-artifact@v4
+        with: { name: android-${{ matrix.abi }}, path: apk/*.apk, if-no-files-found: error }
+
+  emulator:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: android-x86_64, path: apk }
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: A test video
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq ffmpeg
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=s=640x360:r=25:d=12 -f lavfi -i sine=f=440:d=12 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest video.mp4
+      - name: Play it in the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash qt/packaging/android/emutest.sh "$(ls apk/*.apk | head -1)" video.mp4 emu-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: android-emulator, path: emu-out/ }
