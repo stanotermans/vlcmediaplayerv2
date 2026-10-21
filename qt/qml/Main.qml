@@ -336,7 +336,10 @@ C.ApplicationWindow {
   function leaveFs() { if (wasMaximized) showMaximized(); else showNormal(); }
   property bool stateKept: false   // set a moment after the start: the first states are the app's own
   Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
-  onVisibilityChanged: if (stateKept && !shotPath && (visibility === Window.Maximized || visibility === Window.Windowed)) Settings.set("winMaximized", visibility === Window.Maximized)
+  onVisibilityChanged: {
+    frame.setFullscreen(visibility === Window.FullScreen);   // #80
+    if (stateKept && !shotPath && (visibility === Window.Maximized || visibility === Window.Windowed)) Settings.set("winMaximized", visibility === Window.Maximized);
+  }
   function showPlayer() {
     if (fsForLibrary && !fullscreen) { fsForLibrary = false; enterFs(); }
     inPlayer = true;

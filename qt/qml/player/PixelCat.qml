@@ -20,7 +20,12 @@ Item {
   function svg(which) {
     const C = { W: "#ececec", K: "#111", P: "#f6b8c4", G: "#a8a8a8" };
     let r = "";
-    rows.forEach((row, y) => [...row].forEach((c, x) => { if (C[c] && part(x, y) === which) r += '<rect x="' + x + '" y="' + y + '" width="1.02" height="1.02" fill="' + C[c] + '"/>'; }));
+    rows.forEach((row, y) => [...row].forEach((c, x) => {
+      const p = part(x, y);
+      // #77: the body has skin under the eyes and the mouth, so closed eyes look closed (not a hole to the background)
+      const fill = p === which ? C[c] : which === "body" && (p === "eyes" || p === "mouth") ? C.W : "";
+      if (C[c] && fill) r += '<rect x="' + x + '" y="' + y + '" width="1.02" height="1.02" fill="' + fill + '"/>';
+    }));
     return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 17" shape-rendering="crispEdges">' + r + "</svg>");
   }
   implicitWidth: 180; implicitHeight: width * 17 / 18
@@ -45,7 +50,8 @@ Item {
     id: body
     width: parent.width; height: parent.height
     transformOrigin: Item.Center                          // spin: around the middle (transform-origin: center)
-    transform: [ Scale { id: jumpScale; origin.x: body.width / 2; origin.y: body.height }, Translate { id: jumpMove } ]   // jump: from the bottom
+    transform: [ Scale { id: jumpScale; origin.x: body.width / 2; origin.y: body.height }, Translate { id: jumpMove },   // jump: from the bottom
+                 Rotation { id: tilt; origin.x: body.width / 2; origin.y: body.height } ]                                 // blink: a tilt of the head
     Image { anchors.fill: parent; source: cat.svg("body"); smooth: false; sourceSize: Qt.size(180, 170) }
     Image { id: tail; anchors.fill: parent; source: cat.svg("tail"); smooth: false; sourceSize: Qt.size(180, 170)
             transform: Rotation { id: tailRot; origin.x: cat.width * 14 / 18; origin.y: cat.height * 16 / 17 } }   // its bottom left (0% 100%)
@@ -54,9 +60,14 @@ Item {
     Image { id: mouth; anchors.fill: parent; source: cat.svg("mouth"); smooth: false; sourceSize: Qt.size(180, 170)
             transform: Scale { id: mouthScale; origin.y: cat.height * 8 / 17 } }    // its top
   }
-  // blink: scaleY .15 at the half, .5 s, twice
-  SequentialAnimation { id: blinkA; loops: 2
-    NumberAnimation { target: eyeScale; property: "yScale"; to: 0.15; duration: 250 } NumberAnimation { target: eyeScale; property: "yScale"; to: 1; duration: 250 } }
+  // blink: the eyes shut twice while the cat tilts its head (#77: v2.x's 15 % squint of one-pixel eyes was hard to see)
+  ParallelAnimation { id: blinkA
+    SequentialAnimation { loops: 2
+      NumberAnimation { target: eyeScale; property: "yScale"; to: 0; duration: 90 } PauseAnimation { duration: 170 }
+      NumberAnimation { target: eyeScale; property: "yScale"; to: 1; duration: 90 } PauseAnimation { duration: 150 } }
+    SequentialAnimation {
+      NumberAnimation { target: tilt; property: "angle"; to: -8; duration: 250; easing.type: Easing.OutQuad } PauseAnimation { duration: 500 }
+      NumberAnimation { target: tilt; property: "angle"; to: 0; duration: 250; easing.type: Easing.InOutQuad } } }
   // meow: the mouth opens wide while the sound plays (#77: v2.x's 2.2× was hard to see)
   SequentialAnimation { id: mouthA
     NumberAnimation { target: mouthScale; property: "yScale"; to: 3.4; duration: 110 } PauseAnimation { duration: 420 }

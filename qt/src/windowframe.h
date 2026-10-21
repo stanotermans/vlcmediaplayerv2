@@ -24,6 +24,8 @@ public:
   bool nativeEventFilter(const QByteArray &type, void *message, qintptr *result) override;
   Q_INVOKABLE int hitTestAt(int x, int y);   // testing: what Windows is told at this window point (device pixels)
   Q_INVOKABLE bool grab(const QString &file);  // testing: saves the whole window (dialogs and menus included)
+  // #80: in fullscreen no window border (Windows 11 draws a thin light line round the window) and square corners
+  Q_INVOKABLE void setFullscreen(bool on);
 signals:
   void changed();
   void hoverChanged();

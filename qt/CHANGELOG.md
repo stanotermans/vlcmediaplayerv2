@@ -1,3 +1,7 @@
+## 3.1.1
+- 🐛 **No white line round the picture in fullscreen** on Windows 11 (#80).
+- 🐱 The pixel cat's blink is easy to see now: its eyes really close and it tilts its head (#77).
+
 ## 3.1.0
 - ✨ **VLC Redesign is now Vela Player**, with a new icon: a sail (*vela*) that is a play button. Juxtopposed's design stays the same. Your settings, library, playlists and positions come along, and the update replaces the old app.
 - ℹ️ Why: "VLC" and the cone are VideoLAN's trademarks, and the app stores (Android and iOS versions are on the way) only accept apps with their own name and icon.

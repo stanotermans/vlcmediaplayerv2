@@ -15,6 +15,19 @@ void WindowFrame::setMaximizeButton(QQuickItem *i) {
   if (i && i->window()) connect(i->window(), &QWindow::visibleChanged, this, &WindowFrame::style, Qt::UniqueConnection);
   style();   // (and from the first message of the window below, if it did not exist yet)
 }
+void WindowFrame::setFullscreen(bool on) {
+#ifdef Q_OS_WIN
+  if (!m_max || !m_max->window() || !m_max->window()->handle()) return;
+  HWND h = reinterpret_cast<HWND>(m_max->window()->winId());
+  const COLORREF border = on ? 0xFFFFFFFE /* DWMWA_COLOR_NONE */ : 0xFFFFFFFF /* DWMWA_COLOR_DEFAULT */;
+  DwmSetWindowAttribute(h, 34 /* DWMWA_BORDER_COLOR */, &border, sizeof border);
+  const DWORD corners = on ? 1 /* DWMWCP_DONOTROUND */ : 2 /* DWMWCP_ROUND */;
+  DwmSetWindowAttribute(h, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, &corners, sizeof corners);
+#else
+  Q_UNUSED(on);
+#endif
+}
+
 void WindowFrame::style() {
 #ifdef Q_OS_WIN
   m_styleQueued = false;
