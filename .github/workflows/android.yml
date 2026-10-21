@@ -36,7 +36,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: '${{ env.QT_VERSION }}'
-          host: linux
+          host: all_os            # (Qt 6.7+ publishes its Android builds for every host)
           target: android
           arch: ${{ matrix.abi == 'x86_64' && 'android_x86_64' || 'android_arm64_v8a' }}
           modules: qtmultimedia qtshadertools
