@@ -19,6 +19,10 @@ adb logcat -c
 adb shell am start -W -n $PKG/org.qtproject.qt.android.bindings.QtActivity
 sleep 12
 adb exec-out screencap -p > "$OUT/screen-running.png"
+# every thread's stack (Java and native) at this moment: shows where the app waits if it hangs
+adb root >/dev/null 2>&1; sleep 2
+PID=$(adb shell pidof $PKG | tr -d '')
+[ -n "$PID" ] && adb shell debuggerd -b "$PID" > "$OUT/stacks.txt" 2>&1 || true
 sleep 10
 adb pull "$FILES/log.txt" "$OUT/log.txt" || true
 adb pull "$FILES/shot.png" "$OUT/shot.png" || true
