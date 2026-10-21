@@ -235,7 +235,7 @@ docs/              Download page for GitHub Pages
 
 ## ❓ Why not iOS, Android, …?
 
-The app's interface runs on [Electron](https://www.electronjs.org) (playback is VLC's engine), and Electron only supports Windows, macOS and Linux. **iOS, Apple TV and Android** would need a separate native app. **Windows Phone** has been discontinued, and **NetBSD, Solaris, QNX and OS/2** have no Electron or Chromium.
+We are working on making a port to iOS and Android.
 
 ## 🤝 Community
 
