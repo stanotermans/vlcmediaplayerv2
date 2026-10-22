@@ -453,7 +453,11 @@ C.ApplicationWindow {
       win.width = Math.min(1600, aw - 48); win.height = Math.min(1000, ah - 48);
       win.x = Screen.virtualX + Math.round((aw - win.width) / 2); win.y = Screen.virtualY + Math.round((ah - win.height) / 2);
     }
-    if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) win.visibility = Window.Maximized;   // #73: shown maximised (testStartMax: also in a test)
+    if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) {   // #73: shown maximised (testStartMax: also in a test)
+      win.visibility = Window.Maximized;
+      // a shortcut tells Windows "normal window", which Windows applies to the first showing of the window: again after it
+      timerAt(150, () => { if (win.visibility !== Window.Maximized && win.visibility !== Window.FullScreen) win.showMaximized(); });
+    }
     I18n.setLanguage(Settings.values.language || "");
     subs.loadFonts(Settings.values.customFonts || []);
     const opened = System.startPaths();
