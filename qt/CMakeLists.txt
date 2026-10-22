@@ -73,7 +73,7 @@ if(ANDROID)
     QT_ANDROID_EXTRA_LIBS "${VLCR_ANDROID_LIBS}"
     QT_QML_IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}")   # (androiddeployqt finds our VLCR module there)
 elseif(WIN32)
-  target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject dbghelp dwmapi)
+  target_link_libraries(vlcr PRIVATE user32 crypt32 runtimeobject dbghelp dwmapi comctl32)
 elseif(APPLE)
   target_link_libraries(vlcr PRIVATE "-framework IOKit" "-framework CoreFoundation")   # keeping the screen on (#61)
 else()

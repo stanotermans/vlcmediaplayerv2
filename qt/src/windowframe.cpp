@@ -4,10 +4,39 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <dwmapi.h>
+#include <commctrl.h>
+#endif
+
+#ifdef Q_OS_WIN
+// #89: the shape follows the edge that is dragged; the corners take the larger size. (Qt keeps WM_SIZING from the
+// native event filters: the window's own procedure is subclassed for it.)
+static LRESULT CALLBACK sizingProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR self) {
+  auto *f = reinterpret_cast<WindowFrame *>(self);
+  if (m == WM_SIZING && f->aspect() > 0 && f->maximizeButton() && f->maximizeButton()->window()) {
+    RECT *r = reinterpret_cast<RECT *>(lp);
+    const qreal dpr = f->maximizeButton()->window()->devicePixelRatio();
+    const double ex = f->extra().width() * dpr, ey = f->extra().height() * dpr, a = f->aspect();
+    double w = r->right - r->left, ht = r->bottom - r->top;
+    const double hFromW = ey + (w - ex) / a, wFromH = ex + (ht - ey) * a;
+    const bool horiz = wp == WMSZ_LEFT || wp == WMSZ_RIGHT, vert = wp == WMSZ_TOP || wp == WMSZ_BOTTOM;
+    if (horiz || (!vert && hFromW >= ht)) ht = hFromW; else w = wFromH;
+    if (wp == WMSZ_LEFT || wp == WMSZ_TOPLEFT || wp == WMSZ_BOTTOMLEFT) r->left = r->right - LONG(qRound(w)); else r->right = r->left + LONG(qRound(w));
+    if (wp == WMSZ_TOP || wp == WMSZ_TOPLEFT || wp == WMSZ_TOPRIGHT) r->top = r->bottom - LONG(qRound(ht)); else r->bottom = r->top + LONG(qRound(ht));
+    return TRUE;
+  }
+  if (m == WM_NCDESTROY) RemoveWindowSubclass(h, sizingProc, 1);
+  return DefSubclassProc(h, m, wp, lp);
+}
 #endif
 
 WindowFrame::WindowFrame(QObject *parent) : QObject(parent) { QCoreApplication::instance()->installNativeEventFilter(this); }
-WindowFrame::~WindowFrame() { if (auto *a = QCoreApplication::instance()) a->removeNativeEventFilter(this); }
+WindowFrame::~WindowFrame() {
+  if (auto *a = QCoreApplication::instance()) a->removeNativeEventFilter(this);
+#ifdef Q_OS_WIN
+  if (m_styled && m_max && m_max->window() && m_max->window()->handle())
+    RemoveWindowSubclass(reinterpret_cast<HWND>(m_max->window()->winId()), sizingProc, 1);
+#endif
+}
 
 void WindowFrame::setMaximizeButton(QQuickItem *i) {
   m_max = i; emit changed();
@@ -36,6 +65,7 @@ void WindowFrame::style() {
   // a real frame (WM_NCCALCSIZE below keeps the content over all of it): rounded corners and shadow on Windows 11
   LONG_PTR s = GetWindowLongPtrW(h, GWL_STYLE);
   m_styled = true;   // before SetWindowPos: its WM_NCCALCSIZE must already cover the frame
+  SetWindowSubclass(h, sizingProc, 1, reinterpret_cast<DWORD_PTR>(this));
   SetWindowLongPtrW(h, GWL_STYLE, s | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME | WS_CAPTION);
   SetWindowPos(h, nullptr, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
   // #65: and ask for round corners (Windows 11 keeps popup-style windows square otherwise; Windows 10 ignores it)
@@ -50,6 +80,17 @@ bool WindowFrame::overMaximize(int x, int y) const {
   const qreal dpr = m_max->window()->devicePixelRatio();
   const QRectF r = m_max->mapRectToScene(QRectF(0, 0, m_max->width(), m_max->height()));
   return r.contains(QPointF(x / dpr, y / dpr));
+}
+
+QSize WindowFrame::sizingAt(int edge, int w, int h) {
+#ifdef Q_OS_WIN
+  if (!m_max || !m_max->window() || !m_max->window()->handle()) return {};
+  RECT r { 0, 0, w, h };
+  SendMessageW(reinterpret_cast<HWND>(m_max->window()->winId()), WM_SIZING, WPARAM(edge), LPARAM(&r));
+  return QSize(r.right - r.left, r.bottom - r.top);
+#else
+  Q_UNUSED(edge) Q_UNUSED(w) Q_UNUSED(h) return {};
+#endif
 }
 
 bool WindowFrame::grab(const QString &file) {

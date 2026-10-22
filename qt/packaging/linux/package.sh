@@ -30,6 +30,9 @@ QML_SOURCES_PATHS=qml QMAKE="$QT/bin/qmake" linuxdeploy --appdir "$AD" --plugin 
 mkdir -p "$AD/usr/plugins/platformthemes"
 for t in libqgtk3.so libqxdgdesktopportal.so; do [ -f "$QT/plugins/platformthemes/$t" ] && cp "$QT/plugins/platformthemes/$t" "$AD/usr/plugins/platformthemes/"; done
 ls "$AD/usr/plugins/platformthemes"
+# #84: GLib is the system's (every desktop has it): the GTK libraries the gtk3 theme loads need the system's newer GLib,
+# and with the build system's older copy next to the program the theme failed to load (undefined symbol)
+rm -fv "$AD"/usr/lib/lib{glib,gobject,gio,gmodule,gthread}-2.0.so*
 # only the Basic style of Qt Quick Controls is used: the other styles go
 for st in Material Imagine Fusion Universal FluentWinUI3; do rm -rf "$AD/usr/qml/QtQuick/Controls/$st"; done
 B="$AD/usr/bin"

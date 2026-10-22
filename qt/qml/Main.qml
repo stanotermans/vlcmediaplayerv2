@@ -13,7 +13,8 @@ C.ApplicationWindow {
   width: 1600; height: 1000
   visible: true
   // #85: on Linux the window draws its own rounded corners (no system frame); not maximised, fullscreen or bare
-  readonly property int corner: Qt.platform.os === "linux" && !Theme.mobile && visibility === Window.Windowed && !fsMode && !hideUi ? 10 : 0
+  readonly property int corner: Qt.platform.os === "linux" && !Theme.mobile && visibility === Window.Windowed && !tiled && !fsMode && !hideUi ? 10 : 0
+  readonly property bool tiled: height >= Screen.desktopAvailableHeight - 2
   color: corner > 0 ? "transparent" : Theme.bg
   title: current && Settings.values.titleName !== false ? current.name : "Vela Player"   // #90: can be hidden (Settings → Interface)
   flags: Qt.Window | Qt.FramelessWindowHint
@@ -279,7 +280,7 @@ C.ApplicationWindow {
     onAccepted: library.setPlaylistCover(target, library.readImage(selectedFile)) }
 
   property double stateTime: 0                                     // #95: when the window last changed state
-  function toggleMax() { if (Date.now() - stateTime < 500) return; win.visibility === Window.Maximized ? win.showNormal() : win.showMaximized(); }
+  function toggleMax() { if (Date.now() - stateTime < 500) return; win.maximized ? win.showNormal() : win.showMaximized(); }
   property var settingsWin: null
   property bool devPages: openAtStart.indexOf("components") >= 0   // the design system page (testing)
   function openSettings(page) {
@@ -321,6 +322,16 @@ C.ApplicationWindow {
   // #89: with "Resize window to the video" on, a window you resize takes the video's shape again when you let go
   // (no black bars): its width stays, the height follows
   property bool fitting: false
+  readonly property real lockAspect: Settings.values.fitWindow && visibility === Window.Windowed && inPlayer && !!current && !Theme.mobile && !compact && player.videoSize.width > 0 && player.videoSize.height > 0 ? player.videoSize.width / player.videoSize.height : 0
+  // a window of w x h with the video's shape: what the edge e (Qt edges) leaves alone stays where it is
+  function lockedSize(e, w, h) {
+    const a = lockAspect, cw = win.width - playerView.width, ch = win.height - playerView.height;
+    if (!(a > 0)) return Qt.size(w, h);
+    const hFromW = ch + (w - cw) / a, wFromH = cw + (h - ch) * a;
+    const horiz = e & (Qt.LeftEdge | Qt.RightEdge), vert = e & (Qt.TopEdge | Qt.BottomEdge);
+    if (horiz && (!vert || hFromW >= h)) return Qt.size(w, Math.round(hFromW));
+    return Qt.size(Math.round(wFromH), h);
+  }
   Timer { id: shapeT; interval: 450; onTriggered: win.keepVideoShape() }
   function keepVideoShape() {
     const size = player.videoSize;
@@ -342,21 +353,26 @@ C.ApplicationWindow {
   // The library never stays in fullscreen (#31: on Windows the taskbar can cover it); going back to the player
   // restores it.
   property bool fsForLibrary: false
-  readonly property bool fullscreen: visibility === Window.FullScreen
+  // #95: a maximised window that covers the whole screen (no taskbar there, or one that hides itself) is reported
+  // as fullscreen by Windows; it is fullscreen only when the app asked for it
+  property bool fsWanted: false
+  readonly property bool fullscreen: visibility === Window.FullScreen && fsWanted
+  readonly property bool maximized: visibility === Window.Maximized || (visibility === Window.FullScreen && !fsWanted)
   readonly property bool fsMode: fullscreen && inPlayer
   // while media plays the rail and library panel step aside (Settings → Interface → autoHideSide)
   readonly property bool focusVideo: !!Settings.values.autoHideSide && inPlayer && !!current && !sideOverride
   // #73: after fullscreen back to how the window was (maximised or not), and maximised again after a restart
   property bool wasMaximized: false
-  function enterFs() { wasMaximized = visibility === Window.Maximized; showFullScreen(); }
-  function leaveFs() { if (wasMaximized) showMaximized(); else showNormal(); }
+  function enterFs() { wasMaximized = maximized; fsWanted = true; showFullScreen(); }
+  function leaveFs() { fsWanted = false; if (wasMaximized) showMaximized(); else showNormal(); }
   property bool stateKept: false   // set a moment after the start: the first states are the app's own
   Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
   onVisibilityChanged: {
     stateTime = Date.now();
-    frame.setFullscreen(visibility === Window.FullScreen);   // #80
-    if (stateKept && !shotPath && (visibility === Window.Maximized || visibility === Window.Windowed)) Settings.set("winMaximized", visibility === Window.Maximized);
+    if (visibility !== Window.FullScreen) fsWanted = false;
+    if (stateKept && !shotPath && !fullscreen && visibility !== Window.Minimized && visibility !== Window.Hidden) Settings.set("winMaximized", maximized);
   }
+  onFullscreenChanged: frame.setFullscreen(fullscreen)   // #80
   function showPlayer() {
     if (fsForLibrary && !fullscreen) { fsForLibrary = false; enterFs(); }
     inPlayer = true;
@@ -461,7 +477,7 @@ C.ApplicationWindow {
   Connections { target: player; function onStateChanged() { System.mediaState(!win.current ? "closed" : player.playing ? "playing" : player.active ? "paused" : "stopped"); } }
   onCurrentChanged: if (current) { const i = library.item(current.src); System.mediaInfo(current.name.replace(/\.[^.]+$/, ""), i.artist || "", i.album || "", current.type === "audio"); } else System.mediaState("closed")
   Timer { id: updateTimer; interval: 5000; onTriggered: { System.checkUpdates(false); Settings.set("lastUpdateCheck", Date.now()); } }
-  WindowFrame { id: frame; maximizeButton: maxBtn }
+  WindowFrame { id: frame; maximizeButton: maxBtn; aspect: win.lockAspect; extra: Qt.size(win.width - playerView.width, win.height - playerView.height) }
   Component.onCompleted: {
     // #64: never bigger than the screen (1600 × 1000 is too big at 150 % on a 1080p screen), and in its middle
     if (!shotPath) {
@@ -473,7 +489,7 @@ C.ApplicationWindow {
     if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) {   // #73: shown maximised (testStartMax: also in a test)
       win.visibility = Window.Maximized;
       // a shortcut tells Windows "normal window", which Windows applies to the first showing of the window: again after it
-      timerAt(150, () => { if (win.visibility !== Window.Maximized && win.visibility !== Window.FullScreen) win.showMaximized(); });
+      timerAt(150, () => { if (!win.maximized && !win.fullscreen) win.showMaximized(); });
     }
     I18n.setLanguage(Settings.values.language || "");
     subs.loadFonts(Settings.values.customFonts || []);
@@ -646,8 +662,8 @@ C.ApplicationWindow {
           color: hot ? (modelData === "closeBtn" ? "#c42b1c" : Theme.panel2) : "transparent"
           Component.onCompleted: if (modelData === "maxBtn") maxBtn = wbtn
           Icon { anchors.centerIn: parent; color: parent.hot ? (modelData === "closeBtn" ? "#fff" : Theme.text) : Theme.muted
-                 html: modelData === "maxBtn" && win.visibility === Window.Maximized ? "" : modelData
-                 name: modelData === "maxBtn" && win.visibility === Window.Maximized ? "restore" : "" }
+                 html: modelData === "maxBtn" && win.maximized ? "" : modelData
+                 name: modelData === "maxBtn" && win.maximized ? "restore" : "" }
           MouseArea { id: a; anchors.fill: parent; hoverEnabled: true
             onClicked: modelData === "minBtn" ? win.showMinimized() : modelData === "maxBtn" ? win.toggleMax()
                      : modelData === "fsBtn2" ? win.toggleFs() : win.quit() }
@@ -905,24 +921,33 @@ C.ApplicationWindow {
 
   // window edges: resize like a normal window (the frame is our own)
   Repeater {
-    model: win.fullscreen || win.visibility === Window.Maximized ? [] : [[Qt.LeftEdge, 0, 0, 5, -1], [Qt.RightEdge, -5, 0, 5, -1], [Qt.BottomEdge, 0, -5, -1, 5], [Qt.TopEdge, 0, 0, -1, 4]]
+    model: win.fullscreen || win.maximized ? [] : [[Qt.LeftEdge, 0, 0, 5, -1], [Qt.RightEdge, -5, 0, 5, -1], [Qt.BottomEdge, 0, -5, -1, 5], [Qt.TopEdge, 0, 0, -1, 4],
+      [Qt.TopEdge | Qt.LeftEdge, 0, 0, 12, 12], [Qt.TopEdge | Qt.RightEdge, -12, 0, 12, 12],
+      [Qt.BottomEdge | Qt.LeftEdge, 0, -12, 12, 12], [Qt.BottomEdge | Qt.RightEdge, -12, -12, 12, 12]]
     MouseArea {
       required property var modelData
       z: 40
       x: modelData[1] < 0 ? win.width + modelData[1] : modelData[1]; y: modelData[2] < 0 ? win.height + modelData[2] : modelData[2]
       width: modelData[3] < 0 ? win.width : modelData[3]; height: modelData[4] < 0 ? win.height : modelData[4]
-      cursorShape: modelData[0] === Qt.LeftEdge || modelData[0] === Qt.RightEdge ? Qt.SizeHorCursor : Qt.SizeVerCursor
+      readonly property int e: modelData[0]
+      cursorShape: e === (Qt.TopEdge | Qt.LeftEdge) || e === (Qt.BottomEdge | Qt.RightEdge) ? Qt.SizeFDiagCursor
+                 : e === (Qt.TopEdge | Qt.RightEdge) || e === (Qt.BottomEdge | Qt.LeftEdge) ? Qt.SizeBDiagCursor
+                 : e === Qt.LeftEdge || e === Qt.RightEdge ? Qt.SizeHorCursor : Qt.SizeVerCursor
       readonly property bool own: Qt.platform.os === "linux"
       property point g0
       property rect r0
-      onPressed: m => { if (!own) return win.startSystemResize(modelData[0]); g0 = mapToGlobal(m.x, m.y); r0 = Qt.rect(win.x, win.y, win.width, win.height); }
+      onPressed: m => { if (!own) return win.startSystemResize(e); g0 = mapToGlobal(m.x, m.y); r0 = Qt.rect(win.x, win.y, win.width, win.height); }
       onPositionChanged: m => {
         if (!own || !pressed) return;
-        const p = mapToGlobal(m.x, m.y), e = modelData[0];
-        if (e === Qt.RightEdge) win.width = Math.max(360, r0.width + p.x - g0.x);
-        else if (e === Qt.BottomEdge) win.height = Math.max(240, r0.height + p.y - g0.y);
-        else if (e === Qt.LeftEdge) { const w = Math.max(360, r0.width - (p.x - g0.x)); win.x = r0.x + r0.width - w; win.width = w; }
-        else { const h = Math.max(240, r0.height - (p.y - g0.y)); win.y = r0.y + r0.height - h; win.height = h; }
+        const p = mapToGlobal(m.x, m.y), dx = p.x - g0.x, dy = p.y - g0.y;
+        let w = e & Qt.RightEdge ? r0.width + dx : e & Qt.LeftEdge ? r0.width - dx : r0.width;
+        let h = e & Qt.BottomEdge ? r0.height + dy : e & Qt.TopEdge ? r0.height - dy : r0.height;
+        const s = win.lockedSize(e, Math.max(360, w), Math.max(240, h));
+        w = Math.max(360, s.width); h = Math.max(240, s.height);
+        win.fitting = true;
+        win.x = e & Qt.LeftEdge ? r0.x + r0.width - w : r0.x; win.y = e & Qt.TopEdge ? r0.y + r0.height - h : r0.y;
+        win.width = w; win.height = h;
+        win.fitting = false;
       }
     }
   }

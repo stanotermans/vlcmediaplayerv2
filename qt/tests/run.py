@@ -228,6 +228,28 @@ def video_shape(c):   # #89: with "resize window to the video" on, a resized win
     c.near('ratio', 563, 25)   # (640x360)
 
 @test
+def live_shape(c):   # #89: while the window is resized it keeps the video's shape (Windows: WM_SIZING; Linux: our own edges)
+    ratio = lambda s, f=1: f'Math.round(({s}.height - (win.height - playerView.height) * {f}) / ({s}.width - (win.width - playerView.width) * {f}) * 1000)'
+    steps = ['set:fitWindow=true', 'size:1000x500'] + PLAY('video.mp4', 1500) + [
+        'log:"edge=" + ' + ratio('win.lockedSize(Qt.RightEdge, 1200, 500)'),
+        'log:"corner=" + ' + ratio('win.lockedSize(Qt.BottomEdge | Qt.RightEdge, 1200, 300)'),
+        'log:"top=" + ' + ratio('win.lockedSize(Qt.TopEdge, 1000, 800)')]
+    if sys.platform == 'win32':
+        d = 'Screen.devicePixelRatio'
+        steps += [f'log:"win=" + ' + ratio(f'frame.sizingAt(2, 1200 * {d}, 500 * {d})', d),
+                  f'log:"wincorner=" + ' + ratio(f'frame.sizingAt(4, 900 * {d}, 900 * {d})', d)]
+    c.vals, _ = run(c.name, steps)
+    for k in ('edge', 'corner', 'top') + (('win', 'wincorner') if sys.platform == 'win32' else ()): c.near(k, 563, 8)   # (640x360)
+
+@test
+def max_whole_screen(c):   # #95: a maximised window that covers the whole screen (no taskbar) is not taken for fullscreen
+    c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), "max")', 'wait:900', 'view:music', 'wait:900',
+                    'log:"max=" + win.maximized + " fs=" + win.fullscreen'] + PLAY('video.mp4', 1200) + [
+                    'log:"fsMode=" + win.fsMode', 'fs', 'wait:900', 'log:"fs=" + win.fullscreen', 'fs', 'wait:900',
+                    'log:"back=" + win.maximized + " fs=" + win.fullscreen'])
+    c.eq('max', 'true fs=false'); c.eq('fsMode', 'false'); c.eq('fs', 'true'); c.eq('back', 'true fs=false')
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)
