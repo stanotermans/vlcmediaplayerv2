@@ -487,6 +487,7 @@ C.ApplicationWindow {
     if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
     if (Settings.values.autoUpdate !== false && !shotPath && !Theme.mobile) updateTimer.start();   // (a phone: the store updates it)
     sideHidden = !!Settings.values.sideHidden;   // #91
+    if (testScreen) { const s = Qt.application.screens.find(x => x.name === testScreen); if (s) { win.screen = s; win.x = s.virtualX + 40; win.y = s.virtualY + 40; } }
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
     // Android (#53): the phone's own media folders, and Android's question for access to them
     if (Qt.platform.os === "android") {

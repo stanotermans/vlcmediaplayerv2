@@ -121,6 +121,8 @@ int main(int argc, char *argv[]) {
   ctx->setContextProperty("openAtStart", qEnvironmentVariable("VLCR_OPEN"));
   ctx->setContextProperty("shotPath", qEnvironmentVariable("VLCR_SHOT"));
   ctx->setContextProperty("shotMs", qEnvironmentVariableIsSet("VLCR_SHOT_MS") ? qEnvironmentVariableIntValue("VLCR_SHOT_MS") : 6000);
+  // testing: VLCR_SCREEN=<name, e.g. \.\DISPLAY3> opens the window on that screen (tests away from the main screen)
+  ctx->setContextProperty("testScreen", qEnvironmentVariable("VLCR_SCREEN"));
   QObject::connect(engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(1); }, Qt::QueuedConnection);
   engine->loadFromModule("VLCR", "Main");
   const int code = app.exec();
