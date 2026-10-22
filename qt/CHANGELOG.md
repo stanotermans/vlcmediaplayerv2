@@ -1,3 +1,12 @@
+## 3.2.0
+- ✨ **Sharp upscaling** (Video → Filters): low-resolution videos are scaled up more sharply, with AMD FidelityFX's RCAS sharpening (#81).
+- ✨ **The window keeps the video's shape:** with *Resize window to the video* on, it takes the video's shape again after you resize it (#89).
+- ✨ Settings → Interface: hide the **file name** or the **folder** in the title bar (#90).
+- 🐛 Starts maximised also from a desktop shortcut (#73); the sidebar stays hidden after a restart (#91).
+- 🐛 Seek-bar previews of videos with an embedded thumbnail show the video (#94); music covers are sharp (#83).
+- 🐛 The title bar fits narrow windows (#86).
+- 🐧 **Linux / GNOME:** rounded window corners (#85), resizing at the edges works (#87), GNOME's cursor theme (#88) and GNOME's own file and folder dialogs (#84).
+
 ## 3.1.1
 - 🐛 **No white line round the picture in fullscreen** on Windows 11 (#80).
 - 🐱 The pixel cat's blink is easy to see now: its eyes really close and it tilts its head (#77).
