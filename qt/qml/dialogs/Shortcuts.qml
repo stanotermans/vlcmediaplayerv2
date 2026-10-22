@@ -11,7 +11,7 @@ DialogBox {
   buttons: [{ label: "Close", value: true, primary: true }]
   readonly property var fixed: [["Hide interface", ["Ctrl", "\\"]], ["Jump to 0–90%", ["0 – 9"]], ["Open files", ["Ctrl", "O"]], ["Open folder", ["Ctrl", "F"]],
     ["Open network stream", ["Ctrl", "N"]], ["Media information", ["Ctrl", "I"]], ["Settings", ["Ctrl", "P"]],
-    ["Library: home / videos / music / network / playlists / recent", ["Ctrl", "1 – 6"]], ["Keyboard shortcuts", ["F1"]], ["Quit VLC", ["Ctrl", "Q"]]]
+    ["Library: home / videos / music / network / playlists / recent", ["Ctrl", "1 – 6"]], ["Keyboard shortcuts", ["F1"]], ["Quit", ["Ctrl", "Q"]]]
   readonly property var rows: pb.actions.map(a => ({ label: a[1], keys: pb.keysFor(a[0]) })).filter(r => r.keys.length).concat(fixed.map(f => ({ label: f[0], caps: f[1] })))
   Flickable {
     width: parent.width; height: Math.min(grid.height, (C.Overlay.overlay ? C.Overlay.overlay.height : 800) - 220)

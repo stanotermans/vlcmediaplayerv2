@@ -278,7 +278,8 @@ C.ApplicationWindow {
   FileDialog { id: coverDlg; property var target: -1; title: qsTr("Cover image"); nameFilters: [qsTr("Images") + " (*.png *.jpg *.jpeg *.webp)"]
     onAccepted: library.setPlaylistCover(target, library.readImage(selectedFile)) }
 
-  function toggleMax() { win.visibility === Window.Maximized ? win.showNormal() : win.showMaximized(); }
+  property double stateTime: 0                                     // #95: when the window last changed state
+  function toggleMax() { if (Date.now() - stateTime < 500) return; win.visibility === Window.Maximized ? win.showNormal() : win.showMaximized(); }
   property var settingsWin: null
   property bool devPages: openAtStart.indexOf("components") >= 0   // the design system page (testing)
   function openSettings(page) {
@@ -352,6 +353,7 @@ C.ApplicationWindow {
   property bool stateKept: false   // set a moment after the start: the first states are the app's own
   Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
   onVisibilityChanged: {
+    stateTime = Date.now();
     frame.setFullscreen(visibility === Window.FullScreen);   // #80
     if (stateKept && !shotPath && (visibility === Window.Maximized || visibility === Window.Windowed)) Settings.set("winMaximized", visibility === Window.Maximized);
   }
@@ -597,7 +599,14 @@ C.ApplicationWindow {
     height: win.compact ? 44 : 36; color: Theme.bg
     topLeftRadius: win.corner; topRightRadius: win.corner
     Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.edge }
-    MouseArea { anchors.fill: parent; enabled: !Theme.mobile; onPressed: if (!win.fullscreen) win.startSystemMove(); onDoubleClicked: win.toggleMax() }
+    MouseArea {
+      anchors.fill: parent; enabled: !Theme.mobile
+      property point p0
+      property bool moving: false
+      onPressed: m => { p0 = Qt.point(m.x, m.y); moving = false; }
+      onPositionChanged: m => { if (pressed && !moving && !win.fullscreen && Math.abs(m.x - p0.x) + Math.abs(m.y - p0.y) > 4) { moving = true; win.startSystemMove(); } }
+      onDoubleClicked: win.toggleMax()
+    }
     Row {
       id: titleLeft
       anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
@@ -801,7 +810,7 @@ C.ApplicationWindow {
           { sep: true }].concat(library.playlists.map((p, i) => ({ label: p.name, icon: "playlist", action: () => navigate({ view: "playlists", pl: i }) }))) },
       { label: qsTr("Open media"), icon: "open", sub: openMediaItems },
       { sep: true },
-      { label: qsTr("Quit VLC"), icon: "quit", kbd: "Ctrl + Q", action: quit }
+      { label: qsTr("Quit"), icon: "quit", kbd: "Ctrl + Q", action: quit }
     ];
   }
   function mediaInfo() { if (current) dialog("dialogs/MediaInfo.qml", { it: library.item(current.src) }); else osd(qsTr("Nothing is playing")); }
@@ -819,7 +828,7 @@ C.ApplicationWindow {
       { label: qsTr("Keyboard shortcuts"), icon: "keyboard", kbd: "F1", action: shortcuts },
       { label: qsTr("Welcome screen"), icon: "info", action: showOnboarding },
       { sep: true },
-      { label: qsTr("Quit VLC"), icon: "quit", kbd: "Ctrl + Q", action: quit }]), x, y);
+      { label: qsTr("Quit"), icon: "quit", kbd: "Ctrl + Q", action: quit }]), x, y);
   }
 
   // ---------- control bar (52px); in fullscreen it slides in at the bottom edge ----------
@@ -860,7 +869,7 @@ C.ApplicationWindow {
       win.fsBottom = win.fsMode && y >= win.height - 90;
       win.cursorHidden = false; hideCursorT.restart();
     }
-    onHoveredChanged: if (!hovered) { win.fsTop = false; win.fsBottom = false; }
+    onHoveredChanged: if (!hovered && !(last.y >= 0 && (last.y <= 60 || last.y >= win.height - 90))) { win.fsTop = false; win.fsBottom = false; }
   }
   Timer { id: hideCursorT; interval: (Settings.values.hideCursorDelay || 2.5) * 1000
           onTriggered: win.cursorHidden = win.fsMode && Settings.values.hideCursor !== false && player.playing && !win.fsTop && !win.fsBottom && win.dialogs === 0 }

@@ -228,6 +228,11 @@ def video_shape(c):   # #89: with "resize window to the video" on, a resized win
     c.near('ratio', 563, 25)   # (640x360)
 
 @test
+def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
+    c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
+    c.eq('vis', 4)   # (Window.Maximized)
+
+@test
 def view360(c):   # #78: a 360° video is shown as a view to look around in (drag) and zoom (wheel); a flat one is not
     c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['log:"on=" + playerView.on360'] + PLAY('sphere.mkv', 2000) + [
                     'log:"playing=" + player.playing', 'pause',   # (paused: the next file in the folder must not start during the test)
