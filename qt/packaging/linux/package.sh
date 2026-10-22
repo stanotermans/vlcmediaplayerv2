@@ -25,6 +25,11 @@ install -Dm644 packaging/linux/vela-player.desktop "$AD/usr/share/applications/v
 install -Dm644 assets/icon-512.png "$AD/usr/share/icons/hicolor/512x512/apps/vela-player.png"
 # X11 (on Wayland desktops through XWayland)
 QML_SOURCES_PATHS=qml QMAKE="$QT/bin/qmake" linuxdeploy --appdir "$AD" --plugin qt
+# #84: Qt's GTK 3 and XDG portal themes, so GNOME (and others) get their own file and folder dialogs; Qt picks gtk3 on
+# GNOME itself (the GTK libraries are the system's)
+mkdir -p "$AD/usr/plugins/platformthemes"
+for t in libqgtk3.so libqxdgdesktopportal.so; do [ -f "$QT/plugins/platformthemes/$t" ] && cp "$QT/plugins/platformthemes/$t" "$AD/usr/plugins/platformthemes/"; done
+ls "$AD/usr/plugins/platformthemes"
 # only the Basic style of Qt Quick Controls is used: the other styles go
 for st in Material Imagine Fusion Universal FluentWinUI3; do rm -rf "$AD/usr/qml/QtQuick/Controls/$st"; done
 B="$AD/usr/bin"

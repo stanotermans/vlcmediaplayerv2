@@ -11,6 +11,7 @@
 #endif
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QQuickWindow>
 
 #include <QFile>
 #include <QDir>
@@ -46,6 +47,23 @@ static void takeOverOldName() {
   if (!QFileInfo::exists(now) && QFileInfo::exists(old + "/settings.json")) copyDir(old, now);
 }
 
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+// #88: GNOME keeps the cursor theme in its own settings; X11 programs read XCURSOR_THEME / XCURSOR_SIZE
+static QByteArray gsetting(const char *key) {
+  QByteArray out;
+  if (FILE *f = popen((QByteArray("gsettings get org.gnome.desktop.interface ") + key + " 2>/dev/null").constData(), "r")) {
+    char buf[256]; while (fgets(buf, sizeof buf, f)) out += buf;
+    pclose(f);
+  }
+  return out.trimmed().replace('\'', "");
+}
+static void gnomeCursor() {
+  if (!qgetenv("XDG_CURRENT_DESKTOP").toLower().contains("gnome")) return;
+  if (!qEnvironmentVariableIsSet("XCURSOR_THEME")) { const QByteArray t = gsetting("cursor-theme"); if (!t.isEmpty()) qputenv("XCURSOR_THEME", t); }
+  if (!qEnvironmentVariableIsSet("XCURSOR_SIZE")) { const QByteArray s = gsetting("cursor-size"); if (s.toInt() > 0) qputenv("XCURSOR_SIZE", s); }
+}
+#endif
+
 // Settings → General → Interface size: the whole interface is scaled by Qt, so it is read before the app starts
 static void applyInterfaceSize() {
   QCoreApplication::setApplicationName("Vela Player"); QCoreApplication::setOrganizationName("Vela Player");
@@ -65,6 +83,9 @@ int main(int argc, char *argv[]) {
   }
   takeOverOldName();
   applyInterfaceSize();
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+  gnomeCursor();
+#endif
   QGuiApplication app(argc, argv);
 #ifdef Q_OS_ANDROID
   Android::loadTestEnv();
@@ -73,7 +94,10 @@ int main(int argc, char *argv[]) {
   app.setApplicationName("Vela Player");
   app.setOrganizationName("Vela Player");
   installCrashLog(qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)) + "/crash.log");
-  QQuickStyle::setStyle("Basic");                      // popups and scrollbars only; everything is drawn by our components
+  QQuickStyle::setStyle("Basic");
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+  QQuickWindow::setDefaultAlphaBuffer(true);   // #85: a see-through window for the rounded corners
+#endif                      // popups and scrollbars only; everything is drawn by our components
 #ifdef Q_OS_WIN
   QFont f("Segoe UI Variable Text"); f.setPixelSize(13); app.setFont(f);   // v2.x: 13px "Segoe UI Variable Text"
 #endif

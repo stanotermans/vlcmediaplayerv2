@@ -12,7 +12,9 @@ C.ApplicationWindow {
   id: win
   width: 1600; height: 1000
   visible: true
-  color: Theme.bg
+  // #85: on Linux the window draws its own rounded corners (no system frame); not maximised, fullscreen or bare
+  readonly property int corner: Qt.platform.os === "linux" && !Theme.mobile && visibility === Window.Windowed && !fsMode && !hideUi ? 10 : 0
+  color: corner > 0 ? "transparent" : Theme.bg
   title: current && Settings.values.titleName !== false ? current.name : "Vela Player"   // #90: can be hidden (Settings → Interface)
   flags: Qt.Window | Qt.FramelessWindowHint
   property bool inPlayer: false
@@ -593,6 +595,7 @@ C.ApplicationWindow {
     Behavior on opacity { NumberAnimation { duration: 200 } }
     z: 30
     height: win.compact ? 44 : 36; color: Theme.bg
+    topLeftRadius: win.corner; topRightRadius: win.corner
     Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.edge }
     MouseArea { anchors.fill: parent; enabled: !Theme.mobile; onPressed: if (!win.fullscreen) win.startSystemMove(); onDoubleClicked: win.toggleMax() }
     Row {
@@ -652,6 +655,7 @@ C.ApplicationWindow {
   }
 
   // ---------- body ----------
+  Rectangle { anchors { left: parent.left; right: parent.right; top: titlebar.bottom; bottom: controls.top } color: Theme.bg; visible: win.corner > 0 }   // (#85: behind the body)
   Item {
     id: body
     anchors { left: parent.left; right: parent.right; top: win.fsMode || win.hideUi ? parent.top : titlebar.bottom; bottom: win.fsMode || win.hideUi ? parent.bottom : controls.top }
@@ -822,6 +826,7 @@ C.ApplicationWindow {
   ControlBar {
     id: controls
     ctl: win
+    bottomLeftRadius: win.corner; bottomRightRadius: win.corner
     visible: !win.hideUi
     anchors { left: parent.left; right: parent.right }
     y: win.fsMode ? (win.fsBottom ? win.height - height : win.height) : win.height - height - win.safeBottom
@@ -897,7 +902,18 @@ C.ApplicationWindow {
       x: modelData[1] < 0 ? win.width + modelData[1] : modelData[1]; y: modelData[2] < 0 ? win.height + modelData[2] : modelData[2]
       width: modelData[3] < 0 ? win.width : modelData[3]; height: modelData[4] < 0 ? win.height : modelData[4]
       cursorShape: modelData[0] === Qt.LeftEdge || modelData[0] === Qt.RightEdge ? Qt.SizeHorCursor : Qt.SizeVerCursor
-      onPressed: win.startSystemResize(modelData[0])
+      readonly property bool own: Qt.platform.os === "linux"
+      property point g0
+      property rect r0
+      onPressed: m => { if (!own) return win.startSystemResize(modelData[0]); g0 = mapToGlobal(m.x, m.y); r0 = Qt.rect(win.x, win.y, win.width, win.height); }
+      onPositionChanged: m => {
+        if (!own || !pressed) return;
+        const p = mapToGlobal(m.x, m.y), e = modelData[0];
+        if (e === Qt.RightEdge) win.width = Math.max(360, r0.width + p.x - g0.x);
+        else if (e === Qt.BottomEdge) win.height = Math.max(240, r0.height + p.y - g0.y);
+        else if (e === Qt.LeftEdge) { const w = Math.max(360, r0.width - (p.x - g0.x)); win.x = r0.x + r0.width - w; win.width = w; }
+        else { const h = Math.max(240, r0.height - (p.y - g0.y)); win.y = r0.y + r0.height - h; win.height = h; }
+      }
     }
   }
 
