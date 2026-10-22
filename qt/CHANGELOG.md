@@ -1,3 +1,6 @@
+## 3.2.1
+- 🐛 **Touchscreens and pens:** a tap on maximise isn't undone anymore, a tap on the title bar no longer makes a maximised window smaller, and in fullscreen the title bar stays while the pen was last at the top (#95).
+
 ## 3.2.0
 - ✨ **Sharp upscaling** (Video → Filters): low-resolution videos are scaled up more sharply, with AMD FidelityFX's RCAS sharpening (#81).
 - ✨ **The window keeps the video's shape:** with *Resize window to the video* on, it takes the video's shape again after you resize it (#89).
