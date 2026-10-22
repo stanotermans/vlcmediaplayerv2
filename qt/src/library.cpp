@@ -140,8 +140,15 @@ public:
     if (!info.isEmpty() && thumbs && (!info["vcodec"].isNull() || info["cover"].toBool())) {
       // cached per file and modification time, like v2.x
       QString key = src; const QFileInfo fi(src); if (fi.exists()) key += QString::number(fi.lastModified().toMSecsSinceEpoch());
-      key += "/2";   // (3.2: larger covers, videos' own pictures: made again once)
-      const QString file = thumbDir + "/" + QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Md5).toHex() + ".jpg";
+      key += "/3";   // (3.2.2: music covers in their own size, videos' own pictures: made again once)
+      const QString base = thumbDir + "/" + QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Md5).toHex();
+      QString file = QFileInfo::exists(base + ".png") ? base + ".png" : base + ".jpg";
+      if (!QFileInfo::exists(file) && info["vcodec"].isNull()) {
+        // #83: a music file's cover as it is in the file (JPEG or PNG, its own size, not re-encoded): sharp on big screens
+        const QByteArray img = run(QStringList{ "-hide_banner", "-loglevel", "error", "-nostdin", "-i", src, "-map", "0:v:0",
+                                                "-frames:v", "1", "-c:v", "copy", "-f", "image2pipe", "pipe:1" }, 20000);
+        if (img.size() > 64) { file = img.startsWith(QByteArray::fromHex("89504e47")) ? base + ".png" : base + ".jpg"; QFile f(file); if (f.open(QIODevice::WriteOnly)) f.write(img); }
+      }
       if (!QFileInfo::exists(file)) {
         // at <= 0: the cover art of a music file (seeking drops the attached picture)
         const double dur = info["duration"].toDouble(), at = info["vcodec"].isNull() ? 0 : qMin(dur * 0.2, 120.0);
@@ -177,8 +184,8 @@ void Library::changed() { if (!m_notify.isActive()) m_notify.start(); if (!m_loa
 // ---------- persistence: library.json ----------
 QString Library::cacheKey(const QString &src) {
   const QFileInfo fi(src);
-  // ("v2": 3.2 made covers and video pictures anew, #83 #94)
-  return fi.isFile() ? "v2:" + QString::number(fi.size()) + ":" + QString::number(fi.lastModified().toMSecsSinceEpoch()) : QString();
+  // ("v3": 3.2.2 made covers anew, #83 #94)
+  return fi.isFile() ? "v3:" + QString::number(fi.size()) + ":" + QString::number(fi.lastModified().toMSecsSinceEpoch()) : QString();
 }
 void Library::load() {
   { QFile c(dataDir() + "/probe-cache.json");

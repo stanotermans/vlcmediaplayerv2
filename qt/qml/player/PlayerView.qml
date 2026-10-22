@@ -205,7 +205,9 @@ Rectangle {
       anchors.centerIn: parent
       width: Math.min(parent.width, parent.height) * (Settings.values.coverSize || 40) / 100; height: width; radius: 8; clip: true
       color: "transparent"
-      Image { anchors.fill: parent; source: root.visible && root.audio ? root.art : ""; fillMode: Image.PreserveAspectCrop; sourceSize.width: 640 }
+      // #83: decoded at the size it is shown (the screen's pixels), from the cover in its own size
+      Image { anchors.fill: parent; source: root.visible && root.audio ? root.art : ""; fillMode: Image.PreserveAspectCrop; asynchronous: true
+              sourceSize.width: Math.min(4096, Math.ceil(width * Screen.devicePixelRatio)) }
     }
     PixelCat {
       id: pixelCat
