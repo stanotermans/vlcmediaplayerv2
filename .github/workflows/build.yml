@@ -35,7 +35,7 @@ jobs:
       - name: Build on macOS
         if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'macOS'
         run: |
-          brew install nasm pkgconf
+          brew install nasm pkgconf meson ninja
           bash app/build/ffmpeg/build.sh ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:

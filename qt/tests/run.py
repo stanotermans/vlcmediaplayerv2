@@ -250,6 +250,30 @@ def max_whole_screen(c):   # #95: a maximised window that covers the whole scree
     c.eq('max', 'true fs=false'); c.eq('fsMode', 'false'); c.eq('fs', 'true'); c.eq('back', 'true fs=false')
 
 @test
+def side_l_key(c):   # #91: a hidden sidebar stays hidden when L goes from the player to the library and back
+    S = 'log:"side=" + win.sideHidden + " " + Settings.values.navExpanded + " " + Math.round(side.width) + " rail=" + rail.width'
+    c.vals, _ = run(c.name, ['set:autoHideSide=true', 'wait:1500', 'log:(win.sideHidden = true, "hid")', 'wait:400', S] + PLAY('video.mp4', 1200) + [
+                    'key:l', 'wait:600', S, 'key:l', 'wait:600', 'key:l', 'wait:600', S, 'key:Ctrl+3', 'wait:600', S,
+                    'key:l', 'wait:600', 'log:(win.sideToggle(), "peek")', 'wait:500', 'log:"peek=" + Math.round(side.width)',
+                    'log:(win.sideToggle(), "unpeek")', 'key:l', 'wait:600', S])
+    c.eq('peek', 250)
+    for i in range(5): c.ok((c.get('side', i) or '').startswith('true') and ' 0 ' in (c.get('side', i) or ''), f"sidebar shows: {c.get('side', i)}")
+
+@test
+def lyrics_snap(c):   # #96: fullscreen lyrics, then the window manager takes the window out of fullscreen and tiles it
+    c.vals, _ = run(c.name, ['set:fitWindow=true', 'size:1000x600', 'view:music'] + PLAY('song.flac', 2500) + ['fs', 'wait:900',
+                    'log:(win.showNormal(), win.y = Screen.virtualY, win.height = Screen.desktopAvailableHeight, "tiled")', 'wait:1500',
+                    'log:"lock=" + win.lockAspect', 'log:"win=" + win.visible + " " + win.visibility + " " + (win.height === Screen.desktopAvailableHeight) + " " + win.tiled + " " + win.corner'])
+    c.eq('lock', 0); c.eq('win', 'true 2 true true 0')
+
+@test
+def preview_av1(c):   # #94: AV1 videos (YouTube downloads) get a storyboard and a thumbnail (FFmpeg with dav1d)
+    f = os.path.join(A.media, 'extra', 'av1.mkv')
+    if not os.path.exists(f): return
+    c.vals, _ = run(c.name, [f'playfile:{f}', 'wait:6000', 'log:"frames="+pb.frames.board.filter(x => x).length', 'log:"playing="+player.playing'])
+    c.more('frames', 2); c.eq('playing', 'true')
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)

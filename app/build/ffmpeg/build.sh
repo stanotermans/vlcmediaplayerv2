@@ -15,6 +15,7 @@ FFMPEG_VERSION=8.1.2                                       # same release as VLC
 X264_HASH=e067ab0b530395f90b578f6d05ab0a225e2efdf9         # same commit as VLC 3.0.24
 DVDREAD_VERSION=6.1.3                                      # DVD ISOs and VIDEO_TS folders (ffmpeg's dvdvideo demuxer),
 DVDNAV_VERSION=6.1.1                                       # same versions as VLC 3.0.24; without libdvdcss (no decryption)
+DAV1D_VERSION=1.5.1                                        # AV1 (#94): ffmpeg's own av1 decoder only works with hardware decoding
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 WORK=${WORK:-$HERE/work/$TARGET}
@@ -29,14 +30,32 @@ fetch "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz" ffmpeg.tar.xz
 fetch "https://code.videolan.org/videolan/x264/-/archive/$X264_HASH/x264-$X264_HASH.tar.bz2" x264.tar.bz2
 fetch "https://download.videolan.org/pub/videolan/libdvdread/$DVDREAD_VERSION/libdvdread-$DVDREAD_VERSION.tar.bz2" dvdread.tar.bz2
 fetch "https://download.videolan.org/pub/videolan/libdvdnav/$DVDNAV_VERSION/libdvdnav-$DVDNAV_VERSION.tar.bz2" dvdnav.tar.bz2
-rm -rf ffmpeg-src x264-src dvdread-src dvdnav-src && mkdir ffmpeg-src x264-src dvdread-src dvdnav-src
+fetch "https://download.videolan.org/pub/videolan/dav1d/$DAV1D_VERSION/dav1d-$DAV1D_VERSION.tar.xz" dav1d.tar.xz
+rm -rf ffmpeg-src x264-src dvdread-src dvdnav-src dav1d-src && mkdir ffmpeg-src x264-src dvdread-src dvdnav-src dav1d-src
+tar -xJf dav1d.tar.xz -C dav1d-src --strip-components=1
 tar -xjf dvdread.tar.bz2 -C dvdread-src --strip-components=1
 tar -xjf dvdnav.tar.bz2 -C dvdnav-src --strip-components=1
 tar -xJf ffmpeg.tar.xz -C ffmpeg-src --strip-components=1
 tar -xjf x264.tar.bz2 -C x264-src --strip-components=1
 
 # ---- per-target toolchain ----
-X264_HOST=(); AC_HOST=(); FF_CROSS=(); FF_TLS=(); EXTRA_LDFLAGS=""; EXT=""
+X264_HOST=(); AC_HOST=(); FF_CROSS=(); FF_TLS=(); EXTRA_LDFLAGS=""; EXT=""; MESON_CROSS=()
+# meson cross file for dav1d: cross <system> <cpu> <c compiler…> (ar/strip from AR/STRIP)
+cross() {
+  local sys=$1 cpu=$2; shift 2
+  local cc; cc=$(printf "'%s', " "$@"); cc="[${cc%, }]"
+  printf "[binaries]
+c = %s
+ar = '%s'
+strip = '%s'
+[host_machine]
+system = '%s'
+cpu_family = '%s'
+cpu = '%s'
+endian = 'little'
+"     "$cc" "${AR:-ar}" "${STRIP:-strip}" "$sys" "$cpu" "$cpu" > "$WORK/cross.meson"
+  MESON_CROSS=(--cross-file "$WORK/cross.meson")
+}
 case "$TARGET" in
   linux-x64)   # Alpine/musl → fully static, runs on any distribution
     EXTRA_LDFLAGS="-static"
@@ -49,6 +68,7 @@ case "$TARGET" in
     EXTRA_LDFLAGS="-static"
     FF_TLS=(--enable-schannel)
     EXT=".exe"
+    AR=x86_64-w64-mingw32-ar STRIP=x86_64-w64-mingw32-strip cross windows x86_64 x86_64-w64-mingw32-gcc
     ;;
   mac-arm64|mac-x64)
     export MACOSX_DEPLOYMENT_TARGET=12.0                   # Electron 38 needs macOS 12+
@@ -58,6 +78,7 @@ case "$TARGET" in
     AC_HOST=(--host=${ARCH/arm64/aarch64}-apple-darwin)        # libdvdread/libdvdnav's config.sub only knows "aarch64"
     FF_CROSS=(--enable-cross-compile --target-os=darwin --arch=$ARCH --cc="clang -arch $ARCH")
     FF_TLS=(--enable-securetransport)
+    cross darwin ${ARCH/arm64/aarch64} clang -arch $ARCH
     ;;
   android-arm64|android-x64)   # Vela Player for Android (#53): a program next to the app's libraries (lib/<abi>/libffmpeg.so),
                                # built with the NDK (ANDROID_NDK_ROOT) against Android 9 (API 28) like the app; no TLS: local files only
@@ -67,6 +88,7 @@ case "$TARGET" in
     X264_HOST=(--host=$ARCH-linux-android --cross-prefix=$TC/llvm-)
     AC_HOST=(--host=$ARCH-linux-android)
     FF_CROSS=(--enable-cross-compile --target-os=android --arch=$ARCH --cc=$CC --cxx=$CXX --ar=$AR --ranlib=$RANLIB --nm=$NM --strip=$STRIP --enable-pic)
+    cross android $ARCH $CC
     ;;
   *) echo "unknown target $TARGET"; exit 1 ;;
 esac
@@ -77,6 +99,11 @@ esac
     --bit-depth=8 --chroma-format=420 --disable-opencl --disable-avs --disable-swscale --disable-lavf \
     --disable-ffms --disable-gpac --disable-lsmash
   make -j"$JOBS" && make install )
+
+# ---- dav1d (static), VLC's AV1 decoder ----
+( cd dav1d-src
+  meson setup build --prefix="$PREFIX" --libdir=lib --buildtype=release --default-library=static     -Denable_tools=false -Denable_tests=false -Denable_examples=false ${MESON_CROSS[@]+"${MESON_CROSS[@]}"}
+  ninja -C build install )
 
 # ---- libdvdread + libdvdnav (static), with VLC's patches ----
 ( cd dvdread-src
@@ -99,7 +126,7 @@ esac
     --disable-autodetect --disable-debug --disable-doc --disable-ffplay --disable-ffprobe \
     --disable-everything --disable-avdevice \
     --enable-decoders --enable-demuxers --enable-parsers --enable-bsfs --enable-protocols \
-    --enable-libx264 --enable-zlib --enable-libdvdread --enable-libdvdnav ${FF_TLS[@]+"${FF_TLS[@]}"} \
+    --enable-libx264 --enable-libdav1d --enable-zlib --enable-libdvdread --enable-libdvdnav ${FF_TLS[@]+"${FF_TLS[@]}"} \
     --enable-encoder=libx264,aac,flac,mjpeg,webvtt,wrapped_avframe \
     --enable-muxer=mp4,null,image2pipe,webvtt \
     --enable-filter=scale,aresample,format,aformat,null,anull,copy,acopy,showinfo,trim,atrim,setpts,asetpts,crop,transpose,hflip,vflip,setsar

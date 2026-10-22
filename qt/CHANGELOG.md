@@ -1,3 +1,10 @@
+## 3.2.2
+- ✨ **The window keeps the video's shape while you resize it**, like mpv (with *Resize window to the video* on) (#89), and the **corners resize both ways** (#87).
+- 🐛 **A maximised window on a screen without a taskbar** (or with one that hides itself) is no longer taken for fullscreen: the window doesn't get smaller after you leave the player, and videos don't open in fullscreen (#95).
+- 🐛 **Seek-bar previews and thumbnails of AV1 videos** (YouTube downloads): FFmpeg now has dav1d, VLC's AV1 decoder (#94).
+- 🐛 With *Auto-hide sidebar*, opening the sidebar in the player no longer shows it again in the library (#91). Music covers in their own size (#83).
+- 🐧 **Linux / GNOME:** GNOME's own file and folder dialogs now really load (#84); square corners for a window snapped to half the screen (#85); the window no longer resizes itself after Super + arrow with music playing (#96).
+
 ## 3.2.1
 - 🐛 **Touchscreens and pens:** a tap on maximise isn't undone anymore, a tap on the title bar no longer makes a maximised window smaller, and in fullscreen the title bar stays while the pen was last at the top (#95).
 

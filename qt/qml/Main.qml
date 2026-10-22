@@ -322,7 +322,7 @@ C.ApplicationWindow {
   // #89: with "Resize window to the video" on, a window you resize takes the video's shape again when you let go
   // (no black bars): its width stays, the height follows
   property bool fitting: false
-  readonly property real lockAspect: Settings.values.fitWindow && visibility === Window.Windowed && inPlayer && !!current && !Theme.mobile && !compact && player.videoSize.width > 0 && player.videoSize.height > 0 ? player.videoSize.width / player.videoSize.height : 0
+  readonly property real lockAspect: Settings.values.fitWindow && visibility === Window.Windowed && !tiled && inPlayer && !!current && !playerView.audio && !Theme.mobile && !compact && player.videoSize.width > 0 && player.videoSize.height > 0 ? player.videoSize.width / player.videoSize.height : 0
   // a window of w x h with the video's shape: what the edge e (Qt edges) leaves alone stays where it is
   function lockedSize(e, w, h) {
     const a = lockAspect, cw = win.width - playerView.width, ch = win.height - playerView.height;
@@ -335,7 +335,7 @@ C.ApplicationWindow {
   Timer { id: shapeT; interval: 450; onTriggered: win.keepVideoShape() }
   function keepVideoShape() {
     const size = player.videoSize;
-    if (!Settings.values.fitWindow || visibility !== Window.Windowed || !inPlayer || !current || Theme.mobile || compact || !(size.width > 0)) return;
+    if (!Settings.values.fitWindow || visibility !== Window.Windowed || tiled || !inPlayer || !current || playerView.audio || Theme.mobile || compact || !(size.width > 0)) return;
     const chromeW = win.width - playerView.width, chromeH = win.height - playerView.height;
     const h = Math.round(chromeH + playerView.width * size.height / size.width);
     if (Math.abs(h - win.height) <= 2 || h < 200 || h > Screen.desktopAvailableHeight) return;
@@ -674,7 +674,7 @@ C.ApplicationWindow {
   property Item maxBtn: null
   function quit() { pb.savePos(); Qt.quit(); }
   function sideToggle() {
-    if (focusVideo) { sideOverride = true; sideHidden = false; return; }
+    if (focusVideo) { sideOverride = true; return; }   // (#91: only in the player: the library keeps a hidden sidebar hidden)
     if (sideOverride && inPlayer) { sideOverride = false; return; }          // hide it again (#8)
     if (Settings.values.navExpanded) return Settings.set("navExpanded", false);
     sideHidden = !sideHidden;
@@ -703,7 +703,7 @@ C.ApplicationWindow {
     SidePanel {
       id: side
       ctl: win
-      width: body.bare || win.sideHidden || win.compact || Settings.values.navExpanded ? 0 : 250
+      width: body.bare || (win.sideHidden && !(win.sideOverride && win.inPlayer)) || win.compact || Settings.values.navExpanded ? 0 : 250
       Behavior on width { NumberAnimation { duration: 200 } }
       visible: width > 0
       anchors { left: rail.visible ? rail.right : parent.left; top: parent.top; bottom: parent.bottom }
