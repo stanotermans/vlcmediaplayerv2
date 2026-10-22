@@ -140,13 +140,17 @@ public:
     if (!info.isEmpty() && thumbs && (!info["vcodec"].isNull() || info["cover"].toBool())) {
       // cached per file and modification time, like v2.x
       QString key = src; const QFileInfo fi(src); if (fi.exists()) key += QString::number(fi.lastModified().toMSecsSinceEpoch());
+      key += "/2";   // (3.2: larger covers, videos' own pictures: made again once)
       const QString file = thumbDir + "/" + QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Md5).toHex() + ".jpg";
       if (!QFileInfo::exists(file)) {
         // at <= 0: the cover art of a music file (seeking drops the attached picture)
         const double dur = info["duration"].toDouble(), at = info["vcodec"].isNull() ? 0 : qMin(dur * 0.2, 120.0);
-        QStringList in = at > 0 ? QStringList{ "-ss", QString::number(at, 'f', 2), "-i", src } : QStringList{ "-i", src, "-map", "0:v:0" };
+        // #94: a video's own picture ("V": not an attached cover/thumbnail); #83: music covers kept large enough for
+        // the player (up to 1000 px), video thumbnails small
+        QStringList in = at > 0 ? QStringList{ "-ss", QString::number(at, 'f', 2), "-i", src, "-map", "0:V:0?" } : QStringList{ "-i", src, "-map", "0:v:0" };
+        const QString scale = at > 0 ? "scale='min(320,iw)':-2" : "scale='min(1000,iw)':-2";
         const QByteArray jpg = run(QStringList{ "-hide_banner", "-loglevel", "error", "-nostdin" } + in +
-          QStringList{ "-frames:v", "1", "-vf", "scale='min(320,iw)':-2", "-f", "image2pipe", "-c:v", "mjpeg", "-q:v", "5", "pipe:1" }, 20000);
+          QStringList{ "-frames:v", "1", "-vf", scale, "-f", "image2pipe", "-c:v", "mjpeg", "-q:v", at > 0 ? "5" : "3", "pipe:1" }, 20000);
         if (!jpg.isEmpty()) { QFile f(file); if (f.open(QIODevice::WriteOnly)) f.write(jpg); }
       }
       if (QFileInfo(file).size() > 0) info["thumb"] = QUrl::fromLocalFile(file).toString();
@@ -173,7 +177,8 @@ void Library::changed() { if (!m_notify.isActive()) m_notify.start(); if (!m_loa
 // ---------- persistence: library.json ----------
 QString Library::cacheKey(const QString &src) {
   const QFileInfo fi(src);
-  return fi.isFile() ? QString::number(fi.size()) + ":" + QString::number(fi.lastModified().toMSecsSinceEpoch()) : QString();
+  // ("v2": 3.2 made covers and video pictures anew, #83 #94)
+  return fi.isFile() ? "v2:" + QString::number(fi.size()) + ":" + QString::number(fi.lastModified().toMSecsSinceEpoch()) : QString();
 }
 void Library::load() {
   { QFile c(dataDir() + "/probe-cache.json");

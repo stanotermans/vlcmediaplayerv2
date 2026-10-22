@@ -459,7 +459,7 @@
 "Hide sidebar while a video plays": "Seitenleiste während der Videowiedergabe ausblenden",
 "Gives the video the full width. The sidebar button (Q) brings it back.": "Gibt dem Video die volle Breite. Mit der Seitenleisten-Taste (Q) holst du sie zurück.",
 "Resize window to the video": "Fenster an das Video anpassen",
-"Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Passt das Fenster beim Start eines neuen Videos an dessen Format an, bis zu 70 % des Bildschirms.",
+"Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars).": "Passt das Fenster an die Form des Videos an, wenn ein neues Video beginnt (bis 70 % des Bildschirms), und wieder, nachdem du es in der Größe änderst (keine schwarzen Balken).",
 "Your own fonts, followed by every font installed on this computer.": "Deine eigenen Schriftarten, gefolgt von allen auf diesem Computer installierten Schriftarten.",
 "Your fonts": "Deine Schriftarten",
 "Add font file…": "Schriftdatei hinzufügen…",
@@ -701,5 +701,8 @@
 "Google Play is not available": "Google Play ist nicht verfügbar",
 "Sharp upscaling": "Scharfes Hochskalieren",
 "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Skaliert Videos mit niedriger Auflösung mit einer schärferen Methode hoch und schärft die Kanten (RCAS von AMD FidelityFX).",
-"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Scharfes Hochskalieren, Helligkeit, Kontrast, Farbe, Schärfe und Filmkorn; in 360°-Videos umsehen"
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Scharfes Hochskalieren, Helligkeit, Kontrast, Farbe, Schärfe und Filmkorn; in 360°-Videos umsehen",
+"Show the file name in the title bar": "Dateinamen in der Titelleiste zeigen",
+"Off: the title bar and the taskbar only say Vela Player.": "Aus: Titelleiste und Taskleiste zeigen nur Vela Player.",
+"Show the folder in the title bar": "Ordner in der Titelleiste zeigen"
 }

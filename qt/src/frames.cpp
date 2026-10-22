@@ -48,7 +48,7 @@ bool Frames::grab(const QString &src, double at, int w, const QString &file) {
   p.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a) { a->flags |= BELOW_NORMAL_PRIORITY_CLASS; });
 #endif
   p.setStandardOutputFile(file);
-  p.start(ffmpeg(), { "-hide_banner", "-loglevel", "error", "-nostdin", "-ss", QString::number(at, 'f', 2), "-i", src, "-frames:v", "1",
+  p.start(ffmpeg(), { "-hide_banner", "-loglevel", "error", "-nostdin", "-ss", QString::number(at, 'f', 2), "-i", src, "-map", "0:V:0?", "-frames:v", "1",   // #94: not an attached cover
                       "-vf", QString("scale='min(%1,iw)':-2").arg(w), "-f", "image2pipe", "-c:v", "mjpeg", "-q:v", "5", "pipe:1" });
   if (!p.waitForStarted(5000)) return false;
   if (!p.waitForFinished(20000)) { p.kill(); p.waitForFinished(1000); }

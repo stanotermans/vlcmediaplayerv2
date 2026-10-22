@@ -459,7 +459,7 @@
 "Hide sidebar while a video plays": "Ukrywaj panel boczny podczas odtwarzania filmu",
 "Gives the video the full width. The sidebar button (Q) brings it back.": "Daje filmowi pełną szerokość. Przycisk panelu bocznego (Q) przywraca go.",
 "Resize window to the video": "Dopasuj okno do filmu",
-"Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Dopasowuje okno do kształtu filmu przy starcie nowego filmu, maksymalnie do 70% ekranu.",
+"Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars).": "Dopasowuje okno do kształtu filmu, gdy zaczyna się nowy film (do 70% ekranu), i ponownie po zmianie rozmiaru okna (bez czarnych pasów).",
 "Your own fonts, followed by every font installed on this computer.": "Twoje własne czcionki, a po nich wszystkie czcionki zainstalowane na tym komputerze.",
 "Your fonts": "Twoje czcionki",
 "Add font file…": "Dodaj plik czcionki…",
@@ -702,5 +702,8 @@
 "Google Play is not available": "Google Play nie jest dostępny",
 "Sharp upscaling": "Ostre skalowanie",
 "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Powiększa filmy o niskiej rozdzielczości ostrzejszą metodą i wyostrza krawędzie (RCAS z AMD FidelityFX).",
-"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Ostre skalowanie, jasność, kontrast, kolor, ostrość i ziarno; rozglądanie się w filmach 360°"
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Ostre skalowanie, jasność, kontrast, kolor, ostrość i ziarno; rozglądanie się w filmach 360°",
+"Show the file name in the title bar": "Pokazuj nazwę pliku na pasku tytułu",
+"Off: the title bar and the taskbar only say Vela Player.": "Wyłączone: pasek tytułu i pasek zadań pokazują tylko Vela Player.",
+"Show the folder in the title bar": "Pokazuj folder na pasku tytułu"
 }

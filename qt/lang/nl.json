@@ -459,7 +459,7 @@
 "Hide sidebar while a video plays": "Zijbalk verbergen tijdens het afspelen van video",
 "Gives the video the full width. The sidebar button (Q) brings it back.": "Geeft de video de volle breedte. Met de zijbalkknop (Q) haal je hem terug.",
 "Resize window to the video": "Venster aanpassen aan de video",
-"Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Past het venster aan de vorm van de video aan als een nieuwe video start, tot 70% van het scherm.",
+"Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars).": "Past het venster aan de vorm van de video aan als er een nieuwe video begint, tot 70% van het scherm, en opnieuw nadat je het venster vergroot of verkleint (geen zwarte balken).",
 "Your own fonts, followed by every font installed on this computer.": "Je eigen lettertypen, gevolgd door alle lettertypen op deze computer.",
 "Your fonts": "Je lettertypen",
 "Add font file…": "Lettertypebestand toevoegen…",
@@ -701,5 +701,8 @@
 "Google Play is not available": "Google Play is niet beschikbaar",
 "Sharp upscaling": "Scherp opschalen",
 "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Schaalt video's met een lage resolutie op met een scherpere methode en verscherpt de randen (RCAS van AMD FidelityFX).",
-"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Scherp opschalen, helderheid, contrast, kleur, scherpte en filmkorrel; rondkijken in 360°-video's"
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Scherp opschalen, helderheid, contrast, kleur, scherpte en filmkorrel; rondkijken in 360°-video's",
+"Show the file name in the title bar": "Bestandsnaam in de titelbalk tonen",
+"Off: the title bar and the taskbar only say Vela Player.": "Uit: in de titelbalk en de taakbalk staat alleen Vela Player.",
+"Show the folder in the title bar": "Map in de titelbalk tonen"
 }

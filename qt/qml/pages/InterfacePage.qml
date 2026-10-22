@@ -8,11 +8,13 @@ Column {
   Section {
     title: "Layout"
     SettingRow { label: "Sidebar with labels"; Toggle { path: "navExpanded" } }
+    SettingRow { label: "Show the file name in the title bar"; info: "Off: the title bar and the taskbar only say Vela Player."; Toggle { path: "titleName" } }
+    SettingRow { label: "Show the folder in the title bar"; Toggle { path: "titleFolder" } }
     SettingRow { label: "Call the music section \"Audio\""; Toggle { path: "audioLabel" } }
     SettingRow { label: "Rounded window corners"; info: "Windows 11 rounds window corners automatically."; shown: Qt.platform.os === "windows"
                  Note { width: implicitWidth; text: qsTr("Set by Windows"); topPadding: 0; bottomPadding: 0 } }
     SettingRow { label: "Hide sidebar while media plays"; info: "Gives videos and music the full width. The sidebar button (Q) brings it back."; Toggle { path: "autoHideSide" } }
-    SettingRow { label: "Resize window to the video"; info: "Matches the window to the video's shape when a new video starts, up to 70% of the screen."; Toggle { path: "fitWindow" } }
+    SettingRow { label: "Resize window to the video"; info: "Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars)."; Toggle { path: "fitWindow" } }
     SettingRow { label: "Show mini player while browsing"; Toggle { path: "miniPlayer" } }
     SettingRow { label: "Show preview when hovering the timeline"; Toggle { path: "seekPreview" } }
     SettingRow { label: "Show thumbnails"; Toggle { path: "showThumbs" } }

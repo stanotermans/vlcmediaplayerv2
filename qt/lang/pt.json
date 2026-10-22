@@ -459,7 +459,7 @@
 "Hide sidebar while a video plays": "Ocultar a barra lateral durante a reprodução de vídeo",
 "Gives the video the full width. The sidebar button (Q) brings it back.": "Dá ao vídeo toda a largura. O botão da barra lateral (Q) volta a mostrá-la.",
 "Resize window to the video": "Ajustar a janela ao vídeo",
-"Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Ajusta a janela ao formato do vídeo quando começa um novo, até 70% do ecrã.",
+"Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars).": "Ajusta a janela à forma do vídeo quando começa um novo, até 70% do ecrã, e de novo depois de a redimensionar (sem barras pretas).",
 "Your own fonts, followed by every font installed on this computer.": "Os seus próprios tipos de letra, seguidos de todos os instalados neste computador.",
 "Your fonts": "Os seus tipos de letra",
 "Add font file…": "Adicionar ficheiro de tipo de letra…",
@@ -701,5 +701,8 @@
 "Google Play is not available": "O Google Play não está disponível",
 "Sharp upscaling": "Ampliação nítida",
 "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Amplia vídeos de baixa resolução com um método mais nítido e realça os contornos (RCAS da AMD FidelityFX).",
-"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Ampliação nítida, brilho, contraste, cor, nitidez e grão; olhe à volta em vídeos 360°"
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Ampliação nítida, brilho, contraste, cor, nitidez e grão; olhe à volta em vídeos 360°",
+"Show the file name in the title bar": "Mostrar o nome do ficheiro na barra de título",
+"Off: the title bar and the taskbar only say Vela Player.": "Desligado: a barra de título e a barra de tarefas só mostram Vela Player.",
+"Show the folder in the title bar": "Mostrar a pasta na barra de título"
 }

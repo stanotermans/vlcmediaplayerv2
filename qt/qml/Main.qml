@@ -13,12 +13,13 @@ C.ApplicationWindow {
   width: 1600; height: 1000
   visible: true
   color: Theme.bg
-  title: current ? current.name : "Vela Player"
+  title: current && Settings.values.titleName !== false ? current.name : "Vela Player"   // #90: can be hidden (Settings → Interface)
   flags: Qt.Window | Qt.FramelessWindowHint
   property bool inPlayer: false
   property var current: null           // the item that plays
   property var queueList: null         // what plays next (the view it was started from)
   property bool sideHidden: false
+  onSideHiddenChanged: if (stateKept) Settings.set("sideHidden", sideHidden)   // #91: kept for the next start
   property bool dragging: false        // an item is being dragged (playlist order)
 
   // ---------- navigation (app.js state / navigate / goBack / goFwd) ----------
@@ -312,8 +313,20 @@ C.ApplicationWindow {
   // a phone (#53): the status and navigation bars lie over the app (Android 15+); the bars of the app stay clear of them
   readonly property int safeTop: Theme.mobile && !fsMode ? (System.insets.top || 0) : 0
   readonly property int safeBottom: Theme.mobile && !fsMode ? (System.insets.bottom || 0) : 0
-  onWidthChanged: if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio))
-  onHeightChanged: if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio))
+  onWidthChanged: { if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio)); if (!fitting) shapeT.restart(); }
+  onHeightChanged: { if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio)); if (!fitting) shapeT.restart(); }
+  // #89: with "Resize window to the video" on, a window you resize takes the video's shape again when you let go
+  // (no black bars): its width stays, the height follows
+  property bool fitting: false
+  Timer { id: shapeT; interval: 450; onTriggered: win.keepVideoShape() }
+  function keepVideoShape() {
+    const size = player.videoSize;
+    if (!Settings.values.fitWindow || visibility !== Window.Windowed || !inPlayer || !current || Theme.mobile || compact || !(size.width > 0)) return;
+    const chromeW = win.width - playerView.width, chromeH = win.height - playerView.height;
+    const h = Math.round(chromeH + playerView.width * size.height / size.width);
+    if (Math.abs(h - win.height) <= 2 || h < 200 || h > Screen.desktopAvailableHeight) return;
+    fitting = true; win.height = h; fitting = false;
+  }
   Connections { target: System; function onMediaAccessChanged() { if (System.mediaAccess) library.scanFolders(Settings.values.mediaFolders || []); } }
   function osd(text) { osdText.text = text; osdBox.opacity = 1; osdTimer.restart(); }
 
@@ -366,7 +379,7 @@ C.ApplicationWindow {
       const cx = win.x + win.width / 2, cy = win.y + win.height / 2;
       win.x = Math.round(Math.min(Math.max(cx - w / 2, Screen.virtualX), Screen.virtualX + sw - w));
       win.y = Math.round(Math.min(Math.max(cy - h / 2, Screen.virtualY), Screen.virtualY + sh - h));
-      win.width = w; win.height = h;
+      fitting = true; win.width = w; win.height = h; fitting = false;
     });
   }
   property bool pipOpen: false
@@ -469,6 +482,7 @@ C.ApplicationWindow {
     System.mediaAttach(win);
     if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
     if (Settings.values.autoUpdate !== false && !shotPath && !Theme.mobile) updateTimer.start();   // (a phone: the store updates it)
+    sideHidden = !!Settings.values.sideHidden;   // #91
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
     // Android (#53): the phone's own media folders, and Android's question for access to them
     if (Qt.platform.os === "android") {
@@ -582,6 +596,7 @@ C.ApplicationWindow {
     Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.edge }
     MouseArea { anchors.fill: parent; enabled: !Theme.mobile; onPressed: if (!win.fullscreen) win.startSystemMove(); onDoubleClicked: win.toggleMax() }
     Row {
+      id: titleLeft
       anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
       spacing: 4
       Image {   // the logo: Vela Player's sail in the accent colour
@@ -592,15 +607,20 @@ C.ApplicationWindow {
                    onClicked: { const p = menuBtn.mapToItem(null, 0, menuBtn.height + 4); win.titleMenu(p.x, p.y); } }
       Rectangle { visible: !win.compact; width: 1; height: 16; color: Theme.line; anchors.verticalCenter: parent.verticalCenter }
       IconButton { html: "sideToggle"; visible: !win.compact; width: 28; height: 28; tip: qsTr("Sidebar (Q)"); onClicked: win.sideToggle() }
-      Row {
-        visible: !win.compact
+      Row {   // the folder (#86: not in a narrow window; #90: can be hidden)
+        visible: !win.compact && win.width >= 640 && Settings.values.titleFolder !== false
         spacing: 6; anchors.verticalCenter: parent.verticalCenter; leftPadding: 4
         Icon { html: "crumbs"; color: Theme.muted; anchors.verticalCenter: parent.verticalCenter }
         T { text: win.pg.title; color: Theme.muted; anchors.verticalCenter: parent.verticalCenter }
       }
     }
-    T { anchors.centerIn: parent; text: win.title; color: Theme.text2; width: Math.min(implicitWidth, parent.width * 0.4) }
+    T {
+      readonly property real room: parent.width - 2 * Math.max(titleLeft.x + titleLeft.width, winButtons.visible ? winButtons.width : 0) - 24
+      anchors.centerIn: parent; text: win.title; color: Theme.text2
+      width: Math.max(0, Math.min(implicitWidth, room)); visible: width > 40; elide: Text.ElideRight
+    }
     Row {
+      id: winButtons
       visible: !Theme.mobile && !Settings.values.compactTest
       anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
       Repeater {

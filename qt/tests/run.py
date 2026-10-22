@@ -216,6 +216,18 @@ def midi_not_ffmpeg(c):   # #76: MIDI on the "always with FFmpeg" list still pla
     c.eq('playing', 'true'); c.more('time', 500)   # (like the midi test: the tune lasts 4 s)
 
 @test
+def side_kept(c):   # #91: a hidden sidebar stays hidden after a restart
+    _, prof = run(c.name, ['wait:1800', 'log:(win.sideHidden = true, "hid")', 'wait:300'])
+    c.vals, _ = run(c.name, ['wait:500', 'log:"hidden=" + win.sideHidden'], profile=prof)
+    c.eq('hidden', 'true')
+
+@test
+def video_shape(c):   # #89: with "resize window to the video" on, a resized window takes the video's shape again
+    c.vals, _ = run(c.name, ['set:fitWindow=true', 'size:1000x500'] + PLAY('video.mp4', 1500) + ['size:1000x900', 'wait:1200',
+                    'log:"ratio=" + Math.round(playerView.height / playerView.width * 1000)'])
+    c.near('ratio', 563, 25)   # (640x360)
+
+@test
 def view360(c):   # #78: a 360° video is shown as a view to look around in (drag) and zoom (wheel); a flat one is not
     c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['log:"on=" + playerView.on360'] + PLAY('sphere.mkv', 2000) + [
                     'log:"playing=" + player.playing', 'pause',   # (paused: the next file in the folder must not start during the test)

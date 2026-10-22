@@ -459,7 +459,7 @@
 "Hide sidebar while a video plays": "Nascondi la barra laterale durante la riproduzione di un video",
 "Gives the video the full width. The sidebar button (Q) brings it back.": "Dà al video tutta la larghezza. Il pulsante della barra laterale (Q) la fa ricomparire.",
 "Resize window to the video": "Adatta la finestra al video",
-"Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Adatta la finestra alla forma del video quando ne parte uno nuovo, fino al 70% dello schermo.",
+"Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars).": "Adatta la finestra alla forma del video quando ne inizia uno nuovo, fino al 70% dello schermo, e di nuovo dopo averla ridimensionata (niente bande nere).",
 "Your own fonts, followed by every font installed on this computer.": "I tuoi caratteri, seguiti da tutti i caratteri installati su questo computer.",
 "Your fonts": "I tuoi caratteri",
 "Add font file…": "Aggiungi file di carattere…",
@@ -701,5 +701,8 @@
 "Google Play is not available": "Google Play non è disponibile",
 "Sharp upscaling": "Upscaling nitido",
 "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Ingrandisce i video a bassa risoluzione con un metodo più nitido e rende più netti i bordi (RCAS di AMD FidelityFX).",
-"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Upscaling nitido, luminosità, contrasto, colore, nitidezza e grana; guardati intorno nei video a 360°"
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Upscaling nitido, luminosità, contrasto, colore, nitidezza e grana; guardati intorno nei video a 360°",
+"Show the file name in the title bar": "Mostra il nome del file nella barra del titolo",
+"Off: the title bar and the taskbar only say Vela Player.": "Disattivato: la barra del titolo e la barra delle applicazioni mostrano solo Vela Player.",
+"Show the folder in the title bar": "Mostra la cartella nella barra del titolo"
 }

@@ -459,7 +459,7 @@
 "Hide sidebar while a video plays": "Masquer la barre latérale pendant la lecture d’une vidéo",
 "Gives the video the full width. The sidebar button (Q) brings it back.": "Donne toute la largeur à la vidéo. Le bouton de barre latérale (Q) la fait réapparaître.",
 "Resize window to the video": "Adapter la fenêtre à la vidéo",
-"Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Adapte la fenêtre au format de la vidéo au démarrage d’une nouvelle vidéo, jusqu’à 70 % de l’écran.",
+"Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars).": "Adapte la fenêtre à la forme de la vidéo quand une nouvelle vidéo commence, jusqu'à 70 % de l'écran, et de nouveau après un redimensionnement (pas de bandes noires).",
 "Your own fonts, followed by every font installed on this computer.": "Vos propres polices, suivies de toutes les polices installées sur cet ordinateur.",
 "Your fonts": "Vos polices",
 "Add font file…": "Ajouter un fichier de police…",
@@ -701,5 +701,8 @@
 "Google Play is not available": "Google Play n'est pas disponible",
 "Sharp upscaling": "Mise à l'échelle nette",
 "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Agrandit les vidéos en basse résolution avec une méthode plus nette et accentue les contours (RCAS d'AMD FidelityFX).",
-"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Mise à l'échelle nette, luminosité, contraste, couleur, netteté et grain ; regarder autour de soi dans les vidéos 360°"
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Mise à l'échelle nette, luminosité, contraste, couleur, netteté et grain ; regarder autour de soi dans les vidéos 360°",
+"Show the file name in the title bar": "Afficher le nom du fichier dans la barre de titre",
+"Off: the title bar and the taskbar only say Vela Player.": "Désactivé : la barre de titre et la barre des tâches n'affichent que Vela Player.",
+"Show the folder in the title bar": "Afficher le dossier dans la barre de titre"
 }

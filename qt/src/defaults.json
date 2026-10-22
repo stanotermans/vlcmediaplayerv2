@@ -52,6 +52,8 @@
   "showBadge": true,
   "rememberRecent": true,
   "resume": true,
+  "titleName": true,
+  "titleFolder": true,
   "resumeMode": "always",
   "speed": 1,
   "jump": 10,

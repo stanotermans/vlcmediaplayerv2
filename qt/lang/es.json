@@ -459,7 +459,7 @@
 "Hide sidebar while a video plays": "Ocultar la barra lateral al reproducir un vídeo",
 "Gives the video the full width. The sidebar button (Q) brings it back.": "Da al vídeo todo el ancho. El botón de la barra lateral (Q) la vuelve a mostrar.",
 "Resize window to the video": "Ajustar la ventana al vídeo",
-"Matches the window to the video's shape when a new video starts, up to 70% of the screen.": "Ajusta la ventana a la forma del vídeo cuando empieza uno nuevo, hasta el 70 % de la pantalla.",
+"Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars).": "Ajusta la ventana a la forma del vídeo cuando empieza uno nuevo, hasta el 70 % de la pantalla, y otra vez después de cambiar su tamaño (sin barras negras).",
 "Your own fonts, followed by every font installed on this computer.": "Tus propias fuentes, seguidas de todas las fuentes instaladas en este equipo.",
 "Your fonts": "Tus fuentes",
 "Add font file…": "Añadir archivo de fuente…",
@@ -701,5 +701,8 @@
 "Google Play is not available": "Google Play no está disponible",
 "Sharp upscaling": "Escalado nítido",
 "Scales low-resolution videos up with a sharper method and sharpens the edges (AMD FidelityFX's RCAS).": "Amplía los vídeos de baja resolución con un método más nítido y realza los bordes (RCAS de AMD FidelityFX).",
-"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Escalado nítido, brillo, contraste, color, nitidez y grano; mira a tu alrededor en vídeos 360°"
+"Sharp upscaling, brightness, contrast, colour, sharpness and film grain; look around in 360° videos": "Escalado nítido, brillo, contraste, color, nitidez y grano; mira a tu alrededor en vídeos 360°",
+"Show the file name in the title bar": "Mostrar el nombre del archivo en la barra de título",
+"Off: the title bar and the taskbar only say Vela Player.": "Desactivado: la barra de título y la barra de tareas solo muestran Vela Player.",
+"Show the folder in the title bar": "Mostrar la carpeta en la barra de título"
 }
