@@ -1,3 +1,8 @@
+## 3.2.5
+- 🐧 **Linux:** the window is no longer see-through. On some systems everything in it came out transparent: the window seemed to vanish with dark content (lyrics, a paused frame) or blended with the desktop. The rounded corners now come from a window mask (#96, #100).
+- 🐛 The window draws again after every window-state change (maximise, tiling, Super + arrows) (#96).
+- 🔒 Settings → Privacy links to the privacy policy.
+
 ## 3.2.4
 - ✨ **Original size (1:1)** (right-click → Video): the window wraps the video at its own size, one video pixel on one screen pixel, for upscalers such as Lossless Scaling (#99).
 - ✨ **Sharp upscaling** can be switched on and off in the right-click Video menu (#99).
