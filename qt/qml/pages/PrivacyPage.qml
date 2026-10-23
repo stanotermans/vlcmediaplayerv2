@@ -22,6 +22,9 @@ Column {
   Section {
     title: "Data"
     last: true
-    Note { text: qsTr("VLC does not collect any data. Everything is stored locally on this computer.") }
+    Note { text: qsTr("Vela Player does not collect any data. Everything is stored locally on this device.") }
+    // (Google Play: the privacy policy must also be reachable in the app)
+    SettingRow { label: "Privacy policy"
+                 Button { text: qsTr("Open"); kind: "ghost"; onClicked: Qt.openUrlExternally("https://stanotermans.github.io/vlcmediaplayerv2/privacy.html") } }
   }
 }

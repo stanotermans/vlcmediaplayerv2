@@ -712,5 +712,7 @@
 "Remove “%1”": "“%1” verwijderen",
 "Original size (1:1)": "Originele grootte (1:1)",
 "Original size": "Originele grootte",
-"The video (%1 × %2) is bigger than the screen": "De video (%1 × %2) is groter dan het scherm"
+"The video (%1 × %2) is bigger than the screen": "De video (%1 × %2) is groter dan het scherm",
+"Vela Player does not collect any data. Everything is stored locally on this device.": "Vela Player verzamelt geen gegevens. Alles wordt lokaal op dit apparaat bewaard.",
+"Privacy policy": "Privacybeleid"
 }
