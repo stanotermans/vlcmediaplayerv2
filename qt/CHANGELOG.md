@@ -1,3 +1,7 @@
+## 3.2.4
+- ✨ **Original size (1:1)** (right-click → Video): the window wraps the video at its own size, one video pixel on one screen pixel, for upscalers such as Lossless Scaling (#99).
+- ✨ **Sharp upscaling** can be switched on and off in the right-click Video menu (#99).
+
 ## 3.2.3
 - ✨ **Your own video filter presets:** set the filters, then *Save as preset…* in the Video tab of the quick settings; remove one from the same list (#98).
 - 🐛 **Shift + letter shortcuts** work next to the plain letter, also with input methods like Telex and with Caps Lock on (#97).
