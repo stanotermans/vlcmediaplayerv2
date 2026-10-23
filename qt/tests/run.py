@@ -263,13 +263,16 @@ def side_l_key(c):   # #91: a hidden sidebar stays hidden when L goes from the p
 def lyrics_snap(c):   # #96: fullscreen lyrics, then the window manager takes the window out of fullscreen and tiles it
     c.vals, _ = run(c.name, ['set:fitWindow=true', 'size:1000x600', 'view:music'] + PLAY('song.flac', 2500) + ['fs', 'wait:900',
                     'log:(win.showNormal(), win.y = Screen.virtualY, win.height = Screen.desktopAvailableHeight, "tiled")', 'wait:1500',
-                    'log:"lock=" + win.lockAspect', 'log:"win=" + win.visible + " " + win.visibility + " " + (win.height === Screen.desktopAvailableHeight) + " " + win.tiled + " " + win.corner'])
-    c.eq('lock', 0); c.eq('win', 'true 2 true true 0')
+                    'log:"lock=" + win.lockAspect', 'log:"win=" + win.visible + " " + win.visibility', 'log:"h=" + (win.height === Screen.desktopAvailableHeight)',
+                    'log:"tiled=" + win.tiled + " " + win.corner'])
+    c.eq('lock', 0); c.eq('win', 'true 2')
+    if sys.platform == 'win32': c.eq('h', 'true')   # (the height the window manager gave it is kept; macOS keeps it under its menu bar)
+    if sys.platform.startswith('linux'): c.eq('tiled', 'true 0')
 
 @test
 def preview_av1(c):   # #94: AV1 videos (YouTube downloads) get a storyboard and a thumbnail (FFmpeg with dav1d)
     f = os.path.join(A.media, 'extra', 'av1.mkv')
-    if not os.path.exists(f): return
+    if not os.path.exists(f): return c.ok(not os.environ.get('CI'), 'no extra/av1.mkv in the test media (no AV1 encoder?)')
     c.vals, _ = run(c.name, [f'playfile:{f}', 'wait:6000', 'log:"frames="+pb.frames.board.filter(x => x).length', 'log:"playing="+player.playing'])
     c.more('frames', 2); c.eq('playing', 'true')
 

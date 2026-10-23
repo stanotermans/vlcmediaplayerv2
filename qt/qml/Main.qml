@@ -14,7 +14,7 @@ C.ApplicationWindow {
   visible: true
   // #85: on Linux the window draws its own rounded corners (no system frame); not maximised, fullscreen or bare
   readonly property int corner: Qt.platform.os === "linux" && !Theme.mobile && visibility === Window.Windowed && !tiled && !fsMode && !hideUi ? 10 : 0
-  readonly property bool tiled: height >= Screen.desktopAvailableHeight - 2
+  readonly property bool tiled: Qt.platform.os === "linux" && height >= Screen.desktopAvailableHeight - 2   // (GNOME: snapped to half the screen)
   color: corner > 0 ? "transparent" : Theme.bg
   title: current && Settings.values.titleName !== false ? current.name : "Vela Player"   // #90: can be hidden (Settings → Interface)
   flags: Qt.Window | Qt.FramelessWindowHint
