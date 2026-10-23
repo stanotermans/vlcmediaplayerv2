@@ -363,6 +363,15 @@ void System::hideCursor(bool on) {
   else QGuiApplication::restoreOverrideCursor();
 }
 
+void System::testClick(QWindow *w, qreal x, qreal y) {
+  if (!w) return;
+  const QPointF local(x, y);
+  QMouseEvent p(QEvent::MouseButtonPress, local, local, w->mapToGlobal(local), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+  QCoreApplication::sendEvent(w, &p);
+  QMouseEvent r(QEvent::MouseButtonRelease, local, local, w->mapToGlobal(local), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+  QCoreApplication::sendEvent(w, &r);
+}
+
 void System::testMouseMove(QWindow *w, qreal x, qreal y) {
   if (!w) return;
   const QPointF local(x, y);

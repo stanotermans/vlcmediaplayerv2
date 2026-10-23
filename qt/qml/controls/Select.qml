@@ -22,10 +22,14 @@ Rectangle {
   Icon { id: arrow; anchors { right: parent.right; rightMargin: 9; verticalCenter: parent.verticalCenter } width: 12; height: 12
          name: "chevron"; rotation: 90; color: Theme.muted }
   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: list.visible ? list.close() : list.open() }
+  property alias popup: list   // (testing)
 
   C.Popup {
     id: list
-    y: root.height + 4; width: Math.max(root.width, 200)
+    // #98: below the box, or above it when the window has no room for it below
+    readonly property real below: (root.Window.height || 0) - root.mapToItem(null, 0, root.height).y - 8
+    y: list.implicitHeight > below && root.mapToItem(null, 0, 0).y - 8 > below ? -list.implicitHeight - 4 : root.height + 4
+    width: Math.max(root.width, 200)
     padding: 6
     background: MenuBackground {}
     contentItem: ListView {

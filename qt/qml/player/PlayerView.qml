@@ -230,7 +230,11 @@ Rectangle {
     property bool skipClick: false
     property point last
     property bool dragged: false
-    onPressed: m => { last = Qt.point(m.x, m.y); dragged = false; if (m.button === Qt.LeftButton) hold.restart(); }
+    onPressed: m => {
+      // #98: a click on the video with the quick settings open only closes them (no pause)
+      if (root.ctl.quick.open) { root.ctl.quick.open = false; skipClick = true; return; }
+      last = Qt.point(m.x, m.y); dragged = false; if (m.button === Qt.LeftButton) hold.restart();
+    }
     onPositionChanged: m => {   // #78: dragging a 360° video looks around (and is no click or 2× hold)
       if (!root.on360 || !(m.buttons & Qt.LeftButton)) return;
       const dx = m.x - last.x, dy = m.y - last.y;
@@ -241,8 +245,8 @@ Rectangle {
     onReleased: { hold.stop(); if (root.ctl.pb.fast && root.ctl.pb.fastKey === 0) root.ctl.pb.fastEnd(); }
     onCanceled: { hold.stop(); if (root.ctl.pb.fast && root.ctl.pb.fastKey === 0) root.ctl.pb.fastEnd(); }
     onClicked: m => {
-      if (m.button === Qt.RightButton) { const p = mapToItem(null, m.x, m.y); root.ctl.menu(root.ctl.playerMenu(), p.x, p.y); return; }
       if (skipClick) { skipClick = false; return; }
+      if (m.button === Qt.RightButton) { const p = mapToItem(null, m.x, m.y); root.ctl.menu(root.ctl.playerMenu(), p.x, p.y); return; }
       if (root.ctl.en.dvdMenu) return;            // the menu's buttons take the clicks
       click.restart();
     }

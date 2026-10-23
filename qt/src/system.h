@@ -50,6 +50,7 @@ public:
   Q_INVOKABLE void hideCursor(bool on);
   // testing: a mouse move inside a window (Qt event only, the real cursor stays where it is)
   Q_INVOKABLE void testMouseMove(QWindow *w, qreal x, qreal y);
+  Q_INVOKABLE void testClick(QWindow *w, qreal x, qreal y);   // testing: a left click at this window point
   bool mediaAccess() const;
   Q_INVOKABLE void askMediaAccess();                     // Android's question; mediaAccessChanged once answered
   Q_INVOKABLE bool allFilesAccess() const;               // Android 11+: also subtitles and lyrics next to the media

@@ -10,6 +10,7 @@ Rectangle {
   property var ctl: null
   property string tab: "playback"
   property bool open: false
+  property alias presetBox: presetBox   // (testing)
   readonly property var sb: ctl.sb
   function toggle(t) { if (open && (!t || t === tab)) { open = false; return; } open = true; if (t) tab = t; }
   visible: open
@@ -212,7 +213,7 @@ Rectangle {
       SettingRow {
         visible: root.tab !== "playback" && (Store.pro || root.tab === "subs")   // (#53: the video and audio presets are Pro)
         label: "Preset"
-        Loader { sourceComponent: root.tab === "video" ? vpC : root.tab === "audio" ? apC : spC }
+        Loader { id: presetBox; sourceComponent: root.tab === "video" ? vpC : root.tab === "audio" ? apC : spC }
         Component { id: vpC; Select { width: 160; options: Object.keys(root.vpresets).map(k => [k, root.vpresets[k][0]]); value: root.vpreset; onPicked: v => root.videoPreset(v) } }
         Component { id: apC; Select { width: 160; options: FX.presetOptions(); value: Settings.values.eqPreset || "flat"
                                      onPicked: v => { if (v === "custom") return Settings.set("eqPreset", "custom"); const p = FX.EQ_PRESETS[v]; Settings.set("eqPreset", v); Settings.set("eq", p.slice(1)); Settings.set("eqOn", true); } } }

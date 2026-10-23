@@ -588,6 +588,7 @@ C.ApplicationWindow {
     else if (k === "dvdmenu") en.showDvdMenu();
     else if (k === "playfile") playItem(library.item(library.addSources([v], true)[0]));
     else if (k === "log") player.log(eval(v));
+    else if (k === "click") { const xy = v.split(","); System.testClick(win, +xy[0], +xy[1]); }
     else if (k === "mouse") { const xy = v.split(","); System.testMouseMove(win, +xy[0], +xy[1]); }
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });

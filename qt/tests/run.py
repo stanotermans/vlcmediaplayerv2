@@ -277,6 +277,24 @@ def preview_av1(c):   # #94: AV1 videos (YouTube downloads) get a storyboard and
     c.more('frames', 2); c.eq('playing', 'true')
 
 @test
+def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
+    E, S = 0x45, 0x02000000
+    c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])
+    c.eq('n', 'eEEeeE')
+
+@test
+def quick_close(c):   # #98: a click on the video closes the quick settings
+    c.vals, _ = run(c.name, ['size:1100x700'] + PLAY('video.mp4', 1500) + ['quick:video', 'wait:500', 'log:"open=" + quick.open',
+                    'click:200,300', 'wait:700', 'log:"open=" + quick.open', 'log:"playing=" + player.playing'])
+    c.eq('open', 'true', 0); c.eq('open', 'false', 1); c.eq('playing', 'true')
+
+@test
+def preset_list(c):   # #98: the preset list at the bottom of the quick settings stays inside the window
+    c.vals, _ = run(c.name, ['size:1100x600'] + PLAY('video.mp4', 1500) + ['quick:subs', 'wait:500', 'log:(quick.presetBox.item.popup.open(), "opened")', 'wait:400',
+                    'log:"bottom=" + (quick.presetBox.item.popup.contentItem.mapToItem(null, 0, quick.presetBox.item.popup.contentItem.height).y <= win.height)'])
+    c.eq('bottom', 'true')
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)

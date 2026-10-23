@@ -21,8 +21,9 @@ QString KeyFilter::name(int key, Qt::KeyboardModifiers mods, const QString &text
   if (key == Qt::Key_Space) return pre + (shift ? "Shift+" : "") + "Space";
   if (key >= Qt::Key_F1 && key <= Qt::Key_F24) return pre + (shift ? "Shift+" : "") + "F" + QString::number(key - Qt::Key_F1 + 1);
   if (NAMES.contains(key)) return pre + (shift ? "Shift+" : "") + NAMES[key];
-  // a printable key: the character itself (its case says Shift); with Ctrl the text is a control code, so the key
-  if (key >= Qt::Key_A && key <= Qt::Key_Z && (mods & (Qt::ControlModifier | Qt::AltModifier))) {
+  // a letter: from the key and Shift (#97: the text is empty with some input methods, and Caps Lock changes its case;
+  // with Ctrl it is a control code); other printable keys: the character itself
+  if (key >= Qt::Key_A && key <= Qt::Key_Z) {
     const QChar c = QChar('a' + (key - Qt::Key_A));
     return pre + (shift ? c.toUpper() : c);
   }
