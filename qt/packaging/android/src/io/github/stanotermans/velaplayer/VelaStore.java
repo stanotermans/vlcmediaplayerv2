@@ -30,7 +30,8 @@ public class VelaStore implements PurchasesUpdatedListener {
         activity = a;
         activity.runOnUiThread(() -> {
             client = BillingClient.newBuilder(activity).setListener(this)
-                    .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()).build();
+                    .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+                    .enableAutoServiceReconnection().build();   // (Billing 8: connects again by itself)
             connect();
         });
     }
@@ -49,7 +50,8 @@ public class VelaStore implements PurchasesUpdatedListener {
     private void query() {
         QueryProductDetailsParams p = QueryProductDetailsParams.newBuilder().setProductList(Collections.singletonList(
                 QueryProductDetailsParams.Product.newBuilder().setProductId(PRO).setProductType(BillingClient.ProductType.INAPP).build())).build();
-        client.queryProductDetailsAsync(p, (r, list) -> {
+        client.queryProductDetailsAsync(p, (r, result) -> {
+            List<ProductDetails> list = result == null ? null : result.getProductDetailsList();
             if (list == null || list.isEmpty() || list.get(0).getOneTimePurchaseOfferDetails() == null) return;
             details = list.get(0);
             price = details.getOneTimePurchaseOfferDetails().getFormattedPrice();
