@@ -608,6 +608,11 @@ void VlcPlayer::onDisplay(void *opaque, void *picture) {
   QMetaObject::invokeMethod(self, [self, fr]() { if (self->m_mp) self->show(fr); }, Qt::QueuedConnection);
 }
 
+void VlcPlayer::note(const QString &line) {
+  qInfo().noquote() << "Vela Player:" << line;
+  writeLog(2, line);
+}
+
 void VlcPlayer::log(const QString &line) {
   QFile f(qEnvironmentVariable("VLCR_LOG")); if (f.fileName().isEmpty() || !f.open(QIODevice::Append | QIODevice::Text)) return;
   f.write((line + QLatin1Char('\n')).toUtf8());

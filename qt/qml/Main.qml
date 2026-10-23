@@ -317,8 +317,8 @@ C.ApplicationWindow {
   // a phone (#53): the status and navigation bars lie over the app (Android 15+); the bars of the app stay clear of them
   readonly property int safeTop: Theme.mobile && !fsMode ? (System.insets.top || 0) : 0
   readonly property int safeBottom: Theme.mobile && !fsMode ? (System.insets.bottom || 0) : 0
-  onWidthChanged: { if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio)); if (!fitting) shapeT.restart(); }
-  onHeightChanged: { if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio)); if (!fitting) shapeT.restart(); }
+  onWidthChanged: { if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio)); if (!fitting) shapeT.restart(); geoNote.restart(); }
+  onHeightChanged: { if (Theme.mobile) Qt.callLater(() => System.readInsets(Screen.devicePixelRatio)); if (!fitting) shapeT.restart(); geoNote.restart(); }
   // #89: with "Resize window to the video" on, a window you resize takes the video's shape again when you let go
   // (no black bars): its width stays, the height follows
   property bool fitting: false
@@ -369,12 +369,36 @@ C.ApplicationWindow {
   Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
   onVisibilityChanged: {
     stateTime = Date.now();
+    winNote("state");
     // #96: draw again once the window manager has settled the new state (GNOME's tiling and Super + arrows)
     timerAt(120, () => win.update()); timerAt(450, () => win.update());
     if (visibility !== Window.FullScreen) fsWanted = false;
     if (stateKept && !shotPath && !fullscreen && visibility !== Window.Minimized && visibility !== Window.Hidden) Settings.set("winMaximized", maximized);
   }
   onFullscreenChanged: frame.setFullscreen(fullscreen)   // #80
+  // #96: what happens to the window, in the log (Settings → General → Save a log) and on the terminal
+  function winNote(why) {
+    player.note("window " + why + ": visibility " + ["hidden", "auto", "windowed", "minimised", "maximised", "fullscreen"][visibility]
+                + (visible ? "" : " (not visible)") + (active ? ", active" : "") + ", " + x + "," + y + " " + width + "x" + height
+                + ", screen " + (screen ? screen.name + " " + screen.virtualX + "," + screen.virtualY + " " + screen.width + "x" + screen.height : "?")
+                + (fullscreen ? ", fullscreen" : "") + (maximized ? ", maximised" : "") + (tiled ? ", tiled" : "") + ", corner " + corner
+                + (inPlayer ? ", player" : ", library"));
+  }
+  onVisibleChanged: winNote("shown/hidden")
+  onScreenChanged: winNote("screen")
+  Timer { id: geoNote; interval: 400; onTriggered: win.winNote("moved/resized") }
+  onXChanged: geoNote.restart()
+  onYChanged: geoNote.restart()
+  // the window stops drawing (while it should: something plays): noted once, and again when it draws again
+  property int lastSwaps: 0
+  property bool drawing: true
+  Timer {
+    interval: 2000; repeat: true; running: !!win.current && win.player.playing && win.visible
+    onTriggered: {
+      const now = win.swaps !== win.lastSwaps; win.lastSwaps = win.swaps;
+      if (now !== win.drawing) { win.drawing = now; win.winNote(now ? "draws again" : "stopped drawing"); }
+    }
+  }
   function showPlayer() {
     if (fsForLibrary && !fullscreen) { fsForLibrary = false; enterFs(); }
     inPlayer = true;

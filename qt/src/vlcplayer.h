@@ -92,6 +92,7 @@ public:
   Q_INVOKABLE void setSpu(int id);                            // -1: off
   Q_INVOKABLE void setSpuDelay(double seconds);       // the picture on screen, as PNG or JPEG
   Q_INVOKABLE void log(const QString &line);                  // testing: appends a line to VLCR_LOG
+  Q_INVOKABLE void note(const QString &line);                 // #96: a line in the log (Save a log) and on the terminal
 
   // audio: VLC's own 10-band equalizer ([preamp, 10 bands] in dB, or null: off), its audio filters (compressor,
   // spatializer, stereo widener; "" = none) with their settings [[name, "f"|"i"|"b", value]], surround → stereo,
