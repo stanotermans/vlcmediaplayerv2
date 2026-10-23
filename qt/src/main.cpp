@@ -95,9 +95,8 @@ int main(int argc, char *argv[]) {
   app.setOrganizationName("Vela Player");
   installCrashLog(qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)) + "/crash.log");
   QQuickStyle::setStyle("Basic");
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-  QQuickWindow::setDefaultAlphaBuffer(true);   // #85: a see-through window for the rounded corners
-#endif                      // popups and scrollbars only; everything is drawn by our components
+// (#96: no see-through window on Linux: with some drivers everything came out transparent; WindowFrame.corner rounds
+// the corners with a window mask instead)
 #ifdef Q_OS_WIN
   QFont f("Segoe UI Variable Text"); f.setPixelSize(13); app.setFont(f);   // v2.x: 13px "Segoe UI Variable Text"
 #endif

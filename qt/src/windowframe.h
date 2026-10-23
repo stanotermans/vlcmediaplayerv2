@@ -20,6 +20,8 @@ class WindowFrame : public QObject, public QAbstractNativeEventFilter {
   // minus extra (the bars round the video)
   Q_PROPERTY(double aspect MEMBER m_aspect NOTIFY changed)
   Q_PROPERTY(QSizeF extra MEMBER m_extra NOTIFY changed)
+  // #85, #96: Linux: rounded window corners of this radius by a window mask (0: square); the window itself is opaque
+  Q_PROPERTY(int corner READ corner WRITE setCorner NOTIFY changed)
 public:
   explicit WindowFrame(QObject *parent = nullptr);
   ~WindowFrame() override;
@@ -28,6 +30,9 @@ public:
   bool maximizeHovered() const { return m_hover; }
   double aspect() const { return m_aspect; }
   QSizeF extra() const { return m_extra; }
+  int corner() const { return m_corner; }
+  void setCorner(int r);
+  Q_INVOKABLE bool masked() const;   // testing: the window has a mask
   bool nativeEventFilter(const QByteArray &type, void *message, qintptr *result) override;
   Q_INVOKABLE int hitTestAt(int x, int y);   // testing: what Windows is told at this window point (device pixels)
   Q_INVOKABLE bool grab(const QString &file);  // testing: saves the whole window (dialogs and menus included)
@@ -44,5 +49,7 @@ private:
   QPointer<QQuickItem> m_max;
   bool m_hover = false, m_styled = false, m_styleQueued = false;
   double m_aspect = 0;
+  int m_corner = 0;
+  void applyMask();
   QSizeF m_extra;
 };

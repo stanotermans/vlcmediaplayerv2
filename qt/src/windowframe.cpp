@@ -1,5 +1,7 @@
 #include "windowframe.h"
 #include <QCoreApplication>
+#include <QPainterPath>
+#include <QRegion>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <windowsx.h>
@@ -38,8 +40,28 @@ WindowFrame::~WindowFrame() {
 #endif
 }
 
+void WindowFrame::setCorner(int r) {
+  if (r == m_corner) return;
+  m_corner = r; emit changed();
+  applyMask();
+}
+
+// the window without its four corners (the X11 shape extension: no alpha channel needed); again with every size
+void WindowFrame::applyMask() {
+  QWindow *w = m_max ? m_max->window() : nullptr;
+  if (!w) return;
+  connect(w, &QWindow::widthChanged, this, &WindowFrame::applyMask, Qt::UniqueConnection);
+  connect(w, &QWindow::heightChanged, this, &WindowFrame::applyMask, Qt::UniqueConnection);
+  if (m_corner <= 0) { if (!w->mask().isEmpty()) w->setMask(QRegion()); return; }
+  QPainterPath p; p.addRoundedRect(QRectF(0, 0, w->width(), w->height()), m_corner, m_corner);
+  w->setMask(QRegion(p.toFillPolygon().toPolygon()));
+}
+
+bool WindowFrame::masked() const { return m_max && m_max->window() && !m_max->window()->mask().isEmpty(); }
+
 void WindowFrame::setMaximizeButton(QQuickItem *i) {
   m_max = i; emit changed();
+  applyMask();
   // the native window may not exist yet (asking for it now would create it in the middle of QML's setup)
   if (i && i->window()) connect(i->window(), &QWindow::visibleChanged, this, &WindowFrame::style, Qt::UniqueConnection);
   style();   // (and from the first message of the window below, if it did not exist yet)

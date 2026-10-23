@@ -15,7 +15,7 @@ C.ApplicationWindow {
   // #85: on Linux the window draws its own rounded corners (no system frame); not maximised, fullscreen or bare
   readonly property int corner: Qt.platform.os === "linux" && !Theme.mobile && visibility === Window.Windowed && !tiled && !fsMode && !hideUi ? 10 : 0
   readonly property bool tiled: Qt.platform.os === "linux" && height >= Screen.desktopAvailableHeight - 2   // (GNOME: snapped to half the screen)
-  color: corner > 0 ? "transparent" : Theme.bg
+  color: Theme.bg
   title: current && Settings.values.titleName !== false ? current.name : "Vela Player"   // #90: can be hidden (Settings → Interface)
   flags: Qt.Window | Qt.FramelessWindowHint
   property bool inPlayer: false
@@ -369,6 +369,8 @@ C.ApplicationWindow {
   Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
   onVisibilityChanged: {
     stateTime = Date.now();
+    // #96: draw again once the window manager has settled the new state (GNOME's tiling and Super + arrows)
+    timerAt(120, () => win.update()); timerAt(450, () => win.update());
     if (visibility !== Window.FullScreen) fsWanted = false;
     if (stateKept && !shotPath && !fullscreen && visibility !== Window.Minimized && visibility !== Window.Hidden) Settings.set("winMaximized", maximized);
   }
@@ -501,7 +503,7 @@ C.ApplicationWindow {
   Connections { target: player; function onStateChanged() { System.mediaState(!win.current ? "closed" : player.playing ? "playing" : player.active ? "paused" : "stopped"); } }
   onCurrentChanged: if (current) { const i = library.item(current.src); System.mediaInfo(current.name.replace(/\.[^.]+$/, ""), i.artist || "", i.album || "", current.type === "audio"); } else System.mediaState("closed")
   Timer { id: updateTimer; interval: 5000; onTriggered: { System.checkUpdates(false); Settings.set("lastUpdateCheck", Date.now()); } }
-  WindowFrame { id: frame; maximizeButton: maxBtn; aspect: win.lockAspect; extra: Qt.size(win.width - playerView.width, win.height - playerView.height) }
+  WindowFrame { id: frame; maximizeButton: maxBtn; corner: win.corner; aspect: win.lockAspect; extra: Qt.size(win.width - playerView.width, win.height - playerView.height) }
   Component.onCompleted: {
     // #64: never bigger than the screen (1600 × 1000 is too big at 150 % on a 1080p screen), and in its middle
     if (!shotPath) {
@@ -706,7 +708,6 @@ C.ApplicationWindow {
   }
 
   // ---------- body ----------
-  Rectangle { anchors { left: parent.left; right: parent.right; top: titlebar.bottom; bottom: controls.top } color: Theme.bg; visible: win.corner > 0 }   // (#85: behind the body)
   Item {
     id: body
     anchors { left: parent.left; right: parent.right; top: win.fsMode || win.hideUi ? parent.top : titlebar.bottom; bottom: win.fsMode || win.hideUi ? parent.bottom : controls.top }

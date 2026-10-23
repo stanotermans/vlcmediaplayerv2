@@ -316,6 +316,14 @@ def original_size(c):   # #99: the video area takes the video's own size, one vi
     for i, want in ((0, '640x360'), (1, '640x360 false')): c.ok(c.get('px', i) in (want, want.replace('640x360', '641x360'), want.replace('640x360', '640x361')), f"video area {c.get('px', i)}, want {want}")
 
 @test
+def state_paint(c):   # #96: after maximise / back the window keeps drawing; it is never see-through (Linux: corners by a mask)
+    c.vals, _ = run(c.name, ['size:1000x600'] + PLAY('video.mp4', 1200) + ['log:(win.toggleMax(), "max")', 'wait:900',
+                    'log:(win.showNormal(), "normal")', 'wait:900', 'log:(win.swaps = 0, "count")', 'wait:1500',
+                    'log:"swaps=" + win.swaps', 'log:"alpha=" + win.color.a', 'log:"mask=" + frame.masked()'])
+    c.more('swaps', 10); c.eq('alpha', 1)
+    c.eq('mask', 'true' if sys.platform.startswith('linux') else 'false')   # (Linux: rounded corners by the window mask)
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)
