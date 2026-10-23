@@ -1,3 +1,8 @@
+## 3.2.3
+- ✨ **Your own video filter presets:** set the filters, then *Save as preset…* in the Video tab of the quick settings; remove one from the same list (#98).
+- 🐛 **Shift + letter shortcuts** work next to the plain letter, also with input methods like Telex and with Caps Lock on (#97).
+- 🐛 A click on the video closes the quick settings (without pausing), and lists open upward when there is no room below them (#98).
+
 ## 3.2.2
 - ✨ **The window keeps the video's shape while you resize it**, like mpv (with *Resize window to the video* on) (#89), and the **corners resize both ways** (#87).
 - 🐛 **A maximised window on a screen without a taskbar** (or with one that hides itself) is no longer taken for fullscreen: the window doesn't get smaller after you leave the player, and videos don't open in fullscreen (#95).
