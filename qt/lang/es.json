@@ -705,5 +705,9 @@
 "Show the file name in the title bar": "Mostrar el nombre del archivo en la barra de título",
 "Off: the title bar and the taskbar only say Vela Player.": "Desactivado: la barra de título y la barra de tareas solo muestran Vela Player.",
 "Show the folder in the title bar": "Mostrar la carpeta en la barra de título",
-"Quit": "Salir"
+"Quit": "Salir",
+"Save as preset…": "Guardar como ajuste…",
+"Save as preset": "Guardar como ajuste",
+"Name of the preset": "Nombre del ajuste",
+"Remove “%1”": "Quitar «%1»"
 }

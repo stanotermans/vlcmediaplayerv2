@@ -706,5 +706,9 @@
 "Show the file name in the title bar": "Pokazuj nazwę pliku na pasku tytułu",
 "Off: the title bar and the taskbar only say Vela Player.": "Wyłączone: pasek tytułu i pasek zadań pokazują tylko Vela Player.",
 "Show the folder in the title bar": "Pokazuj folder na pasku tytułu",
-"Quit": "Zakończ"
+"Quit": "Zakończ",
+"Save as preset…": "Zapisz jako ustawienie…",
+"Save as preset": "Zapisz jako ustawienie",
+"Name of the preset": "Nazwa ustawienia",
+"Remove “%1”": "Usuń „%1”"
 }

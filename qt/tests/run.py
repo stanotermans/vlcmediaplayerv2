@@ -295,6 +295,19 @@ def preset_list(c):   # #98: the preset list at the bottom of the quick settings
     c.eq('bottom', 'true')
 
 @test
+def own_presets(c):   # #98: your own video filter presets: save, pick again, remove
+    vf = 'Settings.values.vf'
+    c.vals, _ = run(c.name, PLAY('video.mp4', 1200) + ['quick:video', 'wait:300',
+        f'log:(Settings.set("vf", Object.assign({{}}, {vf}, {{ brightness: 130, saturate: 40, rotate: 90 }})), quick.savePreset("Anime"), "saved")',
+        'log:"stored=" + Settings.values.vfPresets.Anime.brightness + " " + Settings.values.vfPresets.Anime.saturate + " " + ("rotate" in Settings.values.vfPresets.Anime)',
+        'log:"listed=" + quick.vpresetOptions.map(o => o[0]).join(",")',
+        'log:(quick.videoPreset(""), "reset")', f'log:"after=" + {vf}.brightness + " " + {vf}.rotate',
+        'log:(quick.videoPreset("u:Anime"), "picked")', f'log:"again=" + {vf}.brightness + " " + {vf}.saturate + " " + {vf}.rotate',
+        'log:(quick.videoPreset("__del"), "removed")', 'log:"left=" + Object.keys(Settings.values.vfPresets).length + " " + quick.vpreset'])
+    c.eq('stored', '130 40 false'); c.eq('listed', ',vivid,cinema,bw,warm,vintage,u:Anime,__save,__del')
+    c.eq('after', '100 90'); c.eq('again', '130 40 90'); c.eq('left', '0 ')
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)

@@ -705,5 +705,9 @@
 "Show the file name in the title bar": "Bestandsnaam in de titelbalk tonen",
 "Off: the title bar and the taskbar only say Vela Player.": "Uit: in de titelbalk en de taakbalk staat alleen Vela Player.",
 "Show the folder in the title bar": "Map in de titelbalk tonen",
-"Quit": "Afsluiten"
+"Quit": "Afsluiten",
+"Save as preset…": "Opslaan als preset…",
+"Save as preset": "Opslaan als preset",
+"Name of the preset": "Naam van de preset",
+"Remove “%1”": "“%1” verwijderen"
 }

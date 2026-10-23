@@ -28,10 +28,32 @@ Rectangle {
     vintage: ["Vintage", { brightness: 98, contrast: 90, saturate: 70, sepia: 45, grain: 4, gray: false }] })
   property string vpreset: ""
   property string spreset: ""
+  // #98: your own presets ("u:" + name): the filters of the moment, without crop, rotation, zoom and mirror
+  readonly property var userPresets: Settings.values.vfPresets || ({})
+  readonly property var vpresetOptions: Object.keys(vpresets).map(k => [k, vpresets[k][0]])
+    .concat(Object.keys(userPresets).sort().map(n => ["u:" + n, n]))
+    .concat([["__save", qsTr("Save as preset…")]])
+    .concat(vpreset.startsWith("u:") ? [["__del", qsTr("Remove “%1”").arg(vpreset.slice(2))]] : [])
   function videoPreset(k) {
+    if (k === "__save") return ctl.dialog("dialogs/Ask.qml", { mode: "prompt", title: qsTr("Save as preset"), text: qsTr("Name of the preset"),
+                                                               value: vpreset.startsWith("u:") ? vpreset.slice(2) : "", okLabel: qsTr("Save") },
+                                          v => { if (v && v.trim()) savePreset(v.trim()); });
+    if (k === "__del") return removePreset(vpreset.slice(2));
+    const p = k.startsWith("u:") ? userPresets[k.slice(2)] : (vpresets[k] || vpresets[""])[1];
+    if (!p) return;
     vpreset = k;
     const base = JSON.parse(JSON.stringify(Settings.defaultValue("vf"))), cur = Settings.values.vf || {};
-    Settings.set("vf", Object.assign(base, vpresets[k][1], { crop: cur.crop, rotate: cur.rotate, zoom: cur.zoom, mirror: cur.mirror }));
+    Settings.set("vf", Object.assign(base, p, { crop: cur.crop, rotate: cur.rotate, zoom: cur.zoom, mirror: cur.mirror }));
+  }
+  function savePreset(name) {
+    const p = JSON.parse(JSON.stringify(Settings.values.vf || {}));
+    ["crop", "rotate", "zoom", "mirror"].forEach(k => delete p[k]);
+    const all = Object.assign({}, userPresets); all[name] = p;
+    Settings.set("vfPresets", all); vpreset = "u:" + name;
+  }
+  function removePreset(name) {
+    const all = Object.assign({}, userPresets); delete all[name];
+    Settings.set("vfPresets", all); vpreset = "";
   }
   function subPreset(k) {
     spreset = k;
@@ -214,7 +236,7 @@ Rectangle {
         visible: root.tab !== "playback" && (Store.pro || root.tab === "subs")   // (#53: the video and audio presets are Pro)
         label: "Preset"
         Loader { id: presetBox; sourceComponent: root.tab === "video" ? vpC : root.tab === "audio" ? apC : spC }
-        Component { id: vpC; Select { width: 160; options: Object.keys(root.vpresets).map(k => [k, root.vpresets[k][0]]); value: root.vpreset; onPicked: v => root.videoPreset(v) } }
+        Component { id: vpC; Select { width: 160; options: root.vpresetOptions; value: root.vpreset; onPicked: v => { root.videoPreset(v); value = Qt.binding(() => root.vpreset); } } }
         Component { id: apC; Select { width: 160; options: FX.presetOptions(); value: Settings.values.eqPreset || "flat"
                                      onPicked: v => { if (v === "custom") return Settings.set("eqPreset", "custom"); const p = FX.EQ_PRESETS[v]; Settings.set("eqPreset", v); Settings.set("eq", p.slice(1)); Settings.set("eqOn", true); } } }
         Component { id: spC; Select { width: 160; options: [["", "Default"], ["big", "Large and yellow"], ["cinema", "Cinema"], ["clean", "No background"]]; value: root.spreset; onPicked: v => root.subPreset(v) } }
