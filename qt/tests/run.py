@@ -308,6 +308,14 @@ def own_presets(c):   # #98: your own video filter presets: save, pick again, re
     c.eq('after', '100 90'); c.eq('again', '130 40 90'); c.eq('left', '0 ')
 
 @test
+def original_size(c):   # #99: the video area takes the video's own size, one video pixel on one screen pixel
+    c.vals, _ = run(c.name, ['size:1200x800'] + PLAY('video.mp4', 1500) + ['log:(win.originalSize(), "go")', 'wait:600',
+                    'log:"px=" + Math.round(playerView.width * Screen.devicePixelRatio) + "x" + Math.round(playerView.height * Screen.devicePixelRatio)',
+                    'log:(win.toggleMax(), "max")', 'wait:900', 'log:(win.originalSize(), "go")', 'wait:900',
+                    'log:"px=" + Math.round(playerView.width * Screen.devicePixelRatio) + "x" + Math.round(playerView.height * Screen.devicePixelRatio) + " " + win.maximized'])
+    for i, want in ((0, '640x360'), (1, '640x360 false')): c.ok(c.get('px', i) in (want, want.replace('640x360', '641x360'), want.replace('640x360', '640x361')), f"video area {c.get('px', i)}, want {want}")
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)

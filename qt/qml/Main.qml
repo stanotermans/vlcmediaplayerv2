@@ -402,6 +402,30 @@ C.ApplicationWindow {
       fitting = true; win.width = w; win.height = h; fitting = false;
     });
   }
+  // #99: the window around the video at its own size: one video pixel on one screen pixel (for upscalers such as
+  // Lossless Scaling); fullscreen and maximised windows first go back to normal
+  function originalSize() {
+    const s = player.videoSize;
+    if (!(s.width > 0) || Theme.mobile) return;
+    const was = fullscreen || maximized;
+    if (fullscreen) leaveFs();
+    if (maximized) showNormal();
+    timerAt(was ? 250 : 0, () => {
+      const turned = ((Settings.values.vf || {}).rotate || 0) % 180 === 90, dpr = Screen.devicePixelRatio;
+      const vw = (turned ? s.height : s.width) / dpr, vh = (turned ? s.width : s.height) / dpr;
+      const cw = win.width - playerView.width, ch = win.height - playerView.height;
+      const sw = Screen.desktopAvailableWidth, sh = Screen.desktopAvailableHeight;
+      const w = Math.round(cw + vw), h = Math.round(ch + vh);
+      if (w > sw || h > sh) return osd(qsTr("The video (%1 × %2) is bigger than the screen").arg(s.width).arg(s.height));
+      const cx = win.x + win.width / 2, cy = win.y + win.height / 2;
+      fitting = true;
+      win.width = w; win.height = h;
+      win.x = Math.round(Math.min(Math.max(cx - w / 2, Screen.virtualX), Screen.virtualX + sw - w));
+      win.y = Math.round(Math.min(Math.max(cy - h / 2, Screen.virtualY), Screen.virtualY + sh - h));
+      fitting = false;
+      osd(qsTr("Original size") + "  ·  " + s.width + " × " + s.height);
+    });
+  }
   property bool pipOpen: false
   function togglePip() {
     if (!current || current.type === "audio") return osd(qsTr("Picture-in-picture not available"));
@@ -801,6 +825,8 @@ C.ApplicationWindow {
           { label: qsTr("Fullscreen"), icon: "fullscreen", kbd: "F", action: toggleFs },
           { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !it },
           { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !it },
+          { label: qsTr("Original size (1:1)"), action: () => originalSize(), disabled: !it || !playerView.showVideo || Theme.mobile },   // #99
+          { label: qsTr("Sharp upscaling"), checked: playerView.upscale, action: () => { if (!Store.pro) return pro("video"); Settings.set("vf.upscale", !Settings.values.vf.upscale); }, disabled: !it || !playerView.showVideo },
           { label: qsTr("360° video"), checked: playerView.on360, action: () => { if (!Store.pro) return pro("video"); playerView.force360 = !playerView.on360; playerView.reset360(); }, disabled: !it || !playerView.showVideo },
           { label: qsTr("Reset 360° view"), action: () => playerView.reset360(), disabled: !playerView.on360 },
           { sep: true }, { header: qsTr("Aspect ratio") }

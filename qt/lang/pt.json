@@ -709,5 +709,8 @@
 "Save as preset…": "Salvar como predefinição…",
 "Save as preset": "Salvar como predefinição",
 "Name of the preset": "Nome da predefinição",
-"Remove “%1”": "Remover “%1”"
+"Remove “%1”": "Remover “%1”",
+"Original size (1:1)": "Tamanho original (1:1)",
+"Original size": "Tamanho original",
+"The video (%1 × %2) is bigger than the screen": "O vídeo (%1 × %2) é maior que a tela"
 }

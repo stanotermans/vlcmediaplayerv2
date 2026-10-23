@@ -709,5 +709,8 @@
 "Save as preset…": "Opslaan als preset…",
 "Save as preset": "Opslaan als preset",
 "Name of the preset": "Naam van de preset",
-"Remove “%1”": "“%1” verwijderen"
+"Remove “%1”": "“%1” verwijderen",
+"Original size (1:1)": "Originele grootte (1:1)",
+"Original size": "Originele grootte",
+"The video (%1 × %2) is bigger than the screen": "De video (%1 × %2) is groter dan het scherm"
 }
