@@ -11,6 +11,7 @@ import "Lib.js" as Lib
 C.ApplicationWindow {
   id: win
   width: 1600; height: 1000
+  minimumWidth: Theme.mobile ? 0 : 360; minimumHeight: Theme.mobile ? 0 : 240   // (#102: never a window of a few pixels)
   visible: true
   // #85: on Linux the window draws its own rounded corners (no system frame); not maximised, fullscreen or bare
   readonly property int corner: Qt.platform.os === "linux" && !Theme.mobile && visibility === Window.Windowed && !tiled && !fsMode && !hideUi ? 10 : 0
@@ -370,6 +371,7 @@ C.ApplicationWindow {
   onVisibilityChanged: {
     stateTime = Date.now();
     winNote("state");
+    if (visibility === Window.Windowed) timerAt(60, () => win.checkNormal());
     // #96: draw again once the window manager has settled the new state (GNOME's tiling and Super + arrows)
     timerAt(120, () => win.update()); timerAt(450, () => win.update());
     if (visibility !== Window.FullScreen) fsWanted = false;
@@ -386,7 +388,26 @@ C.ApplicationWindow {
   }
   onVisibleChanged: winNote("shown/hidden")
   onScreenChanged: winNote("screen")
-  Timer { id: geoNote; interval: 400; onTriggered: win.winNote("moved/resized") }
+  Timer { id: geoNote; interval: 400; onTriggered: { win.winNote("moved/resized"); win.keepNormal(); } }
+  // #102: a window that comes back from maximised (or fullscreen) at a size that makes no sense, a few pixels (Windows
+  // restored a size it never had: Qt took a maximised window on a screen without a taskbar for fullscreen) or bigger
+  // than the screen, gets the last good size back, or a size in the middle of the screen
+  property rect normalRect: Qt.rect(0, 0, 0, 0)
+  function sane(r) { return r.width >= 400 && r.height >= 280 && r.width <= Screen.desktopAvailableWidth + 8 && r.height <= Screen.desktopAvailableHeight + 8; }
+  function keepNormal() {
+    const r = Qt.rect(x, y, width, height);
+    if (visibility === Window.Windowed && !tiled && !fitting && sane(r)) normalRect = r;
+  }
+  function checkNormal() {
+    if (visibility !== Window.Windowed || Theme.mobile || sane(Qt.rect(x, y, width, height))) return;
+    const sw = Screen.desktopAvailableWidth, sh = Screen.desktopAvailableHeight;
+    let r = normalRect;
+    if (!sane(r)) { const w = Math.min(1600, sw - 96), h = Math.min(1000, sh - 96); r = Qt.rect(Screen.virtualX + (sw - w) / 2, Screen.virtualY + (sh - h) / 2, w, h); }
+    winNote("bad size after a state change, back to " + Math.round(r.width) + "x" + Math.round(r.height));
+    fitting = true;
+    win.width = Math.round(r.width); win.height = Math.round(r.height); win.x = Math.round(r.x); win.y = Math.round(r.y);
+    fitting = false;
+  }
   onXChanged: geoNote.restart()
   onYChanged: geoNote.restart()
   // the window stops drawing (while it should: something plays): noted once, and again when it draws again
@@ -530,11 +551,14 @@ C.ApplicationWindow {
   WindowFrame { id: frame; maximizeButton: maxBtn; corner: win.corner; aspect: win.lockAspect; extra: Qt.size(win.width - playerView.width, win.height - playerView.height) }
   Component.onCompleted: {
     // #64: never bigger than the screen (1600 × 1000 is too big at 150 % on a 1080p screen), and in its middle
+    // testing: the window on the screen VLCR_SCREEN names (before its size and a maximised start)
+    const ts = testScreen ? Qt.application.screens.find(x => x.name === testScreen) : null;
+    if (ts) { win.screen = ts; win.x = ts.virtualX + 40; win.y = ts.virtualY + 40; }
     if (!shotPath) {
       // this screen (desktopAvailable… spans all monitors), leaving room for the taskbar
-      const aw = Screen.width, ah = Screen.height - 48;
+      const sc = ts || Screen, aw = sc.width, ah = sc.height - 48;
       win.width = Math.min(1600, aw - 48); win.height = Math.min(1000, ah - 48);
-      win.x = Screen.virtualX + Math.round((aw - win.width) / 2); win.y = Screen.virtualY + Math.round((ah - win.height) / 2);
+      win.x = sc.virtualX + Math.round((aw - win.width) / 2); win.y = sc.virtualY + Math.round((ah - win.height) / 2);
     }
     if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) {   // #73: shown maximised (testStartMax: also in a test)
       win.visibility = Window.Maximized;
@@ -553,7 +577,6 @@ C.ApplicationWindow {
     if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
     if (Settings.values.autoUpdate !== false && !shotPath && !Theme.mobile) updateTimer.start();   // (a phone: the store updates it)
     sideHidden = !!Settings.values.sideHidden;   // #91
-    if (testScreen) { const s = Qt.application.screens.find(x => x.name === testScreen); if (s) { win.screen = s; win.x = s.virtualX + 40; win.y = s.virtualY + 40; } }
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
     // Android (#53): the phone's own media folders, and Android's question for access to them
     if (Qt.platform.os === "android") {
