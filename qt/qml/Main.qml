@@ -556,13 +556,14 @@ C.ApplicationWindow {
     // testing: the window on the screen VLCR_SCREEN names (before its size and a maximised start)
     const ts = testScreen ? Qt.application.screens.find(x => x.name === testScreen) : null;
     if (ts) { win.screen = ts; win.x = ts.virtualX + 40; win.y = ts.virtualY + 40; }
-    if (!shotPath) {
+    if (Theme.mobile) win.visibility = Window.Maximized;   // a phone: the whole screen, never a desktop window size (#53)
+    else if (!shotPath) {
       // this screen (desktopAvailable… spans all monitors), leaving room for the taskbar
       const sc = ts || Screen, aw = sc.width, ah = sc.height - 48;
       win.width = Math.min(1600, aw - 48); win.height = Math.min(1000, ah - 48);
       win.x = sc.virtualX + Math.round((aw - win.width) / 2); win.y = sc.virtualY + Math.round((ah - win.height) / 2);
     }
-    if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) {   // #73: shown maximised (testStartMax: also in a test)
+    if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized && !Theme.mobile) {   // #73: shown maximised (testStartMax: also in a test)
       win.visibility = Window.Maximized;
       // a shortcut tells Windows "normal window", which Windows applies to the first showing of the window: again after it
       timerAt(150, () => { if (!win.maximized && !win.fullscreen) win.showMaximized(); });

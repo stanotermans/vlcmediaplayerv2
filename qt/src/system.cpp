@@ -347,10 +347,12 @@ void System::setBrightness(double v) {
 
 void System::readInsets(qreal dpr) {
 #ifdef Q_OS_ANDROID
-  const QVariantMap px = Android::insets();
-  if (px.isEmpty() || dpr <= 0) return;
-  QVariantMap m; for (auto i = px.cbegin(); i != px.cend(); ++i) m[i.key()] = qRound(i.value().toDouble() / dpr);
-  if (m != m_insets) { m_insets = m; emit insetsChanged(); }
+  if (dpr <= 0) return;
+  Android::readInsets(this, [this, dpr](const QVariantMap &px) {
+    if (px.isEmpty()) return;
+    QVariantMap m; for (auto i = px.cbegin(); i != px.cend(); ++i) m[i.key()] = qRound(i.value().toDouble() / dpr);
+    if (m != m_insets) { m_insets = m; emit insetsChanged(); }
+  });
 #else
   Q_UNUSED(dpr);
 #endif

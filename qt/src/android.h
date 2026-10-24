@@ -3,7 +3,9 @@
 // on, and the test settings (no environment variables on Android: <app files>/env.txt holds them).
 #pragma once
 #include <QString>
+#include <QObject>
 #include <QVariantMap>
+#include <functional>
 
 namespace Android {
 void loadTestEnv();               // <external app files>/env.txt: KEY=VALUE lines → the environment (tests)
@@ -15,5 +17,7 @@ bool allFilesAccess();            // Android 11+: "all files" (subtitles and lyr
 void askAllFilesAccess();         // opens Android's settings page for it
 void keepScreenOn(bool on);
 void setBrightness(double v);     // this app's screen brightness 0…1; below 0: the system's own
-QVariantMap insets();             // the status / navigation bars over the app: { top, bottom, left, right } in pixels
+// the status / navigation bars over the app: { top, bottom, left, right } in pixels, to done() on the Qt thread later.
+// (Never waits for Android's main thread: that one can be waiting for Qt itself, e.g. during a resize: a deadlock, #53.)
+void readInsets(QObject *context, std::function<void(const QVariantMap &)> done);
 }

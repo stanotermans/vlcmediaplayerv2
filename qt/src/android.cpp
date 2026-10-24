@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include <QtCore/qcoreapplication_platform.h>
 #include <QFile>
+#include <QPointer>
 #include <QJniEnvironment>
 #include <QJniObject>
 
@@ -66,9 +67,10 @@ void Android::askAllFilesAccess() {
   context().callMethod<void>("startActivity", "(Landroid/content/Intent;)V", intent.object());
 }
 
-QVariantMap Android::insets() {
-  QVariantMap m;
-  QAndroidApplication::runOnAndroidMainThread([&m]() {
+void Android::readInsets(QObject *context, std::function<void(const QVariantMap &)> done) {
+  QPointer<QObject> ctx(context);
+  QAndroidApplication::runOnAndroidMainThread([ctx, done]() {
+    QVariantMap m;
     const QJniObject w = context().callObjectMethod("getWindow", "()Landroid/view/Window;");
     const QJniObject in = w.isValid() ? w.callObjectMethod("getDecorView", "()Landroid/view/View;")
                                          .callObjectMethod("getRootWindowInsets", "()Landroid/view/WindowInsets;") : QJniObject();
@@ -82,8 +84,8 @@ QVariantMap Android::insets() {
       m["top"] = in.callMethod<jint>("getSystemWindowInsetTop"); m["bottom"] = in.callMethod<jint>("getSystemWindowInsetBottom");
       m["left"] = in.callMethod<jint>("getSystemWindowInsetLeft"); m["right"] = in.callMethod<jint>("getSystemWindowInsetRight");
     }
-  }).waitForFinished();
-  return m;
+    if (ctx) QMetaObject::invokeMethod(ctx, [ctx, done, m]() { if (ctx) done(m); }, Qt::QueuedConnection);
+  });
 }
 
 void Android::setBrightness(double v) {
