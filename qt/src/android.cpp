@@ -67,8 +67,8 @@ void Android::askAllFilesAccess() {
   context().callMethod<void>("startActivity", "(Landroid/content/Intent;)V", intent.object());
 }
 
-void Android::readInsets(QObject *context, std::function<void(const QVariantMap &)> done) {
-  QPointer<QObject> ctx(context);
+void Android::readInsets(QObject *owner, std::function<void(const QVariantMap &)> done) {
+  QPointer<QObject> ctx(owner);
   QAndroidApplication::runOnAndroidMainThread([ctx, done]() {
     QVariantMap m;
     const QJniObject w = context().callObjectMethod("getWindow", "()Landroid/view/Window;");

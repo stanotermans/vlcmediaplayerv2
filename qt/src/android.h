@@ -19,5 +19,5 @@ void keepScreenOn(bool on);
 void setBrightness(double v);     // this app's screen brightness 0…1; below 0: the system's own
 // the status / navigation bars over the app: { top, bottom, left, right } in pixels, to done() on the Qt thread later.
 // (Never waits for Android's main thread: that one can be waiting for Qt itself, e.g. during a resize: a deadlock, #53.)
-void readInsets(QObject *context, std::function<void(const QVariantMap &)> done);
+void readInsets(QObject *owner, std::function<void(const QVariantMap &)> done);
 }
