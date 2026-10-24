@@ -28,26 +28,17 @@ The app is available in English, Dutch, German, French, Spanish, Italian and Por
 
 ## Working on the code
 
-You need [Node.js](https://nodejs.org) 20 or newer.
+Vela Player 3 is a Qt 6.8 app (C++ and QML) in [`qt/`](qt). How to build and run it, and how to run the tests: see [BUILDING.md](BUILDING.md), which also explains [which folder does what](BUILDING.md#project-structure).
 
-```bash
-git clone https://github.com/stanotermans/vlcmediaplayerv2.git
-cd vlcmediaplayerv2/app
-npm install
-npm start
-```
-
-Tip: to test without touching your installed app's library and settings, start it with a separate profile, e.g. `VLCX_USER_DATA=/tmp/vlc-test npm start` (on Windows PowerShell: `$env:VLCX_USER_DATA="$env:TEMP\vlc-test"; npm start`).
-
-The [README](README.md#project-structure) explains which file does what.
+Tip: to test without touching your own library and settings, start it with a separate profile: `VLCR_USER_DATA=/tmp/vela-test` (on Windows PowerShell: `$env:VLCR_USER_DATA="$env:TEMP\vela-test"`).
 
 ### Guidelines
 
 - Keep the look and feel consistent with Juxtopposed's design.
-- Put every user-facing text through the translation function (`t('English text')`) and add the key to all files in `app/src/lang/`.
+- Put every user-facing text through `qsTr("English text")` and add the key to all files in `qt/lang/`.
 - Keep changes focused: one fix or feature per pull request.
-- Test your change on at least one platform by running the app with `npm start`.
-- Don't commit build output (`app/dist/`) or `node_modules/`.
+- Test your change on at least one platform, and run the tests (`qt/tests/run.py`) when you can.
+- Don't commit build output (`qt/build*/`, `app/dist/`) or `node_modules/`.
 
 ## Pull requests
 
