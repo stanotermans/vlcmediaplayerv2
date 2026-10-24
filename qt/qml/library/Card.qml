@@ -112,13 +112,14 @@ Item {
     hoverEnabled: true
     cursorShape: root.reorder && root.it ? Qt.OpenHandCursor : Qt.PointingHandCursor
     acceptedButtons: Qt.LeftButton | Qt.RightButton
-    drag.target: root.reorder && root.it ? ghost : null
+    drag.target: root.reorder && root.it && !root.ctl.phone ? ghost : null
     drag.threshold: 6
     onClicked: m => {
       if (m.button === Qt.RightButton) { const p = mapToItem(null, m.x, m.y); root.ctl.entryMenu(root.entry, p.x, p.y, true); }
       else root.ctl.entryClicked(root.entry, m.modifiers);
     }
     onPressed: m => { ghost.x = m.x; ghost.y = m.y; }   // the ghost sits under the mouse
+    onPressAndHold: m => { if (root.ctl.phone) { const p = mapToItem(null, m.x, m.y); root.ctl.entryMenu(root.entry, p.x, p.y, true); } }   // (touch: hold for the menu)
     onReleased: if (ghost.Drag.active) ghost.Drag.drop()
     drag.onActiveChanged: { root.ctl.dragging = drag.active; }
   }

@@ -14,5 +14,6 @@ void askMediaAccess();            // Android's own question (READ_MEDIA_VIDEO/AU
 bool allFilesAccess();            // Android 11+: "all files" (subtitles and lyrics next to the videos)
 void askAllFilesAccess();         // opens Android's settings page for it
 void keepScreenOn(bool on);
+void setBrightness(double v);     // this app's screen brightness 0…1; below 0: the system's own
 QVariantMap insets();             // the status / navigation bars over the app: { top, bottom, left, right } in pixels
 }

@@ -337,6 +337,14 @@ void System::askAllFilesAccess() {
   askMediaAccess();   // (watches for the change)
 #endif
 }
+void System::setBrightness(double v) {
+#ifdef Q_OS_ANDROID
+  Android::setBrightness(v);
+#else
+  Q_UNUSED(v)
+#endif
+}
+
 void System::readInsets(qreal dpr) {
 #ifdef Q_OS_ANDROID
   const QVariantMap px = Android::insets();
@@ -369,6 +377,18 @@ void System::testClick(QWindow *w, qreal x, qreal y) {
   QMouseEvent p(QEvent::MouseButtonPress, local, local, w->mapToGlobal(local), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
   QCoreApplication::sendEvent(w, &p);
   QMouseEvent r(QEvent::MouseButtonRelease, local, local, w->mapToGlobal(local), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+  QCoreApplication::sendEvent(w, &r);
+}
+
+void System::testDrag(QWindow *w, qreal x0, qreal y0, qreal x1, qreal y1) {
+  if (!w) return;
+  auto send = [w](QEvent::Type t, QPointF p, Qt::MouseButtons b) {
+    QMouseEvent e(t, p, p, w->mapToGlobal(p), Qt::LeftButton, b, Qt::NoModifier);
+    QCoreApplication::sendEvent(w, &e);
+  };
+  send(QEvent::MouseButtonPress, QPointF(x0, y0), Qt::LeftButton);
+  for (int i = 1; i <= 10; ++i) send(QEvent::MouseMove, QPointF(x0 + (x1 - x0) * i / 10, y0 + (y1 - y0) * i / 10), Qt::LeftButton);
+  QMouseEvent r(QEvent::MouseButtonRelease, QPointF(x1, y1), QPointF(x1, y1), w->mapToGlobal(QPointF(x1, y1)), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
   QCoreApplication::sendEvent(w, &r);
 }
 

@@ -3,7 +3,9 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QDateTime>
 #include <QStandardPaths>
+#include <QTimer>
 #ifdef Q_OS_ANDROID
 #include <QJniEnvironment>
 #include <QJniObject>
@@ -34,6 +36,12 @@ Store::Store(QObject *parent) : QObject(parent) {
   QFile f(cacheFile());
   m_pro = f.open(QIODevice::ReadOnly) && f.readAll().trimmed() == "pro";
 #endif
+  if (qEnvironmentVariable("VLCR_STORE") == "1") { m_inStore = true; m_pro = false; }   // (tests: the store's screens without a store)
+  QFile t(cacheFile() + ".trial");
+  if (t.open(QIODevice::ReadOnly)) m_trialStart = t.readAll().trimmed().toLongLong();
+  auto *tick = new QTimer(this);   // the end of a trial while the app runs
+  connect(tick, &QTimer::timeout, this, &Store::changed);
+  tick->start(30 * 60 * 1000);
   if (qEnvironmentVariableIsSet("VLCR_PRO")) { m_pro = qEnvironmentVariable("VLCR_PRO") == "1"; return; }   // (tests: no store)
 #ifdef Q_OS_ANDROID
   QJniEnvironment env;
@@ -44,6 +52,21 @@ Store::Store(QObject *parent) : QObject(parent) {
   env.checkAndClearExceptions();
   if (!g_java.isValid()) m_error = tr("Google Play is not available");
 #endif
+}
+
+int Store::trialDays() const {
+  if (m_trialStart == 0) return 0;
+  const qint64 left = m_trialStart + 7LL * 24 * 3600 * 1000 - QDateTime::currentMSecsSinceEpoch();
+  return left > 0 ? int((left + 24LL * 3600 * 1000 - 1) / (24LL * 3600 * 1000)) : 0;
+}
+
+void Store::startTrial() {
+  if (!trialAvailable()) return;
+  m_trialStart = QDateTime::currentMSecsSinceEpoch();
+  QDir().mkpath(QFileInfo(cacheFile()).absolutePath());
+  QFile t(cacheFile() + ".trial");
+  if (t.open(QIODevice::WriteOnly | QIODevice::Truncate)) t.write(QByteArray::number(m_trialStart));
+  emit changed();
 }
 
 void Store::buy() {

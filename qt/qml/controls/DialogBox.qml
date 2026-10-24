@@ -13,6 +13,7 @@ C.Popup {
   property int maxWidth: 460
   default property alias body: bodyHolder.data
   property real bodyPadding: 18
+  property bool fullScreen: false   // a phone: the whole screen, square
   signal finished(var value)
   function done(v) { finished(v); close(); }
   parent: C.Overlay.overlay
@@ -22,11 +23,11 @@ C.Popup {
   property bool _done: false
   onFinished: _done = true
   anchors.centerIn: parent
-  width: Math.min(maxWidth, parent.width - 32)
+  width: fullScreen ? parent.width : Math.min(maxWidth, parent.width - 32)
   padding: 0
   C.Overlay.modal: Rectangle { color: Theme.scrim; Behavior on opacity { NumberAnimation { duration: 150 } } }
   enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 } }
-  background: MenuBackground { radius: 10 }
+  background: MenuBackground { radius: dlg.fullScreen ? 0 : 10 }
   contentItem: Column {
     Rectangle {   // .dlg-head
       visible: dlg.showHead

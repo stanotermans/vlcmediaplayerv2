@@ -714,5 +714,16 @@
 "Original size": "Originele grootte",
 "The video (%1 × %2) is bigger than the screen": "De video (%1 × %2) is groter dan het scherm",
 "Vela Player does not collect any data. Everything is stored locally on this device.": "Vela Player verzamelt geen gegevens. Alles wordt lokaal op dit apparaat bewaard.",
-"Privacy policy": "Privacybeleid"
+"Privacy policy": "Privacybeleid",
+"Brightness %1%": "Helderheid %1%",
+"Fit": "Passend",
+"Unlocked": "Ontgrendeld",
+"Locked: tap, then the lock to unlock": "Vergrendeld: tik, dan op het slot om te ontgrendelen",
+"Cover": "Hoes",
+"Try 7 days free": "7 dagen gratis proberen",
+"Pro trial: %1 days left": "Pro-proefperiode: nog %1 dagen",
+"Pro is active. Thank you!": "Pro is actief. Bedankt!",
+"Equalizer, video filters, themes, subtitles online and recording. One-time purchase, no subscription.": "Equalizer, videofilters, thema’s, ondertitels online en opnemen. Eenmalige aankoop, geen abonnement.",
+"Buy": "Kopen",
+"Restore": "Herstellen"
 }

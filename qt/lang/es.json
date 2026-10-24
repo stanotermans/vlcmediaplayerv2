@@ -714,5 +714,16 @@
 "Original size": "Tamaño original",
 "The video (%1 × %2) is bigger than the screen": "El vídeo (%1 × %2) es más grande que la pantalla",
 "Vela Player does not collect any data. Everything is stored locally on this device.": "Vela Player no recopila ningún dato. Todo se guarda localmente en este dispositivo.",
-"Privacy policy": "Política de privacidad"
+"Privacy policy": "Política de privacidad",
+"Brightness %1%": "Brillo %1%",
+"Fit": "Ajustar",
+"Unlocked": "Desbloqueado",
+"Locked: tap, then the lock to unlock": "Bloqueado: toca y luego el candado para desbloquear",
+"Cover": "Portada",
+"Try 7 days free": "Probar 7 días gratis",
+"Pro trial: %1 days left": "Prueba de Pro: quedan %1 días",
+"Pro is active. Thank you!": "Pro está activo. ¡Gracias!",
+"Equalizer, video filters, themes, subtitles online and recording. One-time purchase, no subscription.": "Ecualizador, filtros de vídeo, temas, subtítulos en línea y grabación. Compra única, sin suscripción.",
+"Buy": "Comprar",
+"Restore": "Restaurar"
 }

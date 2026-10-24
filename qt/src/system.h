@@ -51,13 +51,15 @@ public:
   // testing: a mouse move inside a window (Qt event only, the real cursor stays where it is)
   Q_INVOKABLE void testMouseMove(QWindow *w, qreal x, qreal y);
   Q_INVOKABLE void testClick(QWindow *w, qreal x, qreal y);   // testing: a left click at this window point
+  Q_INVOKABLE void testDrag(QWindow *w, qreal x0, qreal y0, qreal x1, qreal y1);   // testing: press, move in steps, release
   bool mediaAccess() const;
   Q_INVOKABLE void askMediaAccess();                     // Android's question; mediaAccessChanged once answered
   Q_INVOKABLE bool allFilesAccess() const;               // Android 11+: also subtitles and lyrics next to the media
   Q_INVOKABLE void askAllFilesAccess();
   QStringList mobileFolders() const;
   QVariantMap insets() const { return m_insets; }
-  Q_INVOKABLE void readInsets(qreal dpr);               // again after the window changed (rotation)
+  Q_INVOKABLE void readInsets(qreal dpr);
+  Q_INVOKABLE void setBrightness(double v);   // a phone's player (#53): the screen's brightness 0…1, below 0 the system's               // again after the window changed (rotation)
 signals:
   void insetsChanged();
   void openPaths(const QStringList &paths);              // from "Open with" / a second start

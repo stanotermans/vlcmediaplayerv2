@@ -332,6 +332,29 @@ def restore_size(c):   # #102: back from maximised at a size of a few pixels (or
     c.eq('size', '1000x600')
 
 @test
+def phone_player(c):   # #53: the phone player: tabs and mini player, swipes for seek / volume, double tap, lock
+    P = 'phoneControls'
+    c.vals, _ = run(c.name, ['set:compactTest=true', 'size:412x860'] + PLAY('video.mp4', 1200) + ['pause', 'seek:1', 'wait:300',
+        f'log:"phone=" + win.phone + " " + {P}.visible + " " + controls.visible',
+        'log:"t0=" + Math.round(player.time / 1000)', 'drag:100,250,300,250', 'wait:600', 'log:"t1=" + Math.round(player.time / 1000)',
+        'log:(pb.setVol(0.2), "v")', 'drag:330,600,330,350', 'wait:300', 'log:"vol=" + Math.round(pb.volume * 100)',
+        'seek:2', 'wait:300', 'log:(System.testClick(win, 380, 250), System.testClick(win, 380, 250), "double tap")', 'wait:600', 'log:"t2=" + Math.round(player.time / 1000)',
+        f'log:({P}.locked = true, "lock")', 'seek:2', 'wait:300', 'drag:100,250,300,250', 'wait:500', 'log:"t3=" + Math.round(player.time / 1000)',
+        f'log:({P}.locked = false, "unlock")', 'browse', 'wait:500', 'log:"lib=" + bottomRail.visible + " " + phoneMini.visible'])
+    c.eq('phone', 'true true false')
+    c.more('t1', 4)                 # (a swipe of half the screen: about 45 s ahead, so the end of the 12 s video)
+    c.more('vol', 50)               # (from 20 %)
+    c.near('t2', 12, 1)             # (2 s + 10 s)
+    c.near('t3', 2, 1)              # (locked: the swipe did nothing)
+    c.eq('lib', 'true true')
+
+@test
+def pro_trial(c):   # #53: Pro on a phone: a 7-day trial, once; then Pro works without buying
+    c.vals, _ = run(c.name, ['log:"before=" + Store.pro + " " + Store.trialAvailable + " " + Store.trialDays', 'log:(Store.startTrial(), "start")',
+                    'log:"after=" + Store.pro + " " + Store.trialAvailable + " " + Store.trialDays + " " + Store.owned'], extra_env={'VLCR_STORE': '1', 'VLCR_PRO': None})
+    c.eq('before', 'false true 0'); c.eq('after', 'true false 7 false')
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)

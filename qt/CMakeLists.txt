@@ -29,7 +29,7 @@ qt_add_qml_module(vlcr
     qml/Main.qml qml/Theme.qml qml/SettingsSearch.qml qml/Icons.js qml/Lib.js
     qml/library/Rail.qml qml/library/SidePanel.qml qml/library/Browser.qml qml/library/Card.qml qml/library/ListRow.qml
     qml/player/Playback.qml qml/player/PlayerView.qml qml/player/ControlBar.qml qml/player/SeekBar.qml
-    qml/player/MiniPlayer.qml qml/player/PipWindow.qml qml/player/PixelCat.qml
+    qml/player/MiniPlayer.qml qml/player/PhoneMiniBar.qml qml/player/PhoneControls.qml qml/player/PipWindow.qml qml/player/PixelCat.qml
     qml/player/Subtitles.qml qml/player/SubtitleView.qml qml/player/LyricsView.qml
     qml/dialogs/Ask.qml qml/dialogs/NewPlaylist.qml qml/dialogs/Network.qml qml/dialogs/MediaInfo.qml qml/dialogs/SearchSubs.qml
     qml/controls/T.qml qml/controls/Icon.qml qml/controls/IconButton.qml qml/controls/Button.qml
@@ -44,7 +44,7 @@ qt_add_qml_module(vlcr
     qml/pages/NetworkPage.qml qml/pages/PerformancePage.qml qml/pages/RecordingPage.qml qml/pages/ExtensionsPage.qml
     qml/pages/AboutPage.qml qml/pages/EffectRows.qml qml/pages/VSlider.qml qml/pages/FontSelect.qml qml/pages/Effects.js
     qml/controls/KeyCaps.qml qml/controls/FolderRow.qml qml/controls/LinkButton.qml
-    qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml qml/dialogs/WhatsNew.qml qml/dialogs/ProDialog.qml qml/controls/ProLock.qml
+    qml/player/QuickPanel.qml qml/player/Engine.qml qml/UpdateBanner.qml qml/Onboarding.qml qml/dialogs/OsAccount.qml qml/dialogs/Shortcuts.qml qml/dialogs/WhatsNew.qml qml/dialogs/ProDialog.qml qml/controls/ProLock.qml qml/controls/ProCard.qml
   RESOURCES
     src/defaults.json assets/icon.png assets/meow.wav CHANGELOG.md
     lang/de.json lang/es.json lang/fr.json lang/it.json lang/nl.json lang/pl.json lang/pt.json

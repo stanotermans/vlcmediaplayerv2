@@ -86,6 +86,17 @@ QVariantMap Android::insets() {
   return m;
 }
 
+void Android::setBrightness(double v) {
+  QAndroidApplication::runOnAndroidMainThread([v]() {
+    const QJniObject w = context().callObjectMethod("getWindow", "()Landroid/view/Window;");
+    if (!w.isValid()) return;
+    QJniObject lp = w.callObjectMethod("getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
+    if (!lp.isValid()) return;
+    lp.setField<jfloat>("screenBrightness", jfloat(v < 0 ? -1.0 : qBound(0.01, v, 1.0)));
+    w.callMethod<void>("setAttributes", "(Landroid/view/WindowManager$LayoutParams;)V", lp.object());
+  });
+}
+
 void Android::keepScreenOn(bool on) {
   QAndroidApplication::runOnAndroidMainThread([on]() {
     const QJniObject w = context().callObjectMethod("getWindow", "()Landroid/view/Window;");

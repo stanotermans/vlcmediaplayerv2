@@ -14,7 +14,10 @@ Rectangle {
   readonly property bool watched: !!it && !!ctl.library.watched[it.src]
   property string dropMark: ""
   readonly property real fr: (width - 16 - 46 - 70 - 36) / 1.7       // minmax(0,1fr) minmax(0,.7fr)
-  implicitHeight: 40
+  // a phone (#53): a taller row for a finger, a bigger thumbnail, the details under the name and a menu button
+  readonly property bool phone: ctl.phone
+  readonly property int tw: phone ? (root.it && root.it.type !== "audio" ? 80 : 48) : 46
+  implicitHeight: phone ? 64 : 40
   radius: 6
   color: ma.containsMouse && !ctl.dragging ? Theme.panel2 : "transparent"
   opacity: ma.drag.active ? 0.35 : 1
@@ -22,7 +25,7 @@ Rectangle {
   Rectangle {   // .thumb 46×30
     id: thumb
     x: 8; anchors.verticalCenter: parent.verticalCenter
-    width: 46; height: 30; radius: 3; clip: true
+    width: root.tw; height: root.phone ? 48 : 30; radius: root.phone ? 6 : 3; clip: true
     color: root.entry.kind === "item" ? "#000000" : root.entry.kind === "action" ? "transparent" : Theme.panel2
     border.width: selected ? 2 : 0; border.color: Theme.accent
     Image { anchors.fill: parent; anchors.margins: parent.border.width; fillMode: Image.PreserveAspectCrop; asynchronous: true; sourceSize.width: 120
@@ -36,19 +39,38 @@ Rectangle {
     }
   }
   T {
+    visible: !root.phone
     x: thumb.x + 46 + 12; anchors.verticalCenter: parent.verticalCenter
     width: root.it ? root.fr : root.width - x - 8
     text: root.it ? root.it.name : root.entry.name || ""
     color: root.entry.kind === "action" ? Theme.muted : root.playing ? Theme.accent : root.selected ? Theme.text
          : root.watched && Settings.values.dimWatched ? Theme.dim : Theme.text2
   }
+  Column {   // a phone: the name, and under it the artist, album and length
+    visible: root.phone
+    anchors { left: thumb.right; leftMargin: 12; right: phoneMore.left; rightMargin: 4; verticalCenter: parent.verticalCenter }
+    spacing: 3
+    T { width: parent.width; px: 15; text: root.it ? root.it.name : root.entry.name || ""
+        color: root.entry.kind === "action" ? Theme.muted : root.playing ? Theme.accent : root.watched && Settings.values.dimWatched ? Theme.dim : Theme.text }
+    T { width: parent.width; px: 12; color: Theme.muted; visible: text !== ""
+        text: root.it ? [root.it.artist, root.it.album, Lib.shortFmt(root.it.duration)].filter(Boolean).join(" · ")
+            : root.entry.kind === "folder" ? root.ctl.itemsLabel(root.entry.count || 0) : "" }
+  }
+  IconButton {
+    id: phoneMore
+    visible: root.phone && root.entry.kind !== "action"
+    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+    width: root.phone ? 40 : 0; height: 40; html: "moreBtn"; tip: qsTr("More")
+    onClicked: { const p = mapToItem(null, 0, height); root.ctl.entryMenu(root.entry, p.x - 200, p.y, true); }
+    z: 2
+  }
   T {   // .c-album
-    visible: !!root.it
+    visible: !!root.it && !root.phone
     x: thumb.x + 46 + 12 + root.fr + 12; anchors.verticalCenter: parent.verticalCenter; width: root.fr * 0.7
     text: root.it ? [root.it.artist, root.it.album].filter(Boolean).join(" – ") : ""; color: Theme.muted
   }
   T {   // .c-dur
-    visible: !!root.it
+    visible: !!root.it && !root.phone
     anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter } width: 70
     horizontalAlignment: Text.AlignRight; font.features: { "tnum": 1 }
     text: root.it ? Lib.shortFmt(root.it.duration) : ""; color: Theme.muted
@@ -61,9 +83,10 @@ Rectangle {
     hoverEnabled: true
     cursorShape: root.reorder && root.it ? Qt.OpenHandCursor : Qt.PointingHandCursor
     acceptedButtons: Qt.LeftButton | Qt.RightButton
-    drag.target: root.reorder && root.it ? ghost : null
+    drag.target: root.reorder && root.it && !root.phone ? ghost : null
     drag.threshold: 6
     onPressed: m => { ghost.x = m.x; ghost.y = m.y; }
+    onPressAndHold: m => { if (root.phone) { const p = mapToItem(null, m.x, m.y); root.ctl.entryMenu(root.entry, p.x, p.y, true); } }   // (touch: hold for the menu)
     onReleased: if (ghost.Drag.active) ghost.Drag.drop()
     drag.onActiveChanged: root.ctl.dragging = drag.active
     onClicked: m => {

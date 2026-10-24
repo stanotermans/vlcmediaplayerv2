@@ -222,6 +222,7 @@ Rectangle {
   // clicks on the picture (not on the cat): play/pause, double click fullscreen, hold for 2×, wheel volume
   MouseArea {
     id: area
+    enabled: !root.ctl.phone   // (a phone: PhoneControls takes the taps and swipes)
     anchors.fill: parent
     z: -1
     acceptedButtons: Qt.LeftButton | Qt.RightButton

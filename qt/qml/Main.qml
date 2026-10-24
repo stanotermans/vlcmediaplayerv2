@@ -286,7 +286,7 @@ C.ApplicationWindow {
   property bool devPages: openAtStart.indexOf("components") >= 0   // the design system page (testing)
   function openSettings(page) {
     if (settingsWin) settingsWin.close();
-    const w = Qt.createComponent("pages/SettingsWindow.qml").createObject(C.Overlay.overlay, { current: page || "general", ctl: win });
+    const w = Qt.createComponent("pages/SettingsWindow.qml").createObject(C.Overlay.overlay, { current: page || "general", ctl: win, phoneList: win.phone && !page });
     settingsWin = w; dialogs++;
     w.closed.connect(() => { dialogs--; if (settingsWin === w) settingsWin = null; w.destroy(); });
     w.open();
@@ -315,6 +315,7 @@ C.ApplicationWindow {
   // a phone (#53): the views in a bar at the bottom, no library panel, a simpler control bar. compactTest: the same on the
   // desktop (testing)
   readonly property bool compact: (Theme.mobile || !!Settings.values.compactTest) && width < 760
+  readonly property bool phone: compact   // the phone design: tabs at the bottom, a mini player bar, no desktop bars
   // a phone (#53): the status and navigation bars lie over the app (Android 15+); the bars of the app stay clear of them
   readonly property int safeTop: Theme.mobile && !fsMode ? (System.insets.top || 0) : 0
   readonly property int safeBottom: Theme.mobile && !fsMode ? (System.insets.bottom || 0) : 0
@@ -511,6 +512,7 @@ C.ApplicationWindow {
   Subtitles { id: sb; ctl: win; subs: subs }
   property alias sb: sb
   property alias quick: quick
+  property alias playerView: playerView
   property alias keys: keys
   property alias subs: subs
   FileDialog { id: subDlg; title: qsTr("Add subtitle file"); nameFilters: [qsTr("Subtitles") + " (*.srt *.vtt *.ass *.ssa *.sub *.lrc)", qsTr("All files") + " (*)"]
@@ -662,6 +664,7 @@ C.ApplicationWindow {
     else if (k === "playfile") playItem(library.item(library.addSources([v], true)[0]));
     else if (k === "log") player.log(eval(v));
     else if (k === "click") { const xy = v.split(","); System.testClick(win, +xy[0], +xy[1]); }
+    else if (k === "drag") { const a = v.split(",").map(Number); System.testDrag(win, a[0], a[1], a[2], a[3]); }
     else if (k === "mouse") { const xy = v.split(","); System.testMouseMove(win, +xy[0], +xy[1]); }
     else if (k === "dialog") {
       if (v === "newpl") dialog("dialogs/NewPlaylist.qml", { library: library, files: vis.slice(0, 3).map(i => i.src) });
@@ -680,14 +683,14 @@ C.ApplicationWindow {
   // ---------- title bar (36px); in fullscreen it slides in at the top edge ----------
   Rectangle {
     id: titlebar
-    visible: !win.hideUi
+    visible: !win.hideUi && !win.phone
     anchors { left: parent.left; right: parent.right }
     y: win.fsMode ? (win.fsTop ? 0 : -height) : win.safeTop
     opacity: win.fsMode && !win.fsTop ? 0 : 1
     Behavior on y { enabled: win.fsMode; NumberAnimation { duration: 200 } }
     Behavior on opacity { NumberAnimation { duration: 200 } }
     z: 30
-    height: win.compact ? 44 : 36; color: Theme.bg
+    height: win.phone ? 0 : 36; color: Theme.bg
     topLeftRadius: win.corner; topRightRadius: win.corner
     Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.edge }
     MouseArea {
@@ -757,7 +760,8 @@ C.ApplicationWindow {
   // ---------- body ----------
   Item {
     id: body
-    anchors { left: parent.left; right: parent.right; top: win.fsMode || win.hideUi ? parent.top : titlebar.bottom; bottom: win.fsMode || win.hideUi ? parent.bottom : controls.top }
+    anchors { left: parent.left; right: parent.right; top: win.fsMode || win.hideUi ? parent.top : titlebar.bottom
+              bottom: win.fsMode || win.hideUi || win.phone ? parent.bottom : controls.top }
     readonly property bool bare: win.fsMode || win.hideUi || win.focusVideo
 
     Rail {
@@ -770,6 +774,7 @@ C.ApplicationWindow {
       id: bottomRail
       ctl: win
       horizontal: true
+      bottomInset: win.safeBottom
       visible: !body.bare && win.compact && !win.inPlayer
       anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
     }
@@ -782,18 +787,27 @@ C.ApplicationWindow {
       anchors { left: rail.visible ? rail.right : parent.left; top: parent.top; bottom: parent.bottom }
     }
 
+    PhoneMiniBar {   // a phone: what plays, above the tabs
+      id: phoneMini
+      ctl: win
+      visible: win.phone && !win.inPlayer && !!win.current && !body.bare
+      anchors { left: parent.left; right: parent.right; bottom: bottomRail.top; margins: 8 }
+      z: 5
+    }
     Rectangle {   // main area: library or player
       id: main
       anchors { left: side.visible ? side.right : rail.visible ? rail.right : parent.left; right: parent.right; top: parent.top
-                bottom: bottomRail.visible ? bottomRail.top : parent.bottom }
+                bottom: phoneMini.visible ? phoneMini.top : bottomRail.visible ? bottomRail.top : parent.bottom
+                bottomMargin: phoneMini.visible ? 8 : 0 }
       color: Theme.panel
 
       Browser { id: browser; ctl: win; anchors.fill: parent; visible: !win.inPlayer }
       PlayerView { id: playerView; ctl: win; anchors.fill: parent; visible: win.inPlayer }
+      PhoneControls { id: phoneControls; ctl: win; anchors.fill: parent; visible: win.phone && win.inPlayer; z: 3 }
       MiniPlayer {
         id: mini
         ctl: win
-        visible: !win.inPlayer && !!win.current && Settings.values.miniPlayer !== false
+        visible: !win.inPlayer && !!win.current && Settings.values.miniPlayer !== false && !win.phone
         anchors { right: parent.right; bottom: parent.bottom; margins: 16 }
         z: 4
       }
@@ -928,7 +942,7 @@ C.ApplicationWindow {
     id: controls
     ctl: win
     bottomLeftRadius: win.corner; bottomRightRadius: win.corner
-    visible: !win.hideUi
+    visible: !win.hideUi && !win.phone   // (a phone: the mini player bar, and the player's own controls)
     anchors { left: parent.left; right: parent.right }
     y: win.fsMode ? (win.fsBottom ? win.height - height : win.height) : win.height - height - win.safeBottom
     opacity: win.fsMode && !win.fsBottom ? 0 : 1

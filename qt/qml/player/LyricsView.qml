@@ -69,8 +69,8 @@ Item {
                            GradientStop { position: 0.84; color: "#ffffff" } GradientStop { position: 1; color: "transparent" } } }
   }
 
-  Rectangle {   // #lyrSwitch: cover ⇄ lyrics
-    visible: root.sb.canLyrics
+  Rectangle {   // #lyrSwitch: cover ⇄ lyrics (a phone: in PhoneControls' bottom row)
+    visible: root.sb.canLyrics && !root.ctl.phone
     x: 12; y: 12
     width: sw.implicitWidth + 18; height: 26; radius: 13
     color: swa.containsMouse ? "#bb000000" : "#88000000"

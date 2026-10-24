@@ -10,6 +10,7 @@ Item {
   property var ctl: null
   readonly property var pg: ctl.pg
   property alias search: search
+  property bool phoneSearch: false   // a phone: the search field shows after a tap on the search icon
 
   Item {   // #toolbar: padding 12px 18px, margin 0 12px, line below
     id: toolbar
@@ -19,12 +20,14 @@ Item {
       id: tl
       anchors { left: parent.left; leftMargin: root.ctl.compact ? 0 : 18; verticalCenter: parent.verticalCenter }
       spacing: 6
-      IconButton { html: "navBack"; tip: qsTr("Back"); opacity: root.ctl.nav.back.length || root.ctl.inPlayer ? 1 : 0.35; onClicked: root.ctl.goBack() }
+      IconButton { html: "navBack"; tip: qsTr("Back"); visible: !root.ctl.phone || root.pg.crumbs.length > 1
+                   opacity: root.ctl.nav.back.length || root.ctl.inPlayer ? 1 : 0.35; onClicked: root.ctl.goBack() }
       IconButton { html: "navFwd"; visible: !root.ctl.compact; tip: qsTr("Forward"); opacity: root.ctl.nav.fwd.length ? 1 : 0.35; onClicked: root.ctl.goFwd() }
     }
     Row {   // .path: the breadcrumb
       anchors { left: tl.right; leftMargin: 6; right: tr.left; rightMargin: 6; verticalCenter: parent.verticalCenter }
       spacing: 4; clip: true
+      visible: !(root.ctl.phone && search.visible)
       Repeater {
         model: root.pg.crumbs
         Row {
@@ -36,7 +39,7 @@ Item {
           Rectangle {
             width: cl.implicitWidth + 12; height: cl.implicitHeight + 4; radius: 4
             color: ca.containsMouse && !parent.last ? Theme.panel2 : "transparent"
-            T { id: cl; anchors.centerIn: parent; text: modelData.label; px: 14; color: parent.parent.last ? Theme.text : Theme.text2; font.weight: parent.parent.last ? Font.DemiBold : Font.Normal }
+            T { id: cl; anchors.centerIn: parent; text: modelData.label; px: root.ctl.phone && parent.parent.last ? 20 : 14; color: parent.parent.last ? Theme.text : Theme.text2; font.weight: parent.parent.last ? Font.DemiBold : Font.Normal }
             MouseArea { id: ca; anchors.fill: parent; hoverEnabled: true; enabled: !parent.parent.last && !!modelData.nav
                         onClicked: root.ctl.crumb(modelData.nav) }
           }
@@ -48,14 +51,17 @@ Item {
       anchors { right: parent.right; rightMargin: root.ctl.compact ? 0 : 18; verticalCenter: parent.verticalCenter }
       spacing: 6
       T { visible: !root.ctl.compact; text: root.pg.count ? root.ctl.itemsLabel(root.pg.count) : ""; color: Theme.muted; px: 12; anchors.verticalCenter: parent.verticalCenter; leftPadding: 6; rightPadding: 6 }
-      IconButton { html: "sortBtn2"; tip: qsTr("Sort"); onClicked: root.ctl.toggleSort() }
+      IconButton { html: "sortBtn2"; tip: qsTr("Sort"); visible: !(root.ctl.phone && search.visible); onClicked: root.ctl.toggleSort() }
+      IconButton { name: "search"; tip: qsTr("Search"); visible: root.ctl.phone && !search.visible; onClicked: { root.phoneSearch = true; search.input.forceActiveFocus(); } }
       IconButton { html: "viewToggle"; visible: !root.ctl.compact; tip: qsTr("Grid / list"); onClicked: root.ctl.toggleList() }
       TextField {
         id: search
-        width: root.ctl.compact ? 120 : 230; height: 30; color: Theme.panel2; border.color: input.activeFocus ? Theme.accent : "transparent"
+        visible: !root.ctl.phone || root.phoneSearch || search.input.text !== ""
+        width: root.ctl.phone ? root.width - 140 : root.ctl.compact ? 120 : 230; height: root.ctl.phone ? 38 : 30; color: Theme.panel2; border.color: input.activeFocus ? Theme.accent : "transparent"
         placeholder: "Search"; iconLeft: 20
         Icon { x: 9; anchors.verticalCenter: parent.verticalCenter; width: 14; height: 14; name: "search"; color: Theme.muted }
         input.onTextEdited: root.ctl.setQuery(input.text)
+        input.onActiveFocusChanged: if (!input.activeFocus && input.text === "") root.phoneSearch = false
       }
       IconButton { id: more; html: "moreBtn"; tip: qsTr("More"); onClicked: { const p = more.mapToItem(null, more.width, more.height); root.ctl.moreMenu(p.x - 260, p.y + 4); } }
     }
@@ -65,7 +71,7 @@ Item {
   Item {   // .lhead: the column headers of the list view (stays on top); click to sort, again to reverse
     id: lhead
     anchors { left: parent.left; right: parent.right; top: toolbar.bottom; topMargin: 6 }
-    height: grid.list && root.pg.list.length ? 32 : 0; visible: height > 0
+    height: grid.list && root.pg.list.length && !root.ctl.phone ? 32 : 0; visible: height > 0
     Rectangle {
       x: 30; width: parent.width - 60; height: 30; color: Theme.panel
       Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.edge }
@@ -92,13 +98,17 @@ Item {
     anchors { left: parent.left; right: parent.right; top: lhead.visible ? lhead.bottom : toolbar.bottom; bottom: parent.bottom }
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    readonly property bool list: root.ctl.nav.list
-    readonly property real inner: width - 60
-    readonly property int cols: Math.max(1, Math.floor((inner + 18) / (190 + 18)))
-    readonly property real cell: (inner - 18 * (cols - 1)) / cols
+    // a phone (#53): two columns of smaller cards; music as a list with covers
+    readonly property bool phone: root.ctl.phone
+    readonly property bool list: root.ctl.nav.list || (phone && root.ctl.nav.view === "music")
+    readonly property real pad: phone ? 12 : 30
+    readonly property real gap: phone ? 10 : 18
+    readonly property real inner: width - 2 * pad
+    readonly property int cols: phone ? 2 : Math.max(1, Math.floor((inner + gap) / (190 + gap)))
+    readonly property real cell: (inner - gap * (cols - 1)) / cols
     model: Lib.rows(root.pg.cards, cols, list)
-    topMargin: list ? 4 : 18; bottomMargin: 140
-    spacing: list ? 0 : 22
+    topMargin: list ? 4 : phone ? 12 : 18; bottomMargin: phone ? 16 : 140
+    spacing: list ? 0 : phone ? 14 : 22
     cacheBuffer: 800
     C.ScrollBar.vertical: ScrollBar {}
     delegate: Item {
@@ -106,10 +116,10 @@ Item {
       required property var modelData
       width: grid.width
       height: modelData.section !== undefined ? sec.implicitHeight + 4 : rowItems.height
-      T { id: sec; visible: row.modelData.section !== undefined; x: 30 + (grid.list ? 8 : 0); y: 4; text: row.modelData.section || ""; px: 15; font.weight: Font.DemiBold; color: Theme.text }
+      T { id: sec; visible: row.modelData.section !== undefined; x: grid.pad + (grid.list ? 8 : 0); y: 4; text: row.modelData.section || ""; px: 15; font.weight: Font.DemiBold; color: Theme.text }
       Row {
         id: rowItems
-        x: 30; spacing: 18
+        x: grid.pad; spacing: grid.gap
         visible: row.modelData.cells !== undefined
         Repeater {
           model: row.modelData.cells || []
@@ -117,7 +127,7 @@ Item {
             required property var modelData
             sourceComponent: grid.list ? listC : cardC
             Component { id: cardC; Card { width: grid.cell; entry: modelData; ctl: root.ctl; reorder: root.pg.reorder } }
-            Component { id: listC; ListRow { width: grid.width - 60; entry: modelData; ctl: root.ctl; reorder: root.pg.reorder } }
+            Component { id: listC; ListRow { width: grid.width - 2 * grid.pad; entry: modelData; ctl: root.ctl; reorder: root.pg.reorder } }
           }
         }
       }
@@ -139,9 +149,9 @@ Item {
     }
     T { anchors.horizontalCenter: parent.horizontalCenter; text: root.pg.empty ? root.pg.empty.title : ""; px: 18; font.weight: Font.Medium; color: Theme.text }
     T { anchors.horizontalCenter: parent.horizontalCenter; text: root.pg.empty ? root.pg.empty.text : ""; color: Theme.muted }
-    Row {
+    Grid {
       anchors.horizontalCenter: parent.horizontalCenter
-      spacing: 8
+      columns: root.ctl.phone ? 1 : 3; spacing: 8
       Button { text: qsTr("Open files"); kind: "primary"; onClicked: root.ctl.doAct("files") }
       Button { text: qsTr("Add media folder"); onClicked: root.ctl.doAct("addfolder") }
       Button { text: qsTr("Network stream…"); onClicked: root.ctl.doAct("url") }
