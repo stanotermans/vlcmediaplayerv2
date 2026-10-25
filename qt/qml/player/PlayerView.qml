@@ -265,7 +265,8 @@ Rectangle {
   LyricsView { ctl: root.ctl; anchors.fill: parent }
   SubtitleView { ctl: root.ctl; anchors.fill: parent; visible: !root.ctl.sb.lyricsOn; text: root.ctl.sb.now }
 
-  Item {   // #bigplay: the play/pause flash
+  Item {   // #bigplay: the play/pause flash (a phone: PhoneControls has its own button there)
+    visible: !root.ctl.phone
     anchors.centerIn: parent
     width: 64; height: 64
     Rectangle {

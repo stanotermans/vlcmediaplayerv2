@@ -102,7 +102,9 @@ DialogBox {
         T { x: win.phone ? 56 : 24; anchors.verticalCenter: win.phone ? undefined : parent.verticalCenter; anchors.bottom: win.phone ? parent.bottom : undefined
             anchors.bottomMargin: 18; px: win.phone ? 17 : 15
             text: SettingsSearch.q ? qsTr("Search: \"%1\"").arg(SettingsSearch.q) : qsTr(win.titles[win.current] || win.current) }
-        IconButton { anchors { right: parent.right; rightMargin: 18; verticalCenter: parent.verticalCenter } name: "x"; tip: qsTr("Close"); onClicked: win.close() }
+        IconButton { anchors { right: parent.right; rightMargin: win.phone ? 8 : 18; verticalCenter: win.phone ? undefined : parent.verticalCenter
+                               bottom: win.phone ? parent.bottom : undefined; bottomMargin: 6 }
+                     width: win.phone ? 44 : 30; height: width; iconSize: win.phone ? 20 : 16; name: "x"; tip: qsTr("Close"); onClicked: win.close() }
       }
       Flickable {   // .gcontent
         id: flick

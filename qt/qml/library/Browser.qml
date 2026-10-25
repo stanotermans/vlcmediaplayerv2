@@ -63,6 +63,7 @@ Item {
         input.onTextEdited: root.ctl.setQuery(input.text)
         input.onActiveFocusChanged: if (!input.activeFocus && input.text === "") root.phoneSearch = false
       }
+      IconButton { name: "settings"; tip: qsTr("Settings"); visible: root.ctl.phone && !search.visible; onClicked: root.ctl.openSettings() }
       IconButton { id: more; html: "moreBtn"; tip: qsTr("More"); onClicked: { const p = more.mapToItem(null, more.width, more.height); root.ctl.moreMenu(p.x - 260, p.y + 4); } }
     }
     Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.line }
@@ -104,7 +105,7 @@ Item {
     readonly property real pad: phone ? 12 : 30
     readonly property real gap: phone ? 10 : 18
     readonly property real inner: width - 2 * pad
-    readonly property int cols: phone ? 2 : Math.max(1, Math.floor((inner + gap) / (190 + gap)))
+    readonly property int cols: Math.max(phone ? 2 : 1, Math.floor((inner + gap) / ((phone ? (width < 700 ? 160 : 210) : 190) + gap)))   // (a tablet: bigger cards)
     readonly property real cell: (inner - gap * (cols - 1)) / cols
     model: Lib.rows(root.pg.cards, cols, list)
     topMargin: list ? 4 : phone ? 12 : 18; bottomMargin: phone ? 16 : 140

@@ -306,15 +306,17 @@ C.ApplicationWindow {
   function showOnboarding() {
     closeSettings(); showBrowser();
     if (onboarding) return;
-    onboarding = Qt.createComponent("Onboarding.qml").createObject(win.contentItem, { ctl: win, y: 36, width: win.width, height: win.height - 36, z: 60 });
-    onboarding.width = Qt.binding(() => win.width); onboarding.height = Qt.binding(() => win.height - 36);
+    // below the title bar; a phone: the whole screen, under the status bar
+    const top = () => win.phone ? win.safeTop : 36;
+    onboarding = Qt.createComponent("Onboarding.qml").createObject(win.contentItem, { ctl: win, y: top(), width: win.width, height: win.height - top(), z: 60 });
+    onboarding.y = Qt.binding(top); onboarding.width = Qt.binding(() => win.width); onboarding.height = Qt.binding(() => win.height - top());
     dialogs++;
     onboarding.done.connect(() => { dialogs--; onboarding.destroy(); onboarding = null; });
   }
   property int dialogs: 0              // open dialogs and menus (the keys wait)
   // a phone (#53): the views in a bar at the bottom, no library panel, a simpler control bar. compactTest: the same on the
   // desktop (testing)
-  readonly property bool compact: (Theme.mobile || !!Settings.values.compactTest) && width < 760
+  readonly property bool compact: Theme.mobile || !!Settings.values.compactTest   // (phones and tablets, any width)
   readonly property bool phone: compact   // the phone design: tabs at the bottom, a mini player bar, no desktop bars
   // a phone (#53): the status and navigation bars lie over the app (Android 15+); the bars of the app stay clear of them
   readonly property int safeTop: Theme.mobile && !fsMode ? (System.insets.top || 0) : 0
