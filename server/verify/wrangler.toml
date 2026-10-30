@@ -1,0 +1,8 @@
+# The purchase check of Vela Player Pro (worker.js), on Cloudflare Workers. Deploy: npx wrangler deploy
+name = "vela-verify"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+PACKAGE = "io.github.stanotermans.velaplayer"
+PRODUCT = "vela_pro"

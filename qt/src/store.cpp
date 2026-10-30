@@ -14,7 +14,7 @@
 
 Store *Store::instance = nullptr;
 
-// the last answer of the store, so Pro also works offline (the store's answer replaces it once it comes)
+// next to the app's data: the trial's start (Pro itself: VelaStore's signed verdict, #53)
 static QString cacheFile() {
   return qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)) + "/store";
 }
@@ -33,8 +33,7 @@ Store::Store(QObject *parent) : QObject(parent) {
   instance = this;
 #ifdef Q_OS_ANDROID
   m_inStore = true;
-  QFile f(cacheFile());
-  m_pro = f.open(QIODevice::ReadOnly) && f.readAll().trimmed() == "pro";
+  m_pro = false;   // (only VelaStore's signed verdict says Pro; a plain file could be edited on a rooted phone)
 #endif
   if (qEnvironmentVariable("VLCR_STORE") == "1") { m_inStore = true; m_pro = false; }   // (tests: the store's screens without a store)
   QFile t(cacheFile() + ".trial");
@@ -86,13 +85,8 @@ void Store::update(bool known, bool pro, const QString &price, const QString &er
   const bool was = m_pro;
   if (!price.isEmpty()) m_price = price;
   m_error = error;
-  if (known) { m_pro = pro; remember(); }
+  if (known) m_pro = pro;
   emit changed();
   if (m_pro && !was) emit bought();
 }
 
-void Store::remember() {
-  QDir().mkpath(QFileInfo(cacheFile()).absolutePath());
-  QFile f(cacheFile());
-  if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) f.write(m_pro ? "pro" : "free");
-}

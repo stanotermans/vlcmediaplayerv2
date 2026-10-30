@@ -36,7 +36,6 @@ signals:
   void changed();
   void bought();                                          // just bought or restored
 private:
-  void remember();
   bool m_pro = true, m_inStore = false;
   qint64 m_trialStart = 0;   // ms since 1970, 0: never
   QString m_price, m_error;
