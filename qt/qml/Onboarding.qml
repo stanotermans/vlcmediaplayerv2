@@ -56,8 +56,14 @@ Rectangle {
   Component {
     id: langC
     Item {
+      Flickable {
+        id: langFlick
+        anchors { left: parent.left; right: parent.right; top: parent.top; bottom: langNav.top; bottomMargin: 16 }
+        contentWidth: width; contentHeight: Math.max(height, langCol.height + 24)
+        boundsBehavior: Flickable.StopAtBounds; clip: true
       Column {
-        anchors.centerIn: parent
+        id: langCol
+        x: (langFlick.width - width) / 2; y: Math.max(12, (langFlick.height - height) / 2)
         spacing: 0
         Image { anchors.horizontalCenter: parent.horizontalCenter; width: ob.narrow ? 64 : 84; height: width; sourceSize: Qt.size(168, 168); source: ob.cone }
         T { anchors.horizontalCenter: parent.horizontalCenter; topPadding: ob.narrow ? 16 : 26; bottomPadding: 10; px: ob.narrow ? 26 : 30; font.weight: Font.Light; color: Theme.text; text: ob.hello[I18n.language] || ob.hello.en }
@@ -80,7 +86,8 @@ Rectangle {
           }
         }
       }
-      Nav { anchors { right: parent.right; bottom: parent.bottom; rightMargin: ob.side; bottomMargin: 30 + ob.bottomInset } back: false; next: ob.steps.length === 1 ? "Finish" : "Continue"; onGo: ob.next() }
+      }
+      Nav { id: langNav; anchors { right: parent.right; bottom: parent.bottom; rightMargin: ob.side; bottomMargin: 30 + ob.bottomInset } back: false; next: ob.steps.length === 1 ? "Finish" : "Continue"; onGo: ob.next() }
     }
   }
   Component {

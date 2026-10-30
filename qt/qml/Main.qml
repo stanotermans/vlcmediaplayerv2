@@ -314,6 +314,10 @@ C.ApplicationWindow {
     onboarding.done.connect(() => { dialogs--; onboarding.destroy(); onboarding = null; });
   }
   property int dialogs: 0              // open dialogs and menus (the keys wait)
+  // a phone (#53): the start screen (the logo on the app's colour, carrying on from Android's own splash screen)
+  // until the library is there and the layout has settled; splashTest: the same on a desktop
+  property bool booting: Theme.mobile || !!Settings.values.splashTest
+  Timer { running: win.booting; interval: 6000; onTriggered: win.booting = false }   // (at the latest)
   // a phone (#53): the views in a bar at the bottom, no library panel, a simpler control bar. compactTest: the same on the
   // desktop (testing)
   readonly property bool compact: Theme.mobile || !!Settings.values.compactTest   // (phones and tablets, any width)
@@ -591,7 +595,8 @@ C.ApplicationWindow {
     }
     library.load();
     importFromV2();
-    library.scanFolders(Settings.values.mediaFolders || []);
+    if (!booting) library.scanFolders(Settings.values.mediaFolders || []);
+    else timerAt(60, () => { library.scanFolders(Settings.values.mediaFolders || []); timerAt(350, () => win.booting = false); });
     if (autoPlay) addSources([autoPlay]);
     // testing: VLCR_OPEN=<step>;<step>… with view:<name>, dir:<n>, list, grid, select:<n>, pl:<n>, expanded,
     // dialog:<newpl|network|info|choose>, menu:<item|folder|playlist|more|player|title>, settings:<page>, play:<n>,
@@ -758,6 +763,31 @@ C.ApplicationWindow {
     if (sideOverride && inPlayer) { sideOverride = false; return; }          // hide it again (#8)
     if (Settings.values.navExpanded) return Settings.set("navExpanded", false);
     sideHidden = !sideHidden;
+  }
+
+  Rectangle {   // the start screen
+    id: splash
+    anchors.fill: parent; z: 200
+    color: Theme.bg
+    opacity: win.booting ? 1 : 0; visible: opacity > 0
+    Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
+    MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }   // (nothing behind it takes a tap meanwhile)
+    Image {
+      id: splashLogo
+      anchors.centerIn: parent; anchors.verticalCenterOffset: -16
+      width: 96; height: 96; sourceSize: Qt.size(288, 288); source: Theme.logo
+      scale: win.booting ? 1 : 1.08
+      Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
+    }
+    T { anchors { horizontalCenter: parent.horizontalCenter; top: splashLogo.bottom; topMargin: 18 } text: "Vela Player"; px: 18; color: Theme.text; font.weight: Font.Light }
+    Rectangle {   // a thin bar that runs while it loads
+      anchors { horizontalCenter: parent.horizontalCenter; top: splashLogo.bottom; topMargin: 58 }
+      width: 120; height: 3; radius: 2; color: Theme.track; clip: true
+      Rectangle {
+        width: 40; height: 3; radius: 2; color: Theme.accent
+        NumberAnimation on x { from: -40; to: 120; duration: 1100; loops: Animation.Infinite; running: splash.visible; easing.type: Easing.InOutQuad }
+      }
+    }
   }
 
   // ---------- body ----------
