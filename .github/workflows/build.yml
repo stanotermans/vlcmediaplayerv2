@@ -19,8 +19,8 @@ jobs:
         include:
           - { target: win-x64,   os: ubuntu-latest }
           - { target: linux-x64, os: ubuntu-latest }
-          - { target: mac-arm64, os: macos-14 }
-          - { target: mac-x64,   os: macos-14 }
+          - { target: mac-arm64, os: macos-15 }
+          - { target: mac-x64,   os: macos-15 }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
         include:
           - os: windows-latest
             name: windows
-          - os: macos-14
+          - os: macos-15
             name: macos
           - os: ubuntu-latest
             name: linux
