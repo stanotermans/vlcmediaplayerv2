@@ -729,5 +729,11 @@
 "Welcome to Vela Player!": "Benvenuto in Vela Player!",
 "Vela Player is a free and open source media player that plays most video and audio files, as well as network streams and subtitles.": "Vela Player è un lettore multimediale libero e open source che riproduce la maggior parte dei file video e audio, oltre a flussi di rete e sottotitoli.",
 "Drop shadow": "Ombra",
-"A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box.": "Un’ombra scura dietro le lettere. Imposta l’opacità dello sfondo a 0% per sottotitoli senza riquadro."
+"A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box.": "Un’ombra scura dietro le lettere. Imposta l’opacità dello sfondo a 0% per sottotitoli senza riquadro.",
+"About Vela Player": "Informazioni su Vela Player",
+"Seek 1 min forward": "Avanti di 1 min",
+"Seek 1 min backward": "Indietro di 1 min",
+"View": "Vista",
+"Sidebar": "Barra laterale",
+"Help": "Aiuto"
 }

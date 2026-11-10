@@ -42,7 +42,8 @@ public:
 
   // media keys and the system's media overlay
   Q_INVOKABLE void mediaAttach(QWindow *w);
-  Q_INVOKABLE void mediaState(const QString &state);     // "playing", "paused", "stopped", "closed"
+  Q_INVOKABLE void mediaState(const QString &state, double position = 0, double duration = 0);   // "playing", "paused", "stopped", "closed"; seconds (macOS shows them)
+  Q_INVOKABLE void styleWindow(QWindow *w, const QString &kind);   // macOS (#108): "main": the system's window buttons; "pip": over full-screen apps
   Q_INVOKABLE void mediaInfo(const QString &title, const QString &artist, const QString &album, bool music);
   // #61: 0 nothing, 1 keep the computer awake (music), 2 also keep the screen on (video)
   Q_INVOKABLE void keepAwake(int level);

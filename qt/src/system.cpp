@@ -1,6 +1,7 @@
 #include "system.h"
 #ifdef Q_OS_MACOS
 #include <IOKit/pwr_mgt/IOPMLib.h>
+#include "mac.h"
 #endif
 #ifdef Q_OS_ANDROID
 #include "android.h"
@@ -249,11 +250,26 @@ void System::mediaAttach(QWindow *w) {
   smtc->add_ButtonPressed(handler.Get(), &token);
   m_token = token.value;
   mediaState("closed");
+#elif defined(Q_OS_MACOS)
+  Q_UNUSED(w);
+  Mac::mediaAttach([this](const QString &b) { QMetaObject::invokeMethod(this, [this, b]() { emit mediaButton(b); }, Qt::QueuedConnection); });
 #else
   Q_UNUSED(w);
 #endif
 }
-void System::mediaState(const QString &state) {
+void System::styleWindow(QWindow *w, const QString &kind) {
+#ifdef Q_OS_MACOS
+  if (kind == "pip") Mac::pipWindow(w); else Mac::styleWindow(w);
+#else
+  Q_UNUSED(w); Q_UNUSED(kind);
+#endif
+}
+void System::mediaState(const QString &state, double position, double duration) {
+#ifdef Q_OS_MACOS
+  Mac::mediaState(state, position, duration);
+#else
+  Q_UNUSED(position); Q_UNUSED(duration);
+#endif
 #ifdef Q_OS_WIN
   if (!m_smtc) return;
   auto *smtc = static_cast<ISystemMediaTransportControls *>(m_smtc);
@@ -284,6 +300,8 @@ void System::mediaInfo(const QString &title, const QString &artist, const QStrin
     if (SUCCEEDED(du->get_VideoProperties(&vp))) vp->put_Title(HStringReference(reinterpret_cast<const wchar_t *>(title.utf16())).Get());
   }
   du->Update();
+#elif defined(Q_OS_MACOS)
+  Mac::mediaInfo(title, artist, album, music);
 #else
   Q_UNUSED(title); Q_UNUSED(artist); Q_UNUSED(album); Q_UNUSED(music);
 #endif

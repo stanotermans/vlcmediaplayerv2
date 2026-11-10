@@ -729,5 +729,11 @@
 "Welcome to Vela Player!": "Welkom bij Vela Player!",
 "Vela Player is a free and open source media player that plays most video and audio files, as well as network streams and subtitles.": "Vela Player is een gratis en open source multimediaspeler die de meeste video- en audiobestanden afspeelt, plus netwerkstreams en ondertitels.",
 "Drop shadow": "Slagschaduw",
-"A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box.": "Een donkere schaduw achter de letters. Zet de achtergronddekking op 0% voor ondertitels zonder vlak."
+"A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box.": "Een donkere schaduw achter de letters. Zet de achtergronddekking op 0% voor ondertitels zonder vlak.",
+"About Vela Player": "Over Vela Player",
+"Seek 1 min forward": "1 min vooruit",
+"Seek 1 min backward": "1 min terug",
+"View": "Beeld",
+"Sidebar": "Zijbalk",
+"Help": "Help"
 }

@@ -18,7 +18,9 @@ C.ApplicationWindow {
   readonly property bool tiled: Qt.platform.os === "linux" && height >= Screen.desktopAvailableHeight - 2   // (GNOME: snapped to half the screen)
   color: Theme.bg
   title: current && Settings.values.titleName !== false ? current.name : "Vela Player"   // #90: can be hidden (Settings → Interface)
-  flags: Qt.Window | Qt.FramelessWindowHint
+  // #108: a Mac keeps the system's title bar (see-through, the app draws under it) for its three round buttons
+  readonly property bool mac: Qt.platform.os === "osx"
+  flags: mac ? Qt.Window : Qt.Window | Qt.FramelessWindowHint
   property bool inPlayer: false
   property var current: null           // the item that plays
   property var queueList: null         // what plays next (the view it was started from)
@@ -380,6 +382,7 @@ C.ApplicationWindow {
   onVisibilityChanged: {
     stateTime = Date.now();
     winNote("state");
+    if (mac) { System.styleWindow(win, "main"); timerAt(300, () => System.styleWindow(win, "main")); }   // (Qt sets the window's style again with its state)
     if (visibility === Window.Windowed) timerAt(60, () => win.checkNormal());
     // #96: draw again once the window manager has settled the new state (GNOME's tiling and Super + arrows)
     timerAt(120, () => win.update()); timerAt(450, () => win.update());
@@ -487,6 +490,7 @@ C.ApplicationWindow {
     if (!current || current.type === "audio") return osd(qsTr("Picture-in-picture not available"));
     if (pipOpen) { pip.close(); return; }
     pip.show(); pipOpen = true;
+    if (mac) System.styleWindow(pip, "pip");
   }
 
   Library {
@@ -555,7 +559,7 @@ C.ApplicationWindow {
     }
     function onUpdateChanged() { if (System.update.state === "available" && !System.update.manual && Settings.values.skipVersion !== System.update.info.latest) updateBanner.shown = true; }
   }
-  Connections { target: player; function onStateChanged() { System.mediaState(!win.current ? "closed" : player.playing ? "playing" : player.active ? "paused" : "stopped"); } }
+  Connections { target: player; function onStateChanged() { System.mediaState(!win.current ? "closed" : player.playing ? "playing" : player.active ? "paused" : "stopped", player.time / 1000, player.length / 1000); } }
   onCurrentChanged: if (current) { const i = library.item(current.src); System.mediaInfo(current.name.replace(/\.[^.]+$/, ""), i.artist || "", i.album || "", current.type === "audio"); } else System.mediaState("closed")
   Timer { id: updateTimer; interval: 5000; onTriggered: { System.checkUpdates(false); Settings.set("lastUpdateCheck", Date.now()); } }
   WindowFrame { id: frame; maximizeButton: maxBtn; corner: win.corner; aspect: win.lockAspect; extra: Qt.size(win.width - playerView.width, win.height - playerView.height) }
@@ -585,6 +589,11 @@ C.ApplicationWindow {
     if (before && before !== System.version && !shotPath) Qt.callLater(() => dialog("dialogs/WhatsNew.qml", { since: before }));
     Settings.set("lastVersion", System.version);
     System.mediaAttach(win);
+    if (mac) {   // #108: the menu bar at the top of the screen, and the system's window buttons
+      System.styleWindow(win, "main");
+      const mc = Qt.createComponent("MacMenu.qml");
+      if (mc.status === Component.Ready) mc.createObject(win, { ctl: win }); else console.warn(mc.errorString());
+    }
     if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
     if (Settings.values.autoUpdate !== false && !shotPath && !Theme.mobile) updateTimer.start();   // (a phone: the store updates it)
     sideHidden = !!Settings.values.sideHidden;   // #91
@@ -713,7 +722,7 @@ C.ApplicationWindow {
     }
     Row {
       id: titleLeft
-      anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+      anchors { left: parent.left; leftMargin: win.mac && !win.fullscreen ? 82 : 10; verticalCenter: parent.verticalCenter }   // (a Mac: next to the window buttons)
       spacing: 4
       Image {   // the logo: Vela Player's sail in the accent colour
         width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter; sourceSize: Qt.size(36, 36)
@@ -737,7 +746,7 @@ C.ApplicationWindow {
     }
     Row {
       id: winButtons
-      visible: !Theme.mobile && !Settings.values.compactTest
+      visible: !Theme.mobile && !Settings.values.compactTest && !win.mac   // (a Mac: the system's own, top left)
       anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
       Repeater {
         model: ["minBtn", "maxBtn", "fsBtn2", "closeBtn"]
