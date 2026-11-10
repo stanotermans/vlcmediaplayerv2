@@ -22,6 +22,15 @@ Item {
           width: Math.min(parent.width, line.contentWidth + 20); height: line.implicitHeight + 4; radius: 4
           color: Qt.rgba(0, 0, 0, (Settings.values.subBg ?? 60) / 100)
         }
+        Text {   // #107: the drop shadow (Settings → Subtitles): the line again, dark, a little down and to the right
+          visible: !!Settings.values.subShadow
+          x: line.x + root.px * 0.07; y: line.y + root.px * 0.07; width: line.width
+          horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; textFormat: Text.StyledText
+          text: modelData.replace(/<font[^>]*>|<\/font>/gi, "")
+          font: line.font; color: "#000000"; opacity: 0.85
+          style: Text.Outline; styleColor: "#000000"
+          renderType: Text.QtRendering
+        }
         Text {
           id: line
           anchors.centerIn: parent

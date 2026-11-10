@@ -257,7 +257,9 @@ QStringList Library::expand(const QStringList &paths, int depth) const {
 QVariantMap Library::readPlaylist(const QString &file) const {
   QFile f(file);
   if (f.size() > (5 << 20) || !f.open(QIODevice::ReadOnly)) return {};
-  QString text = QString::fromUtf8(f.readAll()); if (text.startsWith(QChar(0xFEFF))) text.remove(0, 1);
+  const QByteArray raw = f.readAll();
+  QString text = QString::fromUtf8(raw); if (text.startsWith(QChar(0xFEFF))) text.remove(0, 1);
+  if (text.contains(QChar(0xFFFD))) text = QString::fromLatin1(raw);   // (#106: an old .m3u in Latin-1 / Windows-1252)
   const QFileInfo fi(file); const QString ext = fi.suffix().toLower();
   if (ext.startsWith("m3u") && QRegularExpression("#EXT-X-(TARGETDURATION|STREAM-INF|MEDIA-SEQUENCE)").match(text).hasMatch()) return { { "hls", true } };
   auto xml = [](QString s) { return s.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&"); };

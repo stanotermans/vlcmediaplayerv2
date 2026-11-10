@@ -60,6 +60,7 @@ public:
   QVariantMap insets() const { return m_insets; }
   Q_INVOKABLE void readInsets(qreal dpr);
   Q_INVOKABLE void setBrightness(double v);   // a phone's player (#53): the screen's brightness 0…1, below 0 the system's               // again after the window changed (rotation)
+  bool eventFilter(QObject *o, QEvent *e) override;      // macOS: QFileOpenEvent
 signals:
   void insetsChanged();
   void openPaths(const QStringList &paths);              // from "Open with" / a second start

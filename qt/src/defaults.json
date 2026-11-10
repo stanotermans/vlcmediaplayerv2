@@ -139,6 +139,7 @@
   "subColor": "#ffffff",
   "subOutline": "#0c0c0c",
   "subBg": 60,
+  "subShadow": false,
   "mediaFolders": [],
   "networkHistory": [],
   "txQuality": "balanced",

@@ -6,6 +6,7 @@
 #include <cstdio>
 #ifdef _WIN32
 #include <process.h>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
@@ -106,12 +107,20 @@ int main(int argc, char *argv[]) {
   const bool testing = qEnvironmentVariableIsSet("VLCR_SHOT");
   if (!testing && System::forwardToRunning(paths)) return 0;
   if (!testing) sys.listen();
+  app.installEventFilter(&sys);   // (#105: files from Finder)
   sys.setStartPaths(paths);
+  // #104: a shortcut set to "Run: Maximized" (Windows passes that along), or --maximized: the window starts maximised
+  bool startMax = app.arguments().contains("--maximized");
+#ifdef Q_OS_WIN
+  { STARTUPINFOW si{}; si.cb = sizeof si; GetStartupInfoW(&si);
+    if ((si.dwFlags & STARTF_USESHOWWINDOW) && si.wShowWindow == SW_SHOWMAXIMIZED) startMax = true; }
+#endif
 
 
   auto *engine = new QQmlApplicationEngine;
   engine->rootContext()->setContextProperty("qtVersion", QString(qVersion()));
   engine->rootContext()->setContextProperty("System", &sys);
+  engine->rootContext()->setContextProperty("startMaximized", startMax);
   auto *ctx = engine->rootContext();
   ctx->setContextProperty("startFolder", qEnvironmentVariable("VLCR_FOLDER"));
   ctx->setContextProperty("autoPlay", qEnvironmentVariable("VLCR_PLAY"));

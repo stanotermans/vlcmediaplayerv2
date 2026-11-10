@@ -20,6 +20,8 @@ Column {
     SettingRow { label: "Text color"; ColorField { path: "subColor" } }
     SettingRow { label: "Outline color"; ColorField { path: "subOutline" } }
     Slider { label: "Background opacity"; min: 0; max: 100; path: "subBg"; fmt: v => v + "%" }
+    SettingRow { label: "Drop shadow"; info: "A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box."
+                 Toggle { path: "subShadow" } }
     Rectangle {   // .subpreview
       visible: SettingsSearch.q === ""
       width: parent.width; height: 90; radius: 8

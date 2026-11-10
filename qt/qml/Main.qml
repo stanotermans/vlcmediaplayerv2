@@ -223,6 +223,8 @@ C.ApplicationWindow {
     return d;
   }
   function addSources(srcs, play, keepLists) {
+    // #106: a playlist file (.m3u, .m3u8, .xspf, .pls) that is opened plays, and is kept under Playlists
+    if (keepLists === undefined) keepLists = srcs.some(s => /\.(m3u8?|xspf|pls)$/i.test(s));
     const added = library.addSources(srcs, true, !!keepLists);
     if (play !== false && added.length) playItem(library.item(added[0]), added.length > 1 ? added.map(s => library.item(s)) : undefined);
     else if (added.length && play === false) osd(qsTr("%1 item(s) added").arg(added.length));
@@ -569,7 +571,7 @@ C.ApplicationWindow {
       win.width = Math.min(1600, aw - 48); win.height = Math.min(1000, ah - 48);
       win.x = sc.virtualX + Math.round((aw - win.width) / 2); win.y = sc.virtualY + Math.round((ah - win.height) / 2);
     }
-    if ((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized && !Theme.mobile) {   // #73: shown maximised (testStartMax: also in a test)
+    if ((((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) || startMaximized) && !Theme.mobile) {   // (#104: or asked by the shortcut)   // #73: shown maximised (testStartMax: also in a test)
       win.visibility = Window.Maximized;
       // a shortcut tells Windows "normal window", which Windows applies to the first showing of the window: again after it
       timerAt(150, () => { if (!win.maximized && !win.fullscreen) win.showMaximized(); });

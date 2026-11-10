@@ -12,6 +12,7 @@
 #include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFileOpenEvent>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -74,6 +75,16 @@ bool System::forwardToRunning(const QStringList &paths) {
   s.waitForBytesWritten(1000);
   s.disconnectFromServer();
   return true;
+}
+// #105: on macOS a file opened from Finder arrives as a FileOpen event (also the file the app was started with)
+bool System::eventFilter(QObject *o, QEvent *e) {
+  if (e->type() == QEvent::FileOpen) {
+    auto *f = static_cast<QFileOpenEvent *>(e);
+    const QString p = !f->file().isEmpty() ? QDir::toNativeSeparators(f->file()) : f->url().toString();
+    if (!p.isEmpty()) QMetaObject::invokeMethod(this, [this, p]() { emit openPaths({ p }); }, Qt::QueuedConnection);
+    return true;
+  }
+  return QObject::eventFilter(o, e);
 }
 void System::listen() {
   QLocalServer::removeServer(serverName());   // a crashed run may have left it

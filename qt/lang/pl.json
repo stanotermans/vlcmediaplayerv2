@@ -728,5 +728,7 @@
 "Buy": "Kup",
 "Restore": "Przywróć",
 "Welcome to Vela Player!": "Witaj w Vela Player!",
-"Vela Player is a free and open source media player that plays most video and audio files, as well as network streams and subtitles.": "Vela Player to darmowy odtwarzacz multimedialny o otwartym kodzie źródłowym, który odtwarza większość plików wideo i audio, a także strumienie sieciowe i napisy."
+"Vela Player is a free and open source media player that plays most video and audio files, as well as network streams and subtitles.": "Vela Player to darmowy odtwarzacz multimedialny o otwartym kodzie źródłowym, który odtwarza większość plików wideo i audio, a także strumienie sieciowe i napisy.",
+"Drop shadow": "Cień",
+"A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box.": "Ciemny cień za literami. Ustaw krycie tła na 0%, aby napisy nie miały ramki."
 }

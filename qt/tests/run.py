@@ -47,6 +47,7 @@ def run(name, steps, extra_env=None, profile=None):
     env.update(extra_env or {})
     for k in [k for k, v in env.items() if v is None]: env.pop(k)   # (None: leave that variable out)
     cmd = [A.app] if not A.app.endswith('.app') else [os.path.join(A.app, 'Contents', 'MacOS', os.path.basename(A.app)[:-4])]
+    cmd += env.pop('ARGS', '').split()   # (extra_env ARGS: arguments for the app)
     p = subprocess.run(cmd, env=env, timeout=ms / 1000 + 60, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(p.stdout)
     vals = {}
@@ -353,6 +354,24 @@ def pro_trial(c):   # #53: Pro on a phone: a 7-day trial, once; then Pro works w
     c.vals, _ = run(c.name, ['log:"before=" + Store.pro + " " + Store.trialAvailable + " " + Store.trialDays', 'log:(Store.startTrial(), "start")',
                     'log:"after=" + Store.pro + " " + Store.trialAvailable + " " + Store.trialDays + " " + Store.owned'], extra_env={'VLCR_STORE': '1', 'VLCR_PRO': None})
     c.eq('before', 'false true 0'); c.eq('after', 'true false 7 false')
+
+@test
+def start_maximized(c):   # #104: --maximized (and a Windows shortcut set to "Run: Maximized") starts the window maximised
+    c.vals, _ = run(c.name, ['wait:1500', 'log:"max=" + win.maximized'], extra_env={'ARGS': '--maximized'})
+    c.eq('max', 'true')
+
+@test
+def open_playlist(c):   # #106: an opened .m3u plays its files and is kept as a playlist (also when it is Latin-1)
+    m3u = os.path.join(OUT, c.name, 'Mix café.m3u'); os.makedirs(os.path.dirname(m3u), exist_ok=True)
+    with open(m3u, 'wb') as f: f.write(('#EXTM3U\r\n# caf\xe9\r\n' + os.path.join(MEDIA, 'video.mp4') + '\r\n' + os.path.join(MEDIA, 'song.flac') + '\r\n').encode('latin-1'))
+    c.vals, _ = run(c.name, [f'log:(win.addSources([{js(m3u)}]), "opened")', 'wait:1500', 'log:"playing=" + (win.current ? win.current.name : "")',
+                    'log:"lists=" + library.playlists.map(p => p.name + ":" + p.srcs.length).join(",")'])
+    c.eq('playing', 'video.mp4'); c.ok((c.get('lists') or '').endswith('Mix café:2'), f"playlists: {c.get('lists')}")
+
+@test
+def sub_shadow(c):   # #107: the subtitle drop shadow is off by default and can be switched on
+    c.vals, _ = run(c.name, ['log:"default=" + !!Settings.values.subShadow', 'set:subShadow=true'] + PLAY('video.mp4', 1500) + ['log:"on=" + Settings.values.subShadow'])
+    c.eq('default', 'false'); c.eq('on', 'true')
 
 @test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
