@@ -244,6 +244,7 @@ def live_shape(c):   # #89: while the window is resized it keeps the video's sha
 
 @test
 def max_whole_screen(c):   # #95: a maximised window that covers the whole screen (no taskbar) is not taken for fullscreen
+    if sys.platform == 'darwin': return   # (#108: a Mac window has the system's zoom; on a small screen it has nothing to zoom to)
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), "max")', 'wait:900', 'view:music', 'wait:900',
                     'log:"max=" + win.maximized + " fs=" + win.fullscreen'] + PLAY('video.mp4', 1200) + [
                     'log:"fsMode=" + win.fsMode', 'fs', 'wait:900', 'log:"fs=" + win.fullscreen', 'fs', 'wait:900',
@@ -338,7 +339,8 @@ def phone_player(c):   # #53: the phone player: tabs and mini player, swipes for
     c.vals, _ = run(c.name, ['set:compactTest=true', 'size:412x860'] + PLAY('video.mp4', 1200) + ['pause', 'seek:1', 'wait:300',
         f'log:"phone=" + win.phone + " " + {P}.visible + " " + controls.visible',
         'log:"t0=" + Math.round(player.time / 1000)', 'drag:100,250,300,250', 'wait:600', 'log:"t1=" + Math.round(player.time / 1000)',
-        'log:(pb.setVol(0.2), "v")', 'drag:330,600,330,350', 'wait:300', 'log:"vol=" + Math.round(pb.volume * 100)',
+        'log:(pb.setVol(0.2), "v")', 'log:(System.testDrag(win, 330, win.height * 0.62, 330, win.height * 0.32), "swipe")', 'wait:300',   # (relative: a small screen makes the window shorter)
+         'log:"vol=" + Math.round(pb.volume * 100)',
         'seek:2', 'wait:300', 'log:(System.testClick(win, 380, 250), System.testClick(win, 380, 250), "double tap")', 'wait:600', 'log:"t2=" + Math.round(player.time / 1000)',
         f'log:({P}.locked = true, "lock")', 'seek:2', 'wait:300', 'drag:100,250,300,250', 'wait:500', 'log:"t3=" + Math.round(player.time / 1000)',
         f'log:({P}.locked = false, "unlock")', 'browse', 'wait:500', 'log:"lib=" + bottomRail.visible + " " + phoneMini.visible'])
@@ -375,6 +377,7 @@ def sub_shadow(c):   # #107: the subtitle drop shadow is off by default and can 
 
 @test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
+    if sys.platform == 'darwin': return   # (#108: a Mac window has the system's zoom; on a small screen it has nothing to zoom to)
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])
     c.ok(c.get('vis') in ('4', '5'), f"window went back to {c.get('vis')}")   # (maximised; on a screen without a taskbar Windows reports it as fullscreen)
 
