@@ -1,3 +1,11 @@
+## 3.2.6
+- 🍎 **macOS feels like a Mac app:** the system's window buttons (top left), a menu bar, the ⏯ key and Control Center (Now Playing), and a picture-in-picture window that stays over full-screen apps (#108). Files opened from Finder play (#105).
+- ✨ **Drop shadow for subtitles** (Settings → Subtitles) (#107); a **YouTube-red accent colour** (#101).
+- ✨ Starts maximised from a shortcut set to *Run: Maximized*, or with `--maximized` (#104).
+- ✨ A playlist file you open (.m3u, .m3u8, .xspf, .pls) plays and is kept under Playlists; older .m3u files that aren't UTF-8 are read correctly (#106).
+- 🐛 A window that came back from maximised at a few pixels (or bigger than the screen) gets its last good size back (#102).
+- 🔧 The log (Settings → General → Save a log) also records what the window does (#96).
+
 ## 3.2.5
 - 🐧 **Linux:** the window is no longer see-through. On some systems everything in it came out transparent: the window seemed to vanish with dark content (lyrics, a paused frame) or blended with the desktop. The rounded corners now come from a window mask (#96, #100).
 - 🐛 The window draws again after every window-state change (maximise, tiling, Super + arrows) (#96).
