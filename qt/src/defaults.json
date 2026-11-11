@@ -140,6 +140,7 @@
   "subOutline": "#0c0c0c",
   "subBg": 60,
   "subShadow": false,
+  "scrollSpeed": 150,
   "mediaFolders": [],
   "networkHistory": [],
   "txQuality": "balanced",

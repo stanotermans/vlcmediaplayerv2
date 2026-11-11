@@ -376,6 +376,17 @@ def sub_shadow(c):   # #107: the subtitle drop shadow is off by default and can 
     c.eq('default', 'false'); c.eq('on', 'true')
 
 @test
+def scroll_speed(c):   # #109: the mouse wheel scrolls lists faster than Qt's own 72 pixels a notch, and the setting changes it
+    look = 'log:"lines=" + Qt.styleHints.wheelScrollLines + " y=" + Math.round(browser.listView.contentY)'
+    c.vals, _ = run(c.name, ['size:700x300', 'wait:1500', 'log:"default=" + win.scrollSpeed', 'set:scrollSpeed=100', 'wait:200', look, 'wheel:500,200,-1', 'wait:600', look,
+                    'wheel:500,200,5', 'wait:600', 'log:"up=" + browser.listView.contentY + " ch=" + browser.listView.contentHeight + " h=" + browser.listView.height', 'set:scrollSpeed=200', 'wait:200', 'wheel:500,200,-1', 'wait:600', look, 'wheel:500,200,-1', 'wait:600', 'log:"again=" + browser.listView.contentY'])
+    def f(i, k): return int(dict(p.split('=') for p in ('lines=' + (c.get('lines', i) or '0 y=0')).split())[k])
+    base, slow, quick = f(0, 'lines'), f(1, 'y') - f(0, 'y'), f(2, 'y') - f(0, 'y')
+    c.eq('default', 150)
+    c.ok(f(2, 'lines') == base * 2, f"{base} lines at 100%, {f(2, 'lines')} at 200%")
+    c.ok(slow == base * 24 and quick == slow * 2, f"one notch scrolled {slow}px at 100% and {quick}px at 200%")
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     if sys.platform == 'darwin': return   # (#108: a Mac window has the system's zoom; on a small screen it has nothing to zoom to)
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])

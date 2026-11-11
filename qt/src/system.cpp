@@ -32,6 +32,9 @@
 #include <QGuiApplication>
 #include <QCursor>
 #include <QMouseEvent>
+#include <QDateTime>
+#include <QStyleHints>
+#include <QWheelEvent>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <wrl.h>
@@ -400,6 +403,20 @@ void System::hideCursor(bool on) {
   m_cursorHidden = on;
   if (on) QGuiApplication::setOverrideCursor(QCursor(Qt::BlankCursor));
   else QGuiApplication::restoreOverrideCursor();
+}
+
+void System::setScrollSpeed(int percent) {
+  // Qt Quick scrolls a list by the system's "lines per notch" times 24 pixels (72 on Windows): slow next to other apps (#109)
+  static const int base = qMax(1, QGuiApplication::styleHints()->wheelScrollLines());
+  QGuiApplication::styleHints()->setWheelScrollLines(qMax(1, qRound(base * qBound(25, percent, 500) / 100.0)));
+}
+
+void System::testWheel(QWindow *w, qreal x, qreal y, int notches) {
+  if (!w) return;
+  const QPointF local(x, y);
+  QWheelEvent e(local, w->mapToGlobal(local), QPoint(), QPoint(0, notches * 120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+  e.setTimestamp(quint64(QDateTime::currentMSecsSinceEpoch()));   // (a list ignores wheel events without a time)
+  QCoreApplication::sendEvent(w, &e);
 }
 
 void System::testClick(QWindow *w, qreal x, qreal y) {

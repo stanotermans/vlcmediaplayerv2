@@ -10,6 +10,7 @@ Item {
   property var ctl: null
   readonly property var pg: ctl.pg
   property alias search: search
+  property alias listView: grid
   property bool phoneSearch: false   // a phone: the search field shows after a tap on the search icon
 
   Item {   // #toolbar: padding 12px 18px, margin 0 12px, line below

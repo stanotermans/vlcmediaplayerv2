@@ -1,3 +1,6 @@
+## 3.2.7
+- ✨ **Scroll speed:** lists scroll faster with the mouse wheel, and *Settings → Controls → Mouse → Scroll speed* sets how fast (50% to 400%, 100% is your system's own speed) (#109).
+
 ## 3.2.6
 - 🍎 **macOS feels like a Mac app:** the system's window buttons (top left), a menu bar, the ⏯ key and Control Center (Now Playing), and a picture-in-picture window that stays over full-screen apps (#108). Files opened from Finder play (#105).
 - ✨ **Drop shadow for subtitles** (Settings → Subtitles) (#107); a **YouTube-red accent colour** (#101).

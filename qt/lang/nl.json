@@ -728,6 +728,8 @@
 "Restore": "Herstellen",
 "Welcome to Vela Player!": "Welkom bij Vela Player!",
 "Vela Player is a free and open source media player that plays most video and audio files, as well as network streams and subtitles.": "Vela Player is een gratis en open source multimediaspeler die de meeste video- en audiobestanden afspeelt, plus netwerkstreams en ondertitels.",
+"Scroll speed": "Scrollsnelheid",
+"How far the mouse wheel scrolls the library, lists and settings. 100% is your system's own speed.": "Hoe ver het muiswiel de bibliotheek, lijsten en instellingen scrolt. 100% is de snelheid van je systeem.",
 "Drop shadow": "Slagschaduw",
 "A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box.": "Een donkere schaduw achter de letters. Zet de achtergronddekking op 0% voor ondertitels zonder vlak.",
 "About Vela Player": "Over Vela Player",

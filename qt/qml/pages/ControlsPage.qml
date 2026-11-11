@@ -59,5 +59,7 @@ Column {
                  Select { options: [["volume", "Volume"], ["seek", "Seek"], ["none", "Nothing"]]; value: Settings.values.wheel || "volume"; onPicked: v => Settings.set("wheel", v) } }
     SettingRow { label: "Double-click in player"
                  Select { options: [["fullscreen", "Fullscreen"], ["play", "Play / pause"]]; value: Settings.values.dblclick || "fullscreen"; onPicked: v => Settings.set("dblclick", v) } }
+    Slider { label: "Scroll speed"; min: 50; max: 400; step: 50; path: "scrollSpeed"; fmt: v => v + "%" }   // #109
+    Note { text: qsTr("How far the mouse wheel scrolls the library, lists and settings. 100% is your system's own speed.") }
   }
 }

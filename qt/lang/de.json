@@ -728,6 +728,8 @@
 "Restore": "Wiederherstellen",
 "Welcome to Vela Player!": "Willkommen bei Vela Player!",
 "Vela Player is a free and open source media player that plays most video and audio files, as well as network streams and subtitles.": "Vela Player ist ein freier Open-Source-Multimediaplayer, der die meisten Video- und Audiodateien sowie Netzwerkstreams und Untertitel abspielt.",
+"Scroll speed": "Scrollgeschwindigkeit",
+"How far the mouse wheel scrolls the library, lists and settings. 100% is your system's own speed.": "Wie weit das Mausrad die Bibliothek, Listen und Einstellungen scrollt. 100 % ist die Geschwindigkeit deines Systems.",
 "Drop shadow": "Schlagschatten",
 "A dark shadow behind the letters. Set the background opacity to 0% for subtitles without a box.": "Ein dunkler Schatten hinter den Buchstaben. Stelle die Hintergrunddeckkraft auf 0 % für Untertitel ohne Kasten.",
 "About Vela Player": "Über Vela Player",

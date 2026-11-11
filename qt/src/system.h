@@ -51,6 +51,8 @@ public:
   Q_INVOKABLE void hideCursor(bool on);
   // testing: a mouse move inside a window (Qt event only, the real cursor stays where it is)
   Q_INVOKABLE void testMouseMove(QWindow *w, qreal x, qreal y);
+  Q_INVOKABLE void setScrollSpeed(int percent);          // #109: how far a notch of the mouse wheel scrolls a list, against the system's own
+  Q_INVOKABLE void testWheel(QWindow *w, qreal x, qreal y, int notches);   // testing: the mouse wheel at this window point
   Q_INVOKABLE void testClick(QWindow *w, qreal x, qreal y);   // testing: a left click at this window point
   Q_INVOKABLE void testDrag(QWindow *w, qreal x0, qreal y0, qreal x1, qreal y1);   // testing: press, move in steps, release
   bool mediaAccess() const;

@@ -682,6 +682,7 @@ C.ApplicationWindow {
     else if (k === "dvdmenu") en.showDvdMenu();
     else if (k === "playfile") playItem(library.item(library.addSources([v], true)[0]));
     else if (k === "log") player.log(eval(v));
+    else if (k === "wheel") { const a = v.split(",").map(Number); System.testWheel(win, a[0], a[1], a[2]); }
     else if (k === "click") { const xy = v.split(","); System.testClick(win, +xy[0], +xy[1]); }
     else if (k === "drag") { const a = v.split(",").map(Number); System.testDrag(win, a[0], a[1], a[2], a[3]); }
     else if (k === "mouse") { const xy = v.split(","); System.testMouseMove(win, +xy[0], +xy[1]); }
@@ -1026,6 +1027,8 @@ C.ApplicationWindow {
   onFsModeChanged: { fsTop = fsBottom = false; cursorHidden = false; if (fsMode) hideCursorT.restart(); }
   // #60: Settings, dialogs and menus take the mouse moves, so the cursor stays visible while one is open
   onDialogsChanged: { if (dialogs > 0) cursorHidden = false; else if (fsMode) hideCursorT.restart(); }
+  readonly property int scrollSpeed: Number(Settings.values.scrollSpeed) || 150   // #109
+  onScrollSpeedChanged: System.setScrollSpeed(scrollSpeed)
   onCursorHiddenChanged: System.hideCursor(cursorHidden)   // #60: at once, without waiting for the mouse to move
   // #61: while something plays the computer stays awake; with a video the screen stays on too
   readonly property int awake: player.playing ? (current && current.type === "audio" ? 1 : 2) : 0
