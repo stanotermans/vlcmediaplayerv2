@@ -198,7 +198,7 @@ public:
     for (int i = 0; i < jobs.size(); i++) {
       ProbeJob *j = jobs[i];
       if (g_quitting) return;
-      if (j->claimed.exchange(true)) continue;   // it had to hurry: read on its own meanwhile
+      if (j->claimed.exchange(true)) { delete j; continue; }   // it had to hurry: a job of its own reads it (Library::hurry); this one is ours to drop
       if (said.contains(i)) { j->pre = said[i]; j->hasPre = true; }
       j->run();
     }
@@ -462,11 +462,19 @@ void Library::startGroups() {
 void Library::hurry(const QString &src) {
   ProbeJob *job = m_waiting.value(src);
   if (!job) return;
-  if (m_pool.tryTake(job)) m_pool.start(job, 10);
-  else if (!job->claimed.exchange(true)) m_pool.start(job, 10);   // out of its group
+  if (m_pool.tryTake(job)) { m_pool.start(job, 10); return; }
+  if (m_group.removeOne(job)) { job->claimed = true; m_pool.start(job, 10); return; }   // not in a group yet
+  if (job->claimed.exchange(true)) return;   // being read already
+  // Waiting in a group: that group keeps (and drops) its job, a new one reads the file now. The old job is never
+  // touched from here again: its group may be dropping it at this moment.
+  auto *now = new ProbeJob(this, src, m_thumbs, dataDir() + "/thumbs");
+  now->claimed = true;
+  m_waiting[src] = now;
+  m_pool.start(now, 10);
 }
 void Library::probed(const QString &src, const QVariantMap &info, ProbeJob *job) {
   if (m_waiting.value(src) == job) m_waiting.remove(src);   // (removed and added again meanwhile: the newer job stays)
+  m_group.removeOne(job);
   delete job;
   m_busy--; emit busyChanged();
   if (m_busy == 0 && m_notify.isActive() && m_notify.remainingTime() > 250) m_notify.start(250);   // the last file: show it now
