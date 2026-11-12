@@ -33,15 +33,53 @@ function stableSort(list, cmp) {
   return list.map(function (v, i) { return [v, i]; }).sort(function (a, b) { return cmp(a[0], b[0]) || a[1] - b[1]; }).map(function (p) { return p[0]; });
 }
 
+// Sorting by name, fast enough for a big library: natCompare cuts both names into pieces on every comparison, which
+// took a second for 10 000 files. Here every name is cut once (and remembered), the comparison is the same.
+var _keys = new Map();
+function nameKey(name) {
+  var k = _keys.get(name);
+  if (k) return k;
+  var parts = String(name).match(/\d+|\D+/g) || [], low = [], num = [];
+  for (var i = 0; i < parts.length; i++) { var d = /^\d/.test(parts[i]); num.push(d ? +parts[i] : NaN); low.push(d ? parts[i] : parts[i].toLowerCase()); }
+  if (_keys.size > 200000) _keys.clear();
+  k = { s: String(name), low: low, num: num }; _keys.set(name, k); return k;
+}
+function keyCompare(x, y) {
+  var n = Math.min(x.low.length, y.low.length);
+  for (var i = 0; i < n; i++) {
+    var p = x.low[i], q = y.low[i], d;
+    if (p === q) continue;
+    if (x.num[i] === x.num[i] && y.num[i] === y.num[i]) d = (x.num[i] - y.num[i]) || (p.length - q.length);   // 2 < 11; 02 after 2
+    else d = p.localeCompare(q);
+    if (d) return d;
+  }
+  return (x.low.length - y.low.length) || (x.s === y.s ? 0 : x.s.localeCompare(y.s));   // capitals only decide between equal names
+}
+function sortByName(list, desc) {
+  var rows = list.map(function (v, i) { return { v: v, i: i, k: nameKey(v.name) }; });
+  rows.sort(desc ? function (a, b) { return keyCompare(b.k, a.k) || a.i - b.i; } : function (a, b) { return keyCompare(a.k, b.k) || a.i - b.i; });
+  return rows.map(function (r) { return r.v; });
+}
+
+// One refresh of the window asks for the same sorted list several times (the page, what Ctrl+A selects, the side
+// panel): the last answer is kept. The result is never changed by its users.
+var _last = { list: null, sort: '', desc: false, out: null };
 function sortItems(list, sort, desc) {
-  var num = function (a, b) { return natCompare(a.name, b.name); };
-  var cmp = {
-    name: num,
-    added: function (a, b) { return b.added - a.added; },
-    duration: function (a, b) { return (a.duration || 0) - (b.duration || 0); },
-    album: function (a, b) { return (a.album || '￿').localeCompare(b.album || '￿') || num(a, b); }
-  }[sort] || function () { return 0; };
-  return stableSort(list, desc ? function (a, b) { return cmp(b, a); } : cmp);
+  desc = !!desc;
+  if (_last.list === list && _last.sort === sort && _last.desc === desc && _last.n === list.length) return _last.out;
+  var out;
+  if (sort === 'name') out = sortByName(list, desc);
+  else {
+    var num = function (a, b) { return keyCompare(nameKey(a.name), nameKey(b.name)); };
+    var cmp = {
+      added: function (a, b) { return b.added - a.added; },
+      duration: function (a, b) { return (a.duration || 0) - (b.duration || 0); },
+      album: function (a, b) { return (a.album || '\uffff').localeCompare(b.album || '\uffff') || num(a, b); }
+    }[sort] || function () { return 0; };
+    out = stableSort(list, desc ? function (a, b) { return cmp(b, a); } : cmp);
+  }
+  _last = { list: list, sort: sort, desc: desc, n: list.length, out: out };
+  return out;
 }
 
 // the folder browser of Videos / Music: { folders: [{ path, name, items }], files, dir, roots }

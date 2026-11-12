@@ -101,7 +101,7 @@ signals:
 private:
   friend class ProbeJob;
   void probe(const QString &src);
-  void probed(const QString &src, const QVariantMap &info);
+  void probed(const QString &src, const QVariantMap &info, ProbeJob *job);
   QStringList expand(const QStringList &paths, int depth = 0) const;
   QVariantMap readPlaylist(const QString &file) const;
   void changed();                              // items changed: tell QML (at most every 250 ms) and save
@@ -120,6 +120,9 @@ private:
   int m_busy = 0;
   QThreadPool m_pool;
   QHash<QString, ProbeJob *> m_waiting;
+  QList<ProbeJob *> m_group;                   // waiting to be read together (startGroups)
+  QTimer m_groupTimer;
+  void startGroups();
   // what FFmpeg found per file (#59): with the same size and time the next start shows it at once, without reading
   // the file again; probe-cache.json next to library.json
   QHash<QString, QVariantMap> m_probeCache;   // src → { key, info }

@@ -1,3 +1,7 @@
+## 3.2.9
+- ⚡ **Big libraries, faster again:** files found together are read together, so the first scan of 10,000 files takes about 45 seconds (it was over 4 minutes in 3.2.7).
+- ⚡ Sorting and opening a long list (Music, All media) is more than twice as fast.
+
 ## 3.2.8
 - ✨ **Queue next to the video:** a panel on the right of the player with what plays now and next. Open it with the new button in the control bar or with Q; click a row to play it, drag its handle to reorder, × takes it out of the queue. Sort, repeat, shuffle and add are in its header (#110).
 - ⚡ **Big libraries are read much faster:** the first scan of 10,000 files took over 4 minutes and now under 2. More files are read at the same time, and the list is refreshed less often while they come in.

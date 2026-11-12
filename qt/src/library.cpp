@@ -62,8 +62,10 @@ static std::atomic<bool> g_quitting{ false };   // the app closes: running FFmpe
 
 class ProbeJob : public QRunnable {
 public:
-  ProbeJob(Library *lib, QString src, bool thumbs, QString thumbDir) : lib(lib), src(std::move(src)), thumbs(thumbs), thumbDir(std::move(thumbDir)) {}
+  ProbeJob(Library *lib, QString src, bool thumbs, QString thumbDir) : lib(lib), src(std::move(src)), thumbs(thumbs), thumbDir(std::move(thumbDir)) { setAutoDelete(false); }   // (deleted in Library::probed)
   Library *lib; QString src; bool thumbs; QString thumbDir;
+  QString pre; bool hasPre = false;        // what FFmpeg said about this file when it was read together with others (BatchJob)
+  std::atomic<bool> claimed{ false };      // run once: by its batch, or on its own when it has to hurry
   static QByteArray run(const QStringList &args, int ms, QByteArray *err = nullptr) {
     QProcess p; p.start(ffmpeg(), args);
     if (!p.waitForStarted(5000)) return {};
@@ -133,10 +135,13 @@ public:
     QVariantMap info;
     if (MIDI_RE.match(src).hasMatch()) info = { { "format", "midi" }, { "duration", 0.0 }, { "audio", QVariantList{ QVariantMap{ { "label", "MIDI" }, { "codec", "midi" } } } } };
     else {
-      QByteArray err;
-      const QStringList net = isRemote(src) ? QStringList{ "-rw_timeout", "15000000" } : QStringList();
-      run(QStringList{ "-hide_banner", "-nostdin" } + net + QStringList{ "-i", src }, isRemote(src) ? 20000 : 15000, &err);
-      info = parse(QString::fromUtf8(err));
+      if (hasPre) info = parse(pre);
+      if (info.isEmpty()) {
+        QByteArray err;
+        const QStringList net = isRemote(src) ? QStringList{ "-rw_timeout", "15000000" } : QStringList();
+        run(QStringList{ "-hide_banner", "-nostdin" } + net + QStringList{ "-i", src }, isRemote(src) ? 20000 : 15000, &err);
+        info = parse(QString::fromUtf8(err));
+      }
     }
     if (!info.isEmpty() && thumbs && (!info["vcodec"].isNull() || info["cover"].toBool())) {
       // cached per file and modification time, like v2.x
@@ -163,11 +168,46 @@ public:
       }
       if (QFileInfo(file).size() > 0) info["thumb"] = QUrl::fromLocalFile(file).toString();
     }
-    QMetaObject::invokeMethod(lib, [lib = lib, src = src, info]() { lib->probed(src, info); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(lib, [lib = lib, src = src, info, job = this]() { lib->probed(src, info, job); }, Qt::QueuedConnection);
+  }
+};
+
+// Many files at once (a folder scan): one FFmpeg start reads a group of them (`ffmpeg -i a -i b …` describes every
+// input). Starting a program per file was what a big library waited for: 10 000 files took minutes. FFmpeg stops at
+// the first input it cannot open; that file and the ones after it are then read on their own, as before.
+class BatchJob : public QRunnable {
+public:
+  QList<ProbeJob *> jobs;
+  void run() override {
+    QStringList args{ "-hide_banner", "-nostdin" };
+    for (ProbeJob *j : jobs) args << "-i" << j->src;
+    QByteArray err;
+    ProbeJob::run(args, 15000 + 2000 * int(jobs.size()), &err);
+    const QString txt = QString::fromUtf8(err);
+    static const QRegularExpression head(R"(^Input #(\d+), )", QRegularExpression::MultilineOption);
+    static const QRegularExpression stream(R"(^(\s*Stream )#\d+:)", QRegularExpression::MultilineOption);
+    QHash<int, QString> said;
+    QList<QPair<int, qsizetype>> starts;
+    for (auto it = head.globalMatch(txt); it.hasNext();) { const auto m = it.next(); starts.append({ m.captured(1).toInt(), m.capturedStart() }); }
+    for (int i = 0; i < starts.size(); i++) {
+      QString block = txt.mid(starts[i].second, (i + 1 < starts.size() ? starts[i + 1].second : txt.size()) - starts[i].second);
+      block.replace(0, block.indexOf(','), "Input #0");   // as if it was read alone
+      block.replace(stream, "\\1#0:");
+      said[starts[i].first] = block;
+    }
+    for (int i = 0; i < jobs.size(); i++) {
+      ProbeJob *j = jobs[i];
+      if (g_quitting) return;
+      if (j->claimed.exchange(true)) continue;   // it had to hurry: read on its own meanwhile
+      if (said.contains(i)) { j->pre = said[i]; j->hasPre = true; }
+      j->run();
+    }
   }
 };
 
 Library::Library(QObject *parent) : QObject(parent) {
+  m_groupTimer.setSingleShot(true); m_groupTimer.setInterval(0);
+  connect(&m_groupTimer, &QTimer::timeout, this, &Library::startGroups);
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
   m_pool.setMaxThreadCount(2);                     // a phone: two files at a time, like v2.x
 #else
@@ -402,16 +442,32 @@ void Library::probe(const QString &src) {
   QDir().mkpath(job->thumbDir);
   m_waiting[src] = job;
   m_busy++; emit busyChanged();
-  m_pool.start(job);
+  if (isRemote(src) || MIDI_RE.match(src).hasMatch()) { job->claimed = true; m_pool.start(job); return; }
+  m_group << job; m_groupTimer.start();   // (what is added together is read together)
+}
+void Library::startGroups() {
+  QList<ProbeJob *> jobs;
+  for (ProbeJob *j : std::as_const(m_group)) if (!j->claimed) jobs << j;
+  m_group.clear();
+  if (jobs.size() == 1) { jobs[0]->claimed = true; m_pool.start(jobs[0]); return; }
+  BatchJob *b = nullptr; qsizetype chars = 0;
+  for (ProbeJob *j : std::as_const(jobs)) {
+    if (!b || b->jobs.size() >= 24 || chars + j->src.size() > 12000) { if (b) m_pool.start(b); b = new BatchJob; chars = 0; }   // (a command line has its limits)
+    b->jobs << j; chars += j->src.size() + 6;
+  }
+  if (b) m_pool.start(b);
 }
 // The file you want to play now skips the line (#36: a file opened from Explorer at startup would otherwise wait
 // until the whole library has been read).
 void Library::hurry(const QString &src) {
   ProbeJob *job = m_waiting.value(src);
-  if (job && m_pool.tryTake(job)) m_pool.start(job, 10);
+  if (!job) return;
+  if (m_pool.tryTake(job)) m_pool.start(job, 10);
+  else if (!job->claimed.exchange(true)) m_pool.start(job, 10);   // out of its group
 }
-void Library::probed(const QString &src, const QVariantMap &info) {
-  m_waiting.remove(src);
+void Library::probed(const QString &src, const QVariantMap &info, ProbeJob *job) {
+  if (m_waiting.value(src) == job) m_waiting.remove(src);   // (removed and added again meanwhile: the newer job stays)
+  delete job;
   m_busy--; emit busyChanged();
   if (m_busy == 0 && m_notify.isActive() && m_notify.remainingTime() > 250) m_notify.start(250);   // the last file: show it now
   const int i = indexOf(src);
