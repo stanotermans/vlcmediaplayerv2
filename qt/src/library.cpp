@@ -14,6 +14,7 @@
 #include <QJsonObject>
 #include <QMimeDatabase>
 #include <QProcess>
+#include <QThread>
 #include <atomic>
 #include <QElapsedTimer>
 #include <QRegularExpression>
@@ -167,7 +168,11 @@ public:
 };
 
 Library::Library(QObject *parent) : QObject(parent) {
-  m_pool.setMaxThreadCount(2);                     // two files at a time, like v2.x
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+  m_pool.setMaxThreadCount(2);                     // a phone: two files at a time, like v2.x
+#else
+  m_pool.setMaxThreadCount(qBound(2, QThread::idealThreadCount() / 2, 6));   // a big library took minutes with two
+#endif
   m_notify.setSingleShot(true); m_notify.setInterval(250);
   connect(&m_notify, &QTimer::timeout, this, &Library::itemsChanged);
   m_saveTimer.setSingleShot(true); m_saveTimer.setInterval(400);
@@ -179,7 +184,12 @@ QString Library::dataDir() const {
   const QString d = qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
   QDir().mkpath(d); return d;
 }
-void Library::changed() { if (!m_notify.isActive()) m_notify.start(); if (!m_loading) m_saveTimer.start(); }
+// While files are still being read, QML hears about a big library less often: every notification hands it the whole
+// list again, and with 10 000 files four of those a second kept a core busy for the whole scan.
+void Library::changed() {
+  if (!m_notify.isActive()) m_notify.start(m_busy > 0 ? qBound(250, int(m_items.size()) / 4, 3000) : 250);
+  if (!m_loading) m_saveTimer.start();
+}
 
 // ---------- persistence: library.json ----------
 QString Library::cacheKey(const QString &src) {
@@ -375,8 +385,16 @@ void Library::probe(const QString &src) {
     const QString thumb = info["thumb"].toString();
     if (thumb.isEmpty() || (m_thumbs && QFileInfo::exists(QUrl(thumb).toLocalFile()))) {
       if (!m_thumbs) info.remove("thumb");
-      m_busy++; emit busyChanged();
-      QMetaObject::invokeMethod(this, [this, src, info]() { probed(src, info); }, Qt::QueuedConnection);
+      // read before: filled in at once (a queued call per file made the start of a big library slow)
+      const int i = indexOf(src);
+      if (i >= 0) {
+        QVariantMap it = m_items[i].toMap();
+        for (auto k = info.cbegin(); k != info.cend(); ++k) it[k.key()] = k.value();
+        it["type"] = info["vcodec"].isNull() ? "audio" : "video";
+        it["ready"] = true;
+        m_items[i] = it;
+        if (!m_notify.isActive()) m_notify.start(250);
+      }
       return;
     }
   }
@@ -395,6 +413,7 @@ void Library::hurry(const QString &src) {
 void Library::probed(const QString &src, const QVariantMap &info) {
   m_waiting.remove(src);
   m_busy--; emit busyChanged();
+  if (m_busy == 0 && m_notify.isActive() && m_notify.remainingTime() > 250) m_notify.start(250);   // the last file: show it now
   const int i = indexOf(src);
   if (i < 0) return;
   QVariantMap it = m_items[i].toMap();
