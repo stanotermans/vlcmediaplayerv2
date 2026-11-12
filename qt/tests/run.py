@@ -387,6 +387,20 @@ def scroll_speed(c):   # #109: the mouse wheel scrolls lists faster than Qt's ow
     c.ok(slow == base * 24 and quick == slow * 2, f"one notch scrolled {slow}px at 100% and {quick}px at 200%")
 
 @test
+def queue_panel(c):   # #110: the queue on the right in the player: Q shows it, rows move and leave, Q hides it
+    names = 'queuePanel.q.map(i => i.name).join("|")'
+    c.vals, _ = run(c.name, ['size:1200x700', 'view:videos', 'wait:800'] + PLAY('video.mp4', 1500) + ['pause',
+                    'log:"open=" + queuePanel.open', 'key:q', 'wait:500', 'log:"open=" + queuePanel.open', 'log:"n=" + queuePanel.q.length',
+                    'log:"first=" + ' + names, 'log:(queuePanel.move(0, 1), "moved=" + ' + names + ')',
+                    'log:(queuePanel.remove(queuePanel.q.find(i => i.src !== win.current.src).src), "left=" + queuePanel.q.length)',
+                    'log:"cur=" + queuePanel.q.some(i => i.src === win.current.src)', 'wait:400'])
+    c.eq('open', 'false', 0); c.eq('open', 'true', 1)
+    n = int(c.get('n') or 0); c.ok(n >= 3, f'{n} items in the queue')
+    a, b = (c.get('first') or '').split('|'), (c.get('moved') or '').split('|')
+    c.ok(len(a) > 1 and b[:2] == [a[1], a[0]] and b[2:] == a[2:], f'moved {a} to {b}')
+    c.eq('left', n - 1); c.eq('cur', 'true')
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     if sys.platform == 'darwin': return   # (#108: a Mac window has the system's zoom; on a small screen it has nothing to zoom to)
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])

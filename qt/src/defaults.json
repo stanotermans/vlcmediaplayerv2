@@ -29,6 +29,7 @@
    "audio": true,
    "subs": true,
    "settings": true,
+   "queue": true,
    "library": true
   },
   "navExpanded": false,
@@ -141,6 +142,7 @@
   "subBg": 60,
   "subShadow": false,
   "scrollSpeed": 150,
+  "queuePanel": false,
   "mediaFolders": [],
   "networkHistory": [],
   "txQuality": "balanced",

@@ -163,7 +163,9 @@ C.ApplicationWindow {
       { label: qsTr("Hide sidebar"), icon: "hide", action: () => sideHidden = true }
     ], x, y);
   }
+  readonly property bool queueShown: !!Settings.values.queuePanel   // #110: the queue on the right in the player
   function toggleQueue() {
+    if (inPlayer && !compact) { Settings.set("queuePanel", !queueShown); if (!queueShown) quick.open = false; return; }
     if (Settings.values.navExpanded) Settings.set("navExpanded", false);
     if (nav.sideMode === "queue" && !sideHidden) { nav.sideMode = "view"; sideHidden = true; }
     else { nav.sideMode = "queue"; sideHidden = false; }
@@ -546,6 +548,7 @@ C.ApplicationWindow {
     ]);
   }
   property alias pb: pb
+  property alias queuePanel: queuePanel
   PipWindow { id: pip; ctl: win; onClosing: win.pipOpen = false }
   // files opened while the app runs ("Open with", a double-click), media keys and the system's media overlay
   Connections {
@@ -847,7 +850,8 @@ C.ApplicationWindow {
       color: Theme.panel
 
       Browser { id: browser; ctl: win; anchors.fill: parent; visible: !win.inPlayer }
-      PlayerView { id: playerView; ctl: win; anchors.fill: parent; visible: win.inPlayer }
+      PlayerView { id: playerView; ctl: win; anchors.fill: parent; visible: win.inPlayer
+                   anchors.rightMargin: queuePanel.open && !win.fsMode ? queuePanel.width + 24 : 0 }   // (#110: the queue stands next to the video, not over it)
       PhoneControls { id: phoneControls; ctl: win; anchors.fill: parent; visible: win.phone && win.inPlayer; z: 3 }
       MiniPlayer {
         id: mini
@@ -867,6 +871,14 @@ C.ApplicationWindow {
         ctl: win
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; margins: 12 }
         z: 7
+      }
+      QueuePanel {   // #110
+        id: queuePanel
+        ctl: win
+        open: win.queueShown && win.inPlayer && !win.compact && !win.hideUi && !quick.open && !!win.current && (!win.fsMode || win.fsBottom || queueHover.hovered)
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; margins: 12; bottomMargin: win.fsMode ? controls.height + 12 : 12 }
+        z: 6
+        HoverHandler { id: queueHover }
       }
 
       Rectangle {   // #osd

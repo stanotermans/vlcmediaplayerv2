@@ -37,6 +37,8 @@ var paths = {
  "camera": "<path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/>",
  "pip": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><rect x=\"12\" y=\"12\" width=\"7\" height=\"5\" rx=\"1\"/>",
  "fullscreen": "<path d=\"M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5\"/>",
+ "grip": "<path d=\"M5 9h14M5 15h14\"/>",
+ "queueBtn": "<path d=\"M4 6h16M4 12h9M4 18h9M16.5 12.5l5 3.25-5 3.25z\"/>",
  "plus": "<path d=\"M12 5v14M5 12h14\"/>",
  "x": "<path d=\"M6 6l12 12M18 6L6 18\"/>",
  "general": "<path d=\"M6 4v16M12 4v16M18 4v16\"/><path d=\"M4 8h4M10 15h4M16 10h4\"/>",

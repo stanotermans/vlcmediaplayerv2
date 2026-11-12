@@ -38,6 +38,7 @@ Column {
     SettingRow { label: "Audio"; Toggle { path: "ctl.audio" } }
     SettingRow { label: "Subtitles"; Toggle { path: "ctl.subs" } }
     SettingRow { label: "Settings"; Toggle { path: "ctl.settings" } }
+    SettingRow { label: "Queue"; Toggle { path: "ctl.queue" } }
     SettingRow { label: "Library / player"; Toggle { path: "ctl.library" } }
     Note { text: qsTr("Hidden controls still work with the keyboard. Press F1 for all shortcuts.") }
   }

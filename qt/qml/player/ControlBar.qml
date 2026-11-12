@@ -77,6 +77,7 @@ Rectangle {
     IconButton { id: subBtn; html: "subBtn"; visible: root.c.subs !== false && !root.compact; tip: qsTr("Subtitles")
                  onClicked: root.ctl.quick.toggle("subs") }
     IconButton { html: "setBtn"; visible: root.c.settings !== false; tip: qsTr("Settings"); onClicked: root.ctl.quick.toggle() }
+    IconButton { name: "queueBtn"; visible: root.c.queue !== false && !root.compact; on: root.ctl.queueShown && root.ctl.inPlayer; tip: qsTr("Queue (Q)"); onClicked: { if (!root.ctl.inPlayer) root.ctl.toggleLibrary(); root.ctl.toggleQueue(); } }
     IconButton { html: "listBtn"; visible: root.c.library !== false; tip: qsTr("Library / player (L)"); onClicked: root.ctl.toggleLibrary() }
   }
   function testHover(f) { seek.testHover(f); }
