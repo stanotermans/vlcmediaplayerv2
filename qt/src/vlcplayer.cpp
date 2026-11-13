@@ -19,6 +19,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <QRegularExpression>
+#include <QAbstractVideoBuffer>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -566,7 +567,23 @@ void VlcPlayer::show(const QVideoFrame &fr) {
   if (m_extra) m_extra->setVideoFrame(fr);
 }
 
-// ---- video: libVLC writes I420 into the planes of a fresh QVideoFrame, which then goes to the sink ----
+// ---- video: libVLC writes I420 into a picture of its own; a frame that shares the picture goes to the sink ----
+namespace {
+class PictureBuffer : public QAbstractVideoBuffer {
+public:
+  PictureBuffer(std::shared_ptr<VlcPlayer::Picture> p, const QVideoFrameFormat &f) : m_p(std::move(p)), m_f(f) {}
+  MapData map(QVideoFrame::MapMode) override {
+    MapData m; m.planeCount = 3;
+    uchar *at = reinterpret_cast<uchar *>(m_p->data.data());
+    for (int i = 0; i < 3; i++) { m.bytesPerLine[i] = m_p->stride[i]; m.data[i] = at; m.dataSize[i] = m_p->stride[i] * m_p->lines[i]; at += m.dataSize[i]; }
+    return m;
+  }
+  QVideoFrameFormat format() const override { return m_f; }
+private:
+  std::shared_ptr<VlcPlayer::Picture> m_p;
+  QVideoFrameFormat m_f;
+};
+}
 unsigned VlcPlayer::onFormat(void **opaque, char *chroma, unsigned *w, unsigned *h, unsigned *pitches, unsigned *lines) {
   auto *self = static_cast<VlcPlayer *>(*opaque);
   const unsigned W = (*w + 1) & ~1u, H = (*h + 1) & ~1u;
@@ -581,7 +598,7 @@ unsigned VlcPlayer::onFormat(void **opaque, char *chroma, unsigned *w, unsigned 
   lines[0] = H; lines[1] = lines[2] = H / 2;
   std::lock_guard<std::mutex> g(self->m_lock);
   self->m_format = f;
-  for (auto &fr : self->m_slots) fr = QVideoFrame(f);
+  for (int i = 0; i < 3; i++) { self->m_stride[i] = int(pitches[i]); self->m_lines[i] = int(lines[i]); }
   return 1;
 }
 void VlcPlayer::onCleanup(void *) {}
@@ -589,23 +606,43 @@ void *VlcPlayer::onLock(void *opaque, void **planes) {
   auto *self = static_cast<VlcPlayer *>(opaque);
   std::lock_guard<std::mutex> g(self->m_lock);
   const int s = self->m_next; self->m_next = (s + 1) % SLOTS;
-  QVideoFrame &fr = self->m_slots[s];
-  if (fr.surfaceFormat().viewport() != self->m_format.viewport()) fr = QVideoFrame(self->m_format);   // visible size became known
-  fr.map(QVideoFrame::WriteOnly);
-  for (int i = 0; i < 3; i++) planes[i] = fr.bits(i);
+  self->m_slots[s].reset();
+  qsizetype bytes = 0;
+  for (int i = 0; i < 3; i++) bytes += qsizetype(self->m_stride[i]) * self->m_lines[i];
+  std::shared_ptr<Picture> p;
+  for (auto it = self->m_pool.begin(); it != self->m_pool.end();) {
+    if (it->use_count() > 1) { ++it; continue; }                       // libVLC or a frame still has it
+    if ((*it)->data.size() != bytes) { it = self->m_pool.erase(it); continue; }   // from another video size
+    if (!p) p = *it;
+    ++it;
+  }
+  if (!p) {
+    p = std::make_shared<Picture>();
+    p->data = QByteArray(bytes, Qt::Uninitialized);
+    self->m_pool.push_back(p);
+  }
+  p->size = self->m_format.frameSize();
+  for (int i = 0; i < 3; i++) { p->stride[i] = self->m_stride[i]; p->lines[i] = self->m_lines[i]; }
+  uchar *at = reinterpret_cast<uchar *>(p->data.data());
+  for (int i = 0; i < 3; i++) { planes[i] = at; at += qsizetype(p->stride[i]) * p->lines[i]; }
+  self->m_slots[s] = p;
   return reinterpret_cast<void *>(intptr_t(s));
 }
-void VlcPlayer::onUnlock(void *opaque, void *picture, void *const *) {
-  auto *self = static_cast<VlcPlayer *>(opaque);
-  std::lock_guard<std::mutex> g(self->m_lock);
-  self->m_slots[intptr_t(picture)].unmap();
-}
+void VlcPlayer::onUnlock(void *, void *, void *const *) {}
 void VlcPlayer::onDisplay(void *opaque, void *picture) {
   auto *self = static_cast<VlcPlayer *>(opaque);
-  QVideoFrame fr;
-  { std::lock_guard<std::mutex> g(self->m_lock); fr = self->m_slots[intptr_t(picture)]; }
   self->m_frames++;
-  QMetaObject::invokeMethod(self, [self, fr]() { if (self->m_mp) self->show(fr); }, Qt::QueuedConnection);
+  {
+    std::lock_guard<std::mutex> g(self->m_lock);
+    self->m_pending = self->m_slots[intptr_t(picture)];
+    if (self->m_posted) return;                // the interface has not taken the last one yet: it gets this one instead
+    self->m_posted = true;
+  }
+  QMetaObject::invokeMethod(self, [self]() {
+    std::shared_ptr<Picture> p; QVideoFrameFormat f;
+    { std::lock_guard<std::mutex> g(self->m_lock); p = std::move(self->m_pending); self->m_pending.reset(); f = self->m_format; self->m_posted = false; }
+    if (p && self->m_mp && p->size == f.frameSize()) self->show(QVideoFrame(std::make_unique<PictureBuffer>(p, f)));
+  }, Qt::QueuedConnection);
 }
 
 void VlcPlayer::note(const QString &line) {

@@ -11,7 +11,9 @@
 #include <QVideoSink>
 #include <QtQml/qqmlregistration.h>
 #include <atomic>
+#include <memory>
 #include <mutex>
+#include <vector>
 
 class VlcPlayer : public QObject {
   Q_OBJECT
@@ -174,12 +176,20 @@ private:
   QSize m_videoSize, m_frameSize;
   QString m_version, m_error;
   std::atomic<int> m_frames{0};
-  // frames libVLC writes into: a fixed ring, reused (the sink only keeps the newest one or two, so a frame is written
-  // again only long after it was shown); made again when the video format changes
+  // Pictures libVLC writes into. A picture is used again only when nothing holds it any more: not libVLC (the ring of
+  // the last SLOTS it asked for), not the frame that waits to be shown and not a frame on the screen (#112: with a
+  // fixed ring a picture could be written while the renderer was still reading it, when the interface was busy for
+  // a moment; that stopped the app). Only the newest picture waits to be shown, so a busy interface holds one.
+public:
+  struct Picture { QByteArray data; QSize size; int stride[3] = {}; int lines[3] = {}; };
+private:
   static constexpr int SLOTS = 6;
   std::mutex m_lock;
   QVideoFrameFormat m_format;
-  QVideoFrame m_slots[SLOTS];
+  int m_stride[3] = {}, m_lines[3] = {};
+  std::vector<std::shared_ptr<Picture>> m_pool;
+  std::shared_ptr<Picture> m_slots[SLOTS], m_pending;
+  bool m_posted = false;
   int m_next = 0;
   void *m_mp = nullptr;
 };
