@@ -1,3 +1,10 @@
+## 3.2.10
+- 🐛 **A crash during long playback is fixed:** the app could stop while a video played, more often with 60 fps videos. A picture could be written again while it was still being drawn; now it is used again only when nothing shows it any more (#112).
+- ✨ **The queue lies over the video,** as in the design, so the picture keeps its size. *Settings → Interface → Queue beside the video* puts it next to the video again (#110).
+- ✨ **Clear queue:** the bin in the queue's header leaves only what plays now. With *Settings → Playback → Play only the file you choose*, a file you click plays alone instead of with the rest of its list (#110).
+- ✨ **Shift+L shows or hides the sidebar,** also in the player (Q opens the queue panel there since 3.2.8). The key can be changed in Settings → Controls (#111).
+- ✨ **Rescan from the library:** a button in the toolbar, *More → Rescan* and F5 look for new files in your media folders (#113).
+
 ## 3.2.9
 - ⚡ **Big libraries, faster again:** files found together are read together, so the first scan of 10,000 files takes about 45 seconds (it was over 4 minutes in 3.2.7).
 - ⚡ Sorting and opening a long list (Music, All media) is more than twice as fast.

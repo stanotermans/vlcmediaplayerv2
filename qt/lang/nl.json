@@ -745,5 +745,12 @@
 "Seek 1 min backward": "1 min terug",
 "View": "Beeld",
 "Sidebar": "Zijbalk",
-"Help": "Help"
+"Help": "Help",
+"Clear queue": "Wachtrij leegmaken",
+"Show / hide sidebar": "Zijbalk tonen / verbergen",
+"Queue beside the video": "Wachtrij naast de video",
+"The video moves aside for the queue. Off: the queue lies over the video.": "De video schuift opzij voor de wachtrij. Uit: de wachtrij ligt over de video.",
+"Play only the file you choose": "Alleen het gekozen bestand afspelen",
+"Nothing else is queued after it. Off: the other files of the same list play next.": "Er komt niets anders achteraan in de wachtrij. Uit: de andere bestanden van dezelfde lijst spelen daarna.",
+"Rescanning the library…": "Bibliotheek opnieuw scannen…"
 }

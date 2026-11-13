@@ -401,6 +401,21 @@ def queue_panel(c):   # #110: the queue on the right in the player: Q shows it, 
     c.eq('left', n - 1); c.eq('cur', 'true')
 
 @test
+def queue_more(c):   # #110: the queue lies over the video (or next to it), can be cleared, and one file can play alone; #111: Shift+L is the sidebar; #113: F5 rescans
+    side = 'log:"side=" + nav.sideMode + "/" + win.sideHidden'
+    c.vals, _ = run(c.name, ['size:1200x700', 'view:videos', 'wait:800'] + PLAY('video.mp4', 1500) + ['pause', 'key:q', 'wait:500',
+                    'log:"margin=" + playerView.anchors.rightMargin', 'set:queueBeside=true', 'wait:300', 'log:"margin=" + (playerView.anchors.rightMargin > 300)',
+                    'log:"n=" + queuePanel.q.length', 'log:(queuePanel.clear(), "left=" + queuePanel.q.length)',
+                    'log:"cur=" + (queuePanel.q[0].src === win.current.src)', side, 'key:L', 'wait:300', side, 'key:L', 'wait:300', side,
+                    'log:"f5=" + pb.keyMap["F5"]', 'set:playOne=true',
+                    'log:(win.entryClicked({ kind: "item", it: win.vis[1] }, 0), "one=" + queuePanel.q.length)', 'wait:600', 'pause',
+                    'log:"playing=" + (win.current.src === win.vis[1].src)'])
+    c.eq('margin', 0, 0); c.eq('margin', 'true', 1)
+    c.ok(int(c.get('n') or 0) >= 3, 'queue too short'); c.eq('left', 1); c.eq('cur', 'true')
+    c.eq('side', 'view/false', 0); c.eq('side', 'queue/false', 1); c.eq('side', 'view/true', 2)   # (shown with the queue, then hidden)
+    c.eq('f5', 'rescan'); c.eq('one', 1); c.eq('playing', 'true')
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     if sys.platform == 'darwin': return   # (#108: a Mac window has the system's zoom; on a small screen it has nothing to zoom to)
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])

@@ -745,5 +745,12 @@
 "Seek 1 min backward": "Retroceder 1 min",
 "View": "Visualizar",
 "Sidebar": "Barra lateral",
-"Help": "Ajuda"
+"Help": "Ajuda",
+"Clear queue": "Limpar a fila",
+"Show / hide sidebar": "Mostrar / ocultar a barra lateral",
+"Queue beside the video": "Fila ao lado do vídeo",
+"The video moves aside for the queue. Off: the queue lies over the video.": "O vídeo desloca-se para dar lugar à fila. Desligado: a fila fica sobre o vídeo.",
+"Play only the file you choose": "Reproduzir apenas o ficheiro escolhido",
+"Nothing else is queued after it. Off: the other files of the same list play next.": "Mais nada é posto na fila. Desligado: os outros ficheiros da mesma lista são reproduzidos a seguir.",
+"Rescanning the library…": "A analisar de novo a biblioteca…"
 }

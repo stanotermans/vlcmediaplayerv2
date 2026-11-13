@@ -244,6 +244,8 @@ QtObject {
     ["fullscreen", "Fullscreen", ["f"], () => ctl.toggleFs()],
     ["library", "Library / player", ["l"], () => ctl.toggleLibrary()],
     ["queue", "Show / hide queue", ["q"], () => ctl.toggleQueue()],
+    ["sidebar", "Show / hide sidebar", ["L"], () => ctl.toggleSide()],   // #111
+    ["rescan", "Rescan", ["F5"], () => ctl.rescan()],                    // #113
     ["lyrics", "Show lyrics", ["y"], () => ctl.sb.toggleLyrics()],
     ["subs", "Cycle subtitle track", ["v"], () => ctl.sb.cycle()],
     ["audio", "Cycle audio track", ["b"], () => cycleAudio()],

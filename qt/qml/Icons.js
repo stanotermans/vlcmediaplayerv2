@@ -57,6 +57,7 @@ var paths = {
  "mute": "<path d=\"M4 9h4l5-4v14l-5-4H4z\"/><path d=\"M16 9l5 6M21 9l-5 6\"/>",
  "volume": "<path d=\"M4 9h4l5-4v14l-5-4H4z\"/><path d=\"M16 9a4 4 0 0 1 0 6\"/>",
  "rotate": "<path d=\"M20 12a8 8 0 1 1-2.3-5.7L20 8\"/><path d=\"M20 3v5h-5\"/>",
+ "refresh": "<path d=\"M20 11a8 8 0 1 0-2.3 6.3M20 4v7h-7\"/>",
  "queue": "<path d=\"M4 6h16M4 12h16M4 18h10\"/>",
  "eye": "<path d=\"M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>"
 };

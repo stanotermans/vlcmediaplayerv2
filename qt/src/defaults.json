@@ -143,6 +143,8 @@
   "subShadow": false,
   "scrollSpeed": 150,
   "queuePanel": false,
+  "queueBeside": false,
+  "playOne": false,
   "mediaFolders": [],
   "networkHistory": [],
   "txQuality": "balanced",

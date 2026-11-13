@@ -54,6 +54,7 @@ Item {
       T { visible: !root.ctl.compact; text: root.pg.count ? root.ctl.itemsLabel(root.pg.count) : ""; color: Theme.muted; px: 12; anchors.verticalCenter: parent.verticalCenter; leftPadding: 6; rightPadding: 6 }
       IconButton { html: "sortBtn2"; tip: qsTr("Sort"); visible: !(root.ctl.phone && search.visible); onClicked: root.ctl.toggleSort() }
       IconButton { name: "search"; tip: qsTr("Search"); visible: root.ctl.phone && !search.visible; onClicked: { root.phoneSearch = true; search.input.forceActiveFocus(); } }
+      IconButton { name: "refresh"; visible: !root.ctl.compact; tip: qsTr("Rescan"); onClicked: root.ctl.rescan() }   // #113
       IconButton { html: "viewToggle"; visible: !root.ctl.compact; tip: qsTr("Grid / list"); onClicked: root.ctl.toggleList() }
       TextField {
         id: search

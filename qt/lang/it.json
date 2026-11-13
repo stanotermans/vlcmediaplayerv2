@@ -745,5 +745,12 @@
 "Seek 1 min backward": "Indietro di 1 min",
 "View": "Vista",
 "Sidebar": "Barra laterale",
-"Help": "Aiuto"
+"Help": "Aiuto",
+"Clear queue": "Svuota la coda",
+"Show / hide sidebar": "Mostra / nascondi la barra laterale",
+"Queue beside the video": "Coda accanto al video",
+"The video moves aside for the queue. Off: the queue lies over the video.": "Il video si sposta per fare spazio alla coda. Disattivato: la coda è sopra il video.",
+"Play only the file you choose": "Riproduci solo il file scelto",
+"Nothing else is queued after it. Off: the other files of the same list play next.": "Nient’altro viene messo in coda. Disattivato: dopo vengono riprodotti gli altri file dello stesso elenco.",
+"Rescanning the library…": "Nuova scansione della libreria…"
 }

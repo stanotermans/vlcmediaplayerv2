@@ -1,4 +1,4 @@
-// The queue next to the video (#110, as in the design): what plays now and next, on the right in the player. The
+// The queue over the video, or next to it (#110, as in the design): what plays now and next, on the right in the player. The
 // header has the count and total time, sort, repeat, shuffle and add; a row plays on a click, moves by its handle
 // and leaves the queue with its × (the file itself stays in the library).
 import QtQuick
@@ -26,6 +26,7 @@ Rectangle {
   function clock(s) { const t = ctl.pb.fmt(s); return t.startsWith("00:") ? t.slice(3) : t; }
   function setQueue(l) { ctl.queueList = l; }
   function sort() { setQueue(Lib.sortItems(q, "name", sortDesc)); sortDesc = !sortDesc; }
+  function clear() { setQueue(q.filter(i => ctl.current && i.src === ctl.current.src)); }   // only what plays now stays
   function remove(src) { setQueue(q.filter(i => i.src !== src)); }
   function move(from, to) {
     if (from === to || from < 0 || to < 0 || to >= q.length) return;
@@ -50,6 +51,7 @@ Rectangle {
       IconButton { name: "repeat"; tip: qsTr("Repeat"); on: (Settings.values.repeat || "off") !== "off"; onClicked: root.cycleRepeat()
                    T { visible: Settings.values.repeat === "one"; text: "1"; px: 9; font.weight: Font.Bold; color: Theme.accent; anchors { right: parent.right; bottom: parent.bottom; margins: 3 } } }
       IconButton { name: "shuffle"; tip: qsTr("Shuffle"); on: !!Settings.values.shuffle; onClicked: Settings.set("shuffle", !Settings.values.shuffle) }
+      IconButton { name: "trash"; tip: qsTr("Clear queue"); visible: root.q.length > 1; onClicked: root.clear() }
       IconButton { name: "plus"; tip: qsTr("Add media"); onClicked: root.ctl.doAct("files") }
       IconButton { name: "x"; tip: qsTr("Hide queue (Q)"); onClicked: root.ctl.toggleQueue() }
     }

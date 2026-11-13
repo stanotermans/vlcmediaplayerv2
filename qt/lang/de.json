@@ -745,5 +745,12 @@
 "Seek 1 min backward": "1 Min. zurück",
 "View": "Ansicht",
 "Sidebar": "Seitenleiste",
-"Help": "Hilfe"
+"Help": "Hilfe",
+"Clear queue": "Warteschlange leeren",
+"Show / hide sidebar": "Seitenleiste ein- / ausblenden",
+"Queue beside the video": "Warteschlange neben dem Video",
+"The video moves aside for the queue. Off: the queue lies over the video.": "Das Video rückt für die Warteschlange zur Seite. Aus: Die Warteschlange liegt über dem Video.",
+"Play only the file you choose": "Nur die gewählte Datei abspielen",
+"Nothing else is queued after it. Off: the other files of the same list play next.": "Danach kommt nichts anderes in die Warteschlange. Aus: Die anderen Dateien derselben Liste folgen.",
+"Rescanning the library…": "Bibliothek wird neu durchsucht…"
 }

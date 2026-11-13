@@ -93,7 +93,7 @@ C.ApplicationWindow {
     if (e.kind === "action") return doAct(e.act);
     if (mods & (Qt.ControlModifier | Qt.ShiftModifier)) return selectClick(e.it, !!(mods & Qt.ShiftModifier));
     clearSelection();
-    playItem(e.it, nav.view === "home" ? null : pg.list);
+    playItem(e.it, Settings.values.playOne ? [e.it] : nav.view === "home" ? null : pg.list);   // (#110: or only the file that was chosen)
   }
   function sideClicked(e) {
     if (e.kind === "item") return playItem(e.it, nav.sideMode === "view" ? vis : undefined);
@@ -151,11 +151,13 @@ C.ApplicationWindow {
   function moreMenu(x, y) {
     menu([
       { label: qsTr("Grid / list"), icon: "queue", action: toggleList },
+      { label: qsTr("Rescan"), icon: "refresh", kbd: "F5", action: rescan },
       { label: nav.sort === "name" ? qsTr("Sort by date") : qsTr("Sort by name"), icon: "speed", action: toggleSort },
       nav.view === "playlists" && nav.pl !== null ? { label: qsTr("Export playlist…"), icon: "download", action: () => exportPlaylist(nav.pl) } : null,
       { sep: true }
     ].concat(openMediaItems(), [{ sep: true }, { label: qsTr("Manage media folders…"), icon: "library", action: () => openSettings("library") }]), x, y);
   }
+  function rescan() { library.scanFolders(Settings.values.mediaFolders || []); osd(qsTr("Rescanning the library…")); }   // #113
   function sideMenu(x, y) {
     menu([
       { label: nav.sideMode === "queue" ? qsTr("Show library") : qsTr("Show queue"), icon: "queue", kbd: "Q", action: toggleQueue },
@@ -166,6 +168,9 @@ C.ApplicationWindow {
   readonly property bool queueShown: !!Settings.values.queuePanel   // #110: the queue on the right in the player
   function toggleQueue() {
     if (inPlayer && !compact) { Settings.set("queuePanel", !queueShown); if (!queueShown) quick.open = false; return; }
+    toggleSide();
+  }
+  function toggleSide() {   // #111: the sidebar with the queue, also in the player (Shift+L; what Q did there before the queue panel)
     if (Settings.values.navExpanded) Settings.set("navExpanded", false);
     if (nav.sideMode === "queue" && !sideHidden) { nav.sideMode = "view"; sideHidden = true; }
     else { nav.sideMode = "queue"; sideHidden = false; }
@@ -851,7 +856,7 @@ C.ApplicationWindow {
 
       Browser { id: browser; ctl: win; anchors.fill: parent; visible: !win.inPlayer }
       PlayerView { id: playerView; ctl: win; anchors.fill: parent; visible: win.inPlayer
-                   anchors.rightMargin: queuePanel.open && !win.fsMode ? queuePanel.width + 24 : 0 }   // (#110: the queue stands next to the video, not over it)
+                   anchors.rightMargin: queuePanel.open && !win.fsMode && Settings.values.queueBeside ? queuePanel.width + 24 : 0 }   // (#110: the queue lies over the video as in the design, or stands next to it)
       PhoneControls { id: phoneControls; ctl: win; anchors.fill: parent; visible: win.phone && win.inPlayer; z: 3 }
       MiniPlayer {
         id: mini

@@ -14,6 +14,7 @@ Column {
     SettingRow { label: "Rounded window corners"; info: "Windows 11 rounds window corners automatically."; shown: Qt.platform.os === "windows"
                  Note { width: implicitWidth; text: qsTr("Set by Windows"); topPadding: 0; bottomPadding: 0 } }
     SettingRow { label: "Hide sidebar while media plays"; info: "Gives videos and music the full width. The sidebar button (Q) brings it back."; Toggle { path: "autoHideSide" } }
+    SettingRow { label: "Queue beside the video"; info: "The video moves aside for the queue. Off: the queue lies over the video."; Toggle { path: "queueBeside" } }
     SettingRow { label: "Resize window to the video"; info: "Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars)."; Toggle { path: "fitWindow" } }
     SettingRow { label: "Show mini player while browsing"; Toggle { path: "miniPlayer" } }
     SettingRow { label: "Show preview when hovering the timeline"; Toggle { path: "seekPreview" } }

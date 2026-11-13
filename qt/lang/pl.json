@@ -746,5 +746,12 @@
 "Seek 1 min backward": "1 min do tyłu",
 "View": "Widok",
 "Sidebar": "Pasek boczny",
-"Help": "Pomoc"
+"Help": "Pomoc",
+"Clear queue": "Wyczyść kolejkę",
+"Show / hide sidebar": "Pokaż / ukryj pasek boczny",
+"Queue beside the video": "Kolejka obok wideo",
+"The video moves aside for the queue. Off: the queue lies over the video.": "Wideo przesuwa się, robiąc miejsce na kolejkę. Wyłączone: kolejka leży na wideo.",
+"Play only the file you choose": "Odtwarzaj tylko wybrany plik",
+"Nothing else is queued after it. Off: the other files of the same list play next.": "Nic więcej nie trafia do kolejki. Wyłączone: potem odtwarzane są pozostałe pliki z tej samej listy.",
+"Rescanning the library…": "Ponowne skanowanie biblioteki…"
 }
