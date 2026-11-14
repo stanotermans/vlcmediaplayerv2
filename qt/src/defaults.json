@@ -37,6 +37,7 @@
   "fitWindow": true,
   "miniPlayer": true,
   "seekPreview": true,
+  "waveform": true,
   "showThumbs": true,
   "hideCursorDelay": 2.5,
   "hideCursor": true,

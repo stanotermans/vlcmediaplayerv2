@@ -17,12 +17,18 @@ class Frames : public QObject {
   Q_PROPERTY(QVariantList board READ board NOTIFY boardChanged)   // storyboard frame URLs ("" = not made yet)
   Q_PROPERTY(double step READ step NOTIFY boardChanged)           // seconds between storyboard frames
   Q_PROPERTY(QString src READ src NOTIFY boardChanged)
+  Q_PROPERTY(QVariantList wave READ wave NOTIFY waveChanged)      // #114: how loud a song is across its length (0 … 1), "" until read
+  Q_PROPERTY(QString waveSrc READ waveSrc NOTIFY waveChanged)
 public:
   explicit Frames(QObject *parent = nullptr);
   ~Frames() override;
   QVariantList board() const { return m_board; }
   double step() const { return m_step; }
   QString src() const { return m_src; }
+  QVariantList wave() const { return m_wave; }
+  QString waveSrc() const { return m_waveSrc; }
+  // read the loudness of a file's first audio track (duration in seconds); "" clears it. Kept in the cache.
+  Q_INVOKABLE void waveform(const QString &src, double duration);
   // start a storyboard for a file (duration in seconds; big: above 1440p, one worker instead of three)
   Q_INVOKABLE void storyboard(const QString &src, double duration, bool big);
   Q_INVOKABLE void clear();
@@ -30,6 +36,7 @@ public:
   Q_INVOKABLE void frame(const QString &src, double at);         // → frameReady (the newest request wins)
 signals:
   void boardChanged();
+  void waveChanged();
   void frameReady(const QString &src, double at, const QString &url);
 private:
   QString cacheFile(const QString &src, double at, int w) const;
@@ -38,6 +45,9 @@ private:
   double m_step = 0;
   QString m_src;
   std::atomic<int> m_job{0}, m_want{0};
-  QThreadPool m_pool, m_exact;
+  QThreadPool m_pool, m_exact, m_wavePool;
+  QVariantList m_wave;
+  QString m_waveSrc;
+  std::atomic<int> m_waveJob{0};
   QTimer m_notify;
 };

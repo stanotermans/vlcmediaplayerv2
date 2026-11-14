@@ -54,6 +54,9 @@ QtObject {
     if (i.type !== "audio" && !i.remote && Settings.values.seekPreview && i.duration) frames.storyboard(i.src, i.duration, i.width * i.height > 2560 * 1440);
     else frames.clear();
   }
+  // #114: the waveform of the song that plays (not for streams; its length may arrive a little later)
+  readonly property string waveWant: it && it.type === "audio" && !it.remote && Settings.values.waveform !== false && curDur() > 0 ? it.src : ""
+  onWaveWantChanged: frames.waveform(waveWant, curDur())
   // an item's latest data from the library (duration, chapters … arrive after it was opened)
   readonly property var info: { library.items; return it ? library.item(it.src) : null; }
   onInfoChanged: {

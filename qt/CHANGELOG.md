@@ -1,3 +1,6 @@
+## 3.2.11
+- ✨ **Waveform in the timeline for music:** a song shows how loud it is across its length as bars in the timeline, as in the design, so its parts are easy to find and bookmark. It is read once per song and kept; *Settings → Interface → Waveform in the timeline for music* switches it off (#114).
+
 ## 3.2.10
 - 🐛 **A crash during long playback is fixed:** the app could stop while a video played, more often with 60 fps videos. A picture could be written again while it was still being drawn; now it is used again only when nothing shows it any more (#112).
 - ✨ **The queue lies over the video,** as in the design, so the picture keeps its size. *Settings → Interface → Queue beside the video* puts it next to the video again (#110).

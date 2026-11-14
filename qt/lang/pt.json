@@ -752,5 +752,7 @@
 "The video moves aside for the queue. Off: the queue lies over the video.": "O vídeo desloca-se para dar lugar à fila. Desligado: a fila fica sobre o vídeo.",
 "Play only the file you choose": "Reproduzir apenas o ficheiro escolhido",
 "Nothing else is queued after it. Off: the other files of the same list play next.": "Mais nada é posto na fila. Desligado: os outros ficheiros da mesma lista são reproduzidos a seguir.",
-"Rescanning the library…": "A analisar de novo a biblioteca…"
+"Rescanning the library…": "A analisar de novo a biblioteca…",
+"Waveform in the timeline for music": "Forma de onda na linha de tempo para música",
+"Shows how loud a song is across its length, so you can find its parts.": "Mostra o volume de uma música ao longo da duração, para encontrar as suas partes."
 }

@@ -752,5 +752,7 @@
 "The video moves aside for the queue. Off: the queue lies over the video.": "La vidéo se décale pour laisser place à la file d’attente. Désactivé : la file d’attente recouvre la vidéo.",
 "Play only the file you choose": "Lire uniquement le fichier choisi",
 "Nothing else is queued after it. Off: the other files of the same list play next.": "Rien d’autre n’est ajouté à la file d’attente. Désactivé : les autres fichiers de la même liste sont lus ensuite.",
-"Rescanning the library…": "Nouvelle analyse de la bibliothèque…"
+"Rescanning the library…": "Nouvelle analyse de la bibliothèque…",
+"Waveform in the timeline for music": "Forme d’onde dans la barre de lecture pour la musique",
+"Shows how loud a song is across its length, so you can find its parts.": "Montre le volume d’un morceau sur toute sa durée, pour en retrouver les parties."
 }

@@ -416,6 +416,13 @@ def queue_more(c):   # #110: the queue lies over the video (or next to it), can 
     c.eq('f5', 'rescan'); c.eq('one', 1); c.eq('playing', 'true')
 
 @test
+def waveform(c):   # #114: a song gets its waveform in the timeline (read by FFmpeg, kept in the cache); a video does not; the setting switches it off
+    w = ['log:"n=" + frames.wave.length', 'log:"top=" + (frames.wave.length ? Math.max.apply(null, frames.wave) : 0)', 'log:"src=" + frames.waveSrc.split(/[\\\\/]/).pop()']
+    c.vals, _ = run(c.name, ['size:1200x700', 'view:music', 'wait:800'] + PLAY('song.flac', 3000) + ['pause'] + w + ['set:waveform=false', 'wait:300'] + w[:1]
+                    + ['set:waveform=true', 'wait:1500'] + w[:1] + ['key:l', 'view:videos', 'wait:800'] + PLAY('video.mp4', 1500) + ['pause'] + w[:1])
+    c.eq('n', 600, 0); c.eq('top', 1); c.eq('src', 'song.flac'); c.eq('n', 0, 1); c.eq('n', 600, 2); c.eq('n', 0, 3)
+
+@test
 def max_tap(c):   # #95: a tap that maximises twice at once (Windows and the button) keeps the window maximised
     if sys.platform == 'darwin': return   # (#108: a Mac window has the system's zoom; on a small screen it has nothing to zoom to)
     c.vals, _ = run(c.name, ['wait:1800', 'log:(win.toggleMax(), win.toggleMax(), "tap")', 'wait:800', 'log:"vis=" + win.visibility'])

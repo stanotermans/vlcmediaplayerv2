@@ -752,5 +752,7 @@
 "The video moves aside for the queue. Off: the queue lies over the video.": "Das Video rückt für die Warteschlange zur Seite. Aus: Die Warteschlange liegt über dem Video.",
 "Play only the file you choose": "Nur die gewählte Datei abspielen",
 "Nothing else is queued after it. Off: the other files of the same list play next.": "Danach kommt nichts anderes in die Warteschlange. Aus: Die anderen Dateien derselben Liste folgen.",
-"Rescanning the library…": "Bibliothek wird neu durchsucht…"
+"Rescanning the library…": "Bibliothek wird neu durchsucht…",
+"Waveform in the timeline for music": "Wellenform in der Zeitleiste bei Musik",
+"Shows how loud a song is across its length, so you can find its parts.": "Zeigt, wie laut ein Titel über seine Länge ist, damit du seine Abschnitte findest."
 }

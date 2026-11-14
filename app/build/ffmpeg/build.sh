@@ -127,8 +127,8 @@ esac
     --disable-everything --disable-avdevice \
     --enable-decoders --enable-demuxers --enable-parsers --enable-bsfs --enable-protocols \
     --enable-libx264 --enable-libdav1d --enable-zlib --enable-libdvdread --enable-libdvdnav ${FF_TLS[@]+"${FF_TLS[@]}"} \
-    --enable-encoder=libx264,aac,flac,mjpeg,webvtt,wrapped_avframe \
-    --enable-muxer=mp4,null,image2pipe,webvtt \
+    --enable-encoder=libx264,aac,flac,mjpeg,webvtt,wrapped_avframe,pcm_s16le \
+    --enable-muxer=mp4,null,image2pipe,webvtt,pcm_s16le \
     --enable-filter=scale,aresample,format,aformat,null,anull,copy,acopy,showinfo,trim,atrim,setpts,asetpts,crop,transpose,hflip,vflip,setsar
   make -j"$JOBS" && make install )
 

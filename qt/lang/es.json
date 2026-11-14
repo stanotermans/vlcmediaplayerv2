@@ -752,5 +752,7 @@
 "The video moves aside for the queue. Off: the queue lies over the video.": "El vídeo se aparta para dejar sitio a la cola. Desactivado: la cola se muestra sobre el vídeo.",
 "Play only the file you choose": "Reproducir solo el archivo elegido",
 "Nothing else is queued after it. Off: the other files of the same list play next.": "No se pone nada más en la cola. Desactivado: después se reproducen los demás archivos de la misma lista.",
-"Rescanning the library…": "Volviendo a analizar la biblioteca…"
+"Rescanning the library…": "Volviendo a analizar la biblioteca…",
+"Waveform in the timeline for music": "Forma de onda en la línea de tiempo para la música",
+"Shows how loud a song is across its length, so you can find its parts.": "Muestra el volumen de una canción a lo largo de su duración, para encontrar sus partes."
 }

@@ -14,13 +14,39 @@ Item {
   property real dragF: 0
   readonly property real f: dragging ? dragF : dur > 0 ? Math.min(1, Math.max(0, now / dur)) : 0
   implicitHeight: 22
+  // #114: the song's waveform as bars in the track (as in the design): played bars in the accent colour
+  readonly property var wave: ctl.frames.wave
+  readonly property bool waveOn: wave.length > 0 && !!ctl.current && ctl.frames.waveSrc === ctl.current.src && dur > 0
+  readonly property int barPitch: 6
+  readonly property var bars: {
+    if (!waveOn) return [];
+    const n = Math.max(1, Math.floor((width - 8) / barPitch)), w = wave, out = [];
+    for (let k = 0; k < n; k++) {
+      const a = Math.floor(k * w.length / n), b = Math.max(a + 1, Math.floor((k + 1) * w.length / n));
+      let v = 0; for (let i = a; i < b; i++) v = Math.max(v, w[i]);
+      out.push(v);
+    }
+    return out;
+  }
   function testHover(f) { preview.move(f); preview.shown = true; preview.update(); }   // testing
 
   Rectangle {   // #seekTrack
     id: track
     anchors.verticalCenter: parent.verticalCenter
     width: parent.width; height: 18; radius: 4; color: Theme.track
-    Rectangle { width: parent.width * root.f; height: parent.height; radius: 4; color: Theme.accentDark }   // #seekFill
+    Rectangle { visible: !root.waveOn; width: parent.width * root.f; height: parent.height; radius: 4; color: Theme.accentDark }   // #seekFill
+    Repeater {   // #114
+      model: root.bars
+      Rectangle {
+        required property real modelData
+        required property int index
+        readonly property real cx: 4 + (index + 0.5) * (track.width - 8) / root.bars.length
+        x: cx - 1.5; width: 3; radius: 1.5
+        height: Math.max(2, Math.round(modelData * (track.height - 4)))
+        y: (track.height - height) / 2
+        color: cx <= track.width * root.f ? Theme.accent : Theme.dim
+      }
+    }
     Repeater {   // chapter starts
       model: root.dur ? root.pb.chapters().filter(c => c.start > 0.5 && c.start < root.dur - 0.5) : []
       Rectangle { required property var modelData; x: track.width * modelData.start / root.dur - 1.5; width: 3; height: track.height; color: Theme.bg }

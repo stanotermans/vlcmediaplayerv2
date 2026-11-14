@@ -18,6 +18,7 @@ Column {
     SettingRow { label: "Resize window to the video"; info: "Matches the window to the video's shape when a new video starts, up to 70% of the screen, and again after you resize it (no black bars)."; Toggle { path: "fitWindow" } }
     SettingRow { label: "Show mini player while browsing"; Toggle { path: "miniPlayer" } }
     SettingRow { label: "Show preview when hovering the timeline"; Toggle { path: "seekPreview" } }
+    SettingRow { label: "Waveform in the timeline for music"; info: "Shows how loud a song is across its length, so you can find its parts."; Toggle { path: "waveform" } }
     SettingRow { label: "Show thumbnails"; Toggle { path: "showThumbs" } }
     SettingRow { label: "Dim watched items"; Toggle { path: "dimWatched" } }
   }
