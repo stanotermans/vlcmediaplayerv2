@@ -1,3 +1,7 @@
+## 3.2.12
+- 🐛 **The waveform reaches the end of the song:** for some files (Ogg without an index) it stopped halfway, because it was spread over a first guess of the length. It now follows the sound itself; waveforms that were saved cut off are made again (#114).
+- ✨ The waveform's bars have room around them in the timeline, as in the design (#114).
+
 ## 3.2.11
 - ✨ **Waveform in the timeline for music:** a song shows how loud it is across its length as bars in the timeline, as in the design, so its parts are easy to find and bookmark. It is read once per song and kept; *Settings → Interface → Waveform in the timeline for music* switches it off (#114).
 

@@ -112,15 +112,17 @@ void Frames::frame(const QString &src, double at) {
 
 // ---- #114: the waveform of a song. FFmpeg decodes the first audio track to mono 16-bit samples at a low rate; the
 // loudness (RMS) of WAVE_N equal parts of the file is kept as one byte each, in the cache next to the file's frames.
+// The parts are cut from the sound that really came out, not from the length known when the song started: that can be
+// a guess (an Ogg file without an index), and a waveform made from it stopped halfway (#114).
 // An FFmpeg that cannot write raw samples gives nothing, and the timeline stays plain.
-static const int WAVE_N = 600, WAVE_RATE = 4000;
+static const int WAVE_N = 600, WAVE_RATE = 4000, WAVE_BLOCK = 400;   // (blocks of 0.1 s while reading)
 void Frames::waveform(const QString &src, double d) {
   if (src == m_waveSrc) return;
   const int job = ++m_waveJob;
   m_wavePool.clear();
   m_waveSrc = src; m_wave.clear(); emit waveChanged();
   if (src.isEmpty() || d <= 0) return;
-  const QString file = cacheFile(src, 0, WAVE_N).replace(QLatin1String(".jpg"), QLatin1String(".wave"));
+  const QString file = cacheFile(src, 0, WAVE_N).replace(QLatin1String(".jpg"), QLatin1String(".wave2"));   // (.wave: made from the start length)
   m_wavePool.setMaxThreadCount(2);    // (a song that was skipped stops at once and frees its place)
   m_wavePool.start([=]() {
     if (m_waveJob != job) return;
@@ -135,8 +137,7 @@ void Frames::waveform(const QString &src, double d) {
       p.start(ffmpeg(), { "-hide_banner", "-loglevel", "error", "-nostdin", "-i", src, "-map", "0:a:0", "-vn", "-sn", "-ac", "1",
                           "-ar", QString::number(WAVE_RATE), "-c:a", "pcm_s16le", "-f", "s16le", "pipe:1" });
       if (!p.waitForStarted(5000)) return;
-      const qint64 total = qMax<qint64>(1, qint64(d * WAVE_RATE));
-      QVector<double> sum(WAVE_N, 0.0); QVector<qint64> count(WAVE_N, 0);
+      QVector<double> blocks; blocks.reserve(int(qMin(d, 6.0 * 3600) * WAVE_RATE / WAVE_BLOCK) + 16);   // sum of squares per block
       qint64 n = 0; QByteArray buf;
       const qint64 t0 = QDateTime::currentMSecsSinceEpoch();
       while (p.state() != QProcess::NotRunning || p.bytesAvailable() > 0) {
@@ -146,14 +147,21 @@ void Frames::waveform(const QString &src, double d) {
         const qsizetype m = buf.size() / 2; const char *at = buf.constData();
         for (qsizetype i = 0; i < m; i++, n++) {
           const qint16 v = qint16(quint16(uchar(at[2 * i])) | quint16(uchar(at[2 * i + 1]) << 8));
-          const int b = int(qMin<qint64>(WAVE_N - 1, n * WAVE_N / total));
-          sum[b] += double(v) * v; count[b]++;
+          if (n % WAVE_BLOCK == 0) blocks.append(0.0);
+          blocks.last() += double(v) * v;
         }
         buf.remove(0, m * 2);
       }
       if (n < WAVE_RATE / 2) return;                       // no sound came out
       double top = 0; QVector<double> rms(WAVE_N, 0.0);
-      for (int i = 0; i < WAVE_N; i++) { if (count[i]) rms[i] = std::sqrt(sum[i] / count[i]); top = qMax(top, rms[i]); }
+      const qint64 nb = blocks.size();
+      for (int i = 0; i < WAVE_N; i++) {
+        const qint64 a = i * nb / WAVE_N, b = qMax(a + 1, (i + 1) * nb / WAVE_N);
+        double s = 0; qint64 c = 0;
+        for (qint64 k = a; k < b && k < nb; k++) { s += blocks[k]; c += (k == nb - 1 && n % WAVE_BLOCK) ? n % WAVE_BLOCK : WAVE_BLOCK; }
+        if (c) rms[i] = std::sqrt(s / c);
+        top = qMax(top, rms[i]);
+      }
       if (top <= 0) top = 1;
       bars.resize(WAVE_N);
       for (int i = 0; i < WAVE_N; i++) bars[i] = char(uchar(qRound(255 * std::pow(rms[i] / top, 0.7))));   // (quiet parts stay visible)
