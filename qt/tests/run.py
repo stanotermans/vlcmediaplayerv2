@@ -279,6 +279,27 @@ def preview_av1(c):   # #94: AV1 videos (YouTube downloads) get a storyboard and
     c.more('frames', 2); c.eq('playing', 'true')
 
 @test
+def ogg_seek(c):   # #114: seeking in an Ogg file lands where asked (it plays from its Matroska copy), paused stays paused
+    f = os.path.join(A.media, 'extra', 'song.ogg')
+    if not os.path.exists(f): return c.ok(not os.environ.get('CI'), 'no extra/song.ogg in the test media')
+    c.vals, _ = run(c.name, [f'playfile:{f}', 'wait:3000', 'seek:40', 'wait:1200', 'log:"t=" + player.time', 'pause', 'wait:300',
+                    'seek:20', 'wait:1200', 'log:"t=" + player.time', 'log:"playing=" + player.playing'])
+    t1, t2 = (int(x) for x in c.vals.get('t', ['0', '0'])[:2])
+    c.ok(40000 <= t1 <= 42500, f'seek to 40 s landed at {t1} ms'); c.ok(19800 <= t2 <= 20600, f'seek to 20 s (paused) landed at {t2} ms')
+    c.eq('playing', 'false')
+
+@test
+def search_blur(c):   # #115: a click outside the search field takes the typing away from it (the keys work again)
+    c.vals, _ = run(c.name, ['size:1200x700', 'view:videos', 'wait:800', 'log:(browser.search.input.forceActiveFocus(), "f=" + browser.search.input.activeFocus)',
+                    'click:640,660', 'wait:300', 'log:"f=" + browser.search.input.activeFocus',
+                    'log:"at=" + Math.round(browser.search.mapToItem(null, 30, 10).x) + "," + Math.round(browser.search.mapToItem(null, 30, 10).y)'])
+    c.eq('f', 'true', 0); c.eq('f', 'false', 1)
+    at = c.get('at')   # a click in the field itself keeps it
+    c.vals, _ = run(c.name, ['size:1200x700', 'view:videos', 'wait:800', 'log:(browser.search.input.forceActiveFocus(), "f=" + browser.search.input.activeFocus)',
+                    f'click:{at}', 'wait:300', 'log:"f=" + browser.search.input.activeFocus'])
+    c.eq('f', 'true', 0); c.eq('f', 'true', 1)
+
+@test
 def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
     E, S = 0x45, 0x02000000
     c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])

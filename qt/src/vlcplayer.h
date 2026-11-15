@@ -83,6 +83,7 @@ public:
   Q_INVOKABLE void togglePause() { m_playing ? pause() : play(); }
   Q_INVOKABLE void seek(qint64 ms);
   Q_INVOKABLE void stop();
+  static QString oggCopy(const QString &src);   // #114: where the Matroska copy of an Ogg file is kept
   Q_INVOKABLE void nextFrame();
   Q_INVOKABLE QVariantList audioTracks() const;               // [{ id, name }] (id -1 = off)
   Q_INVOKABLE int audioTrack() const;
@@ -163,10 +164,15 @@ private:
   QElapsedTimer m_tcClock;
   QString m_src;
   QStringList m_opts;
+  // #114: libVLC 3's Ogg reader lands seconds away from where you seek (more, the further in). An Ogg file is copied
+  // once into Matroska (no re-encoding, kept in the cache); the copy is played, and seeking in it is exact.
+  bool m_ogg = false;                     // the open file is Ogg, played from the file itself (its copy is not ready yet)
+  QString m_oggJob;                       // the file whose copy is being made
   int m_title = -1;
   void *holdChild(const char *type) const;
   void applyFx(void *o) const;
   void applyStereo() const;
+  void makeOggCopy(const QString &src);
   double m_sar = 0;                       // pixel aspect ratio of the video track (0: not read yet)
   int m_projection = 0;
   QVariantList m_pose;

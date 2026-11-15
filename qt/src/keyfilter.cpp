@@ -2,6 +2,8 @@
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QQuickItem>
+#include <QQuickWindow>
+#include <QMouseEvent>
 #include <QWindow>
 
 KeyFilter::KeyFilter(QObject *parent) : QObject(parent) { qApp->installEventFilter(this); }
@@ -32,7 +34,22 @@ QString KeyFilter::name(int key, Qt::KeyboardModifiers mods, const QString &text
   return {};
 }
 
+// the typing focus goes back to the window (where the keys are the app's again)
+static void leaveField(QQuickItem *it) {
+  if (it->window() && it->window()->contentItem()) it->window()->contentItem()->forceActiveFocus(Qt::OtherFocusReason);
+  if (it->hasActiveFocus()) it->setFocus(false);
+}
+
 bool KeyFilter::eventFilter(QObject *o, QEvent *e) {
+  if (e->type() == QEvent::MouseButtonPress && qobject_cast<QQuickWindow *>(o)) {   // #115: a click outside the text field
+    auto *it = qobject_cast<QQuickItem *>(QGuiApplication::focusObject());
+    if (it && it->window() == o && (it->inherits("QQuickTextInput") || it->inherits("QQuickTextEdit"))) {
+      QQuickItem *box = it->parentItem() ? it->parentItem() : it;   // (the field's frame, with its icon)
+      const QPointF at = box->mapFromScene(static_cast<QMouseEvent *>(e)->scenePosition());
+      if (!box->contains(at)) leaveField(it);
+    }
+    return false;
+  }
   if (e->type() != QEvent::KeyPress && e->type() != QEvent::KeyRelease) return false;
   if (!m_enabled || !qobject_cast<QWindow *>(o)) return false;          // once per key: at the window
   auto *k = static_cast<QKeyEvent *>(e);
@@ -41,7 +58,7 @@ bool KeyFilter::eventFilter(QObject *o, QEvent *e) {
   QObject *f = QGuiApplication::focusObject();
   const bool typing = f && (f->inherits("QQuickTextInput") || f->inherits("QQuickTextEdit"));
   if (typing) {
-    if (k->key() == Qt::Key_Escape) { if (auto *it = qobject_cast<QQuickItem *>(f)) it->setFocus(false); }
+    if (k->key() == Qt::Key_Escape) { if (auto *it = qobject_cast<QQuickItem *>(f)) leaveField(it); return true; }
     return false;
   }
   if (!m_handler.isCallable()) return false;

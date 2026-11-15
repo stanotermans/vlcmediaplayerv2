@@ -44,6 +44,9 @@ for e in libsvtav1 libaom-av1; do
   ffmpeg -hide_banner -encoders 2>/dev/null | grep -q " $e " && { ff -f lavfi -i "$V:d=8" -c:v $e -g 25 -pix_fmt yuv420p "$OUT/extra/av1.mkv"; break; }
 done
 
+# a minute of Ogg Vorbis (#114: libVLC's own Ogg reader seeks to the wrong place), outside the media folder
+ff -f lavfi -i "sine=f=330:d=60" -c:a libvorbis -q:a 4 "$OUT/extra/song.ogg"
+
 # a folder with episodes
 cp "$M/video.mp4" "$M/Show/Show_S01E01.mp4"; cp "$M/video.mp4" "$M/Show/Show_S01E02.mp4"
 

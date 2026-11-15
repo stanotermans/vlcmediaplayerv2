@@ -1,3 +1,7 @@
+## 3.2.13
+- 🐛 **Seeking in Ogg files lands where you click:** in some .ogg files playback jumped seconds past the chosen point, more the further into the song. libVLC's own Ogg reader seeks inaccurately; an Ogg file is now copied once into Matroska (without re-encoding, kept with the app's data) and played from that copy, where seeking is exact. The first seek in a new file switches to the copy (#114).
+- 🐛 **The search field lets go:** a click outside it ends typing, so the keyboard shortcuts work again instead of typing into the search (#115).
+
 ## 3.2.12
 - 🐛 **The waveform reaches the end of the song:** for some files (Ogg without an index) it stopped halfway, because it was spread over a first guess of the length. It now follows the sound itself; waveforms that were saved cut off are made again (#114).
 - ✨ The waveform's bars have room around them in the timeline, as in the design (#114).

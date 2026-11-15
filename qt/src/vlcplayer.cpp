@@ -9,6 +9,8 @@
 #include "android.h"
 #endif
 #include <QFileInfo>
+#include <QCryptographicHash>
+#include <QStandardPaths>
 #include <QMetaObject>
 #include <cstring>
 #include <atomic>
@@ -283,6 +285,20 @@ void tcClose(void *data) {
 }
 }
 
+// #114: Ogg files (Vorbis, Opus, FLAC, Theora) are played from a copy in Matroska (made with FFmpeg without re-encoding,
+// in a moment, while the file itself plays): libVLC 3's Ogg reader seeks seconds away from the place asked for.
+// The copy is used from the next seek on, and for the whole song next time. Without FFmpeg the file itself plays.
+static bool isOgg(const QString &src) {
+  static const QStringList ext = { "ogg", "oga", "ogv", "opus", "ogx", "spx" };
+  return ext.contains(QFileInfo(src).suffix().toLower());
+}
+QString VlcPlayer::oggCopy(const QString &src) {
+  const QFileInfo fi(src);
+  const QByteArray key = (fi.absoluteFilePath() + "|" + QString::number(fi.size()) + "|" + QString::number(fi.lastModified().toMSecsSinceEpoch())).toUtf8();
+  return qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)) + "/ogg/"
+         + QString::fromLatin1(QCryptographicHash::hash(key, QCryptographicHash::Sha1).toHex()) + ".mkv";
+}
+
 void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &options) {
   if (!load()) return;
   stop();
@@ -292,6 +308,13 @@ void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &opti
   for (const QString &o : options) { if (o.startsWith(":vlcr-ffmpeg=")) tcLen = o.mid(13).toDouble(); else opts << o; }
   m_src = src; m_opts = options; m_tc = tcLen >= 0 && !url; m_tcOffset = m_tc ? startMs : 0; m_tcLength = qint64(tcLen * 1000);
   m_tcPlayed = 0; m_tcClock.invalidate();
+  QString path = src;   // what libVLC opens
+  m_ogg = false;
+  if (!url && !m_tc && isOgg(src) && QFileInfo(src).isFile()) {
+    const QString copy = oggCopy(src);
+    if (QFileInfo(copy).size() > 0) path = copy;
+    else { m_ogg = true; makeOggCopy(src); }
+  }
   libvlc_media_t *m = nullptr;
   if (m_tc) {
     auto *t = new TcSource;
@@ -305,7 +328,7 @@ void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &opti
     if (!m) { delete t; return; }
   } else {
     m = url ? vlc.media_new_location(inst, src.toUtf8().constData())
-            : vlc.media_new_path(inst, QDir::toNativeSeparators(src).toUtf8().constData());   // libVLC wants backslashes on Windows
+            : vlc.media_new_path(inst, QDir::toNativeSeparators(path).toUtf8().constData());   // libVLC wants backslashes on Windows
     if (!m) return;
     if (startMs > 0) vlc.media_add_option(m, QString(":start-time=%1").arg(startMs / 1000.0, 0, 'f', 3).toUtf8().constData());
   }
@@ -346,6 +369,12 @@ void VlcPlayer::seek(qint64 ms) {
     return;
   }
   ms = qMax<qint64>(0, m_length > 0 ? qMin(ms, m_length - 300) : ms);
+  if (m_ogg && QFileInfo(oggCopy(m_src)).size() > 0) {   // #114: its exact copy is ready: on from there
+    const bool paused = !m_playing && m_state != 6;
+    open(m_src, ms, m_opts);
+    m_pauseWhenPlaying = paused;
+    return;
+  }
   if (m_state == 6) { vlc.mp_stop(MP(m_mp)); vlc.mp_play(MP(m_mp)); m_state = 0; }
   vlc.mp_set_time(MP(m_mp), ms);
   m_time = ms; emit timeChanged();
@@ -381,6 +410,31 @@ bool VlcPlayer::snapshot(const QString &file) const {
   if (vp.isValid() && vp != img.rect()) img = img.copy(vp);
   return !img.isNull() && img.save(file);
 }
+void VlcPlayer::makeOggCopy(const QString &src) {
+  if (!m_oggJob.isEmpty()) return;   // one at a time (the next song's copy is made when it is opened again or sought in)
+  const QString copy = oggCopy(src), part = copy + ".part";
+  QDir().mkpath(QFileInfo(copy).absolutePath());
+  { // keep the cache small: the 200 newest copies
+    QDir d(QFileInfo(copy).absolutePath());
+    const QFileInfoList all = d.entryInfoList({ "*.mkv" }, QDir::Files, QDir::Time);
+    for (int i = 200; i < all.size(); i++) QFile::remove(all[i].absoluteFilePath());
+  }
+  m_oggJob = src;
+  auto *p = new QProcess(this);
+  connect(p, &QProcess::finished, this, [this, p, copy, part](int code, QProcess::ExitStatus st) {
+    if (st == QProcess::NormalExit && code == 0 && QFileInfo(part).size() > 0) { QFile::remove(copy); QFile::rename(part, copy); }
+    else QFile::remove(part);
+    m_oggJob.clear(); p->deleteLater();
+  });
+  connect(p, &QProcess::errorOccurred, this, [this, p, part](QProcess::ProcessError e) {
+    if (e != QProcess::FailedToStart) return;
+    QFile::remove(part); m_oggJob.clear(); p->deleteLater();
+  });
+  // the sound (and a real video, not the cover picture) with its tags; the cover stays in the library
+  p->start(ffmpegPath(), { "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", QDir::toNativeSeparators(src),
+                           "-map", "0:a", "-map", "0:V?", "-c", "copy", "-f", "matroska", QDir::toNativeSeparators(part) });
+}
+
 void VlcPlayer::stop() {
   if (!m_mp) return;
   if (m_recording) record(false);
