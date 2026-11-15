@@ -42,8 +42,8 @@ static void leaveField(QQuickItem *it) {
 
 bool KeyFilter::eventFilter(QObject *o, QEvent *e) {
   if (e->type() == QEvent::MouseButtonPress && qobject_cast<QQuickWindow *>(o)) {   // #115: a click outside the text field
-    auto *it = qobject_cast<QQuickItem *>(QGuiApplication::focusObject());
-    if (it && it->window() == o && (it->inherits("QQuickTextInput") || it->inherits("QQuickTextEdit"))) {
+    auto *it = static_cast<QQuickWindow *>(o)->activeFocusItem();   // (the window's own: without a window manager none is "focused")
+    if (it && (it->inherits("QQuickTextInput") || it->inherits("QQuickTextEdit"))) {
       QQuickItem *box = it->parentItem() ? it->parentItem() : it;   // (the field's frame, with its icon)
       const QPointF at = box->mapFromScene(static_cast<QMouseEvent *>(e)->scenePosition());
       if (!box->contains(at)) leaveField(it);
