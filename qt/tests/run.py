@@ -316,6 +316,22 @@ def jump_hold(c):   # #119: a held skip key adds its steps up and seeks at most 
     c.ok(1900 <= t0 <= 2100, f'the first press seeks at once ({t0} ms)'); c.ok(3900 <= t1 <= 4100, f'the repeats add up to +3 s ({t1} ms)')
 
 @test
+def bookmarks_panel(c):   # #120: Ctrl+Shift+B ("Ctrl+B") opens "Chapters and bookmarks"; Ctrl+B still adds a bookmark
+    c.vals, _ = run(c.name, ['key:Ctrl+B', 'wait:300', 'log:"idle=" + win.dialogs'] + PLAY('video.mp4', 1500) + ['pause', 'seek:2', 'wait:400',
+                    'key:Ctrl+b', 'wait:300', 'log:"marks=" + pb.bookmarks().length', 'key:Ctrl+B', 'wait:500', 'log:"open=" + win.dialogs'])
+    c.eq('idle', 0); c.eq('marks', 1); c.eq('open', 1)
+
+@test
+def subs_expired(c):   # #121: a saved OpenSubtitles login that has run out is dropped at start, with "log in again"
+    import base64
+    prof = os.path.join(OUT, c.name, 'profile'); shutil.rmtree(prof, ignore_errors=True); os.makedirs(prof)
+    b = lambda o: base64.urlsafe_b64encode(json.dumps(o).encode()).decode().rstrip('=')
+    tok = b({'alg': 'HS256'}) + '.' + b({'exp': 1700000000, 'user_id': 1}) + '.sig'
+    with open(os.path.join(prof, 'opensubtitles.json'), 'w') as f: json.dump({'base': 'https://api.opensubtitles.com/api/v1', 'token': tok, 'user': {'name': 'someone'}}, f)
+    c.vals, _ = run(c.name, ['wait:500', 'log:"user=" + subs.user', 'log:"expired=" + subs.expired'], profile=prof)
+    c.eq('user', ''); c.eq('expired', 'true')
+
+@test
 def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
     E, S = 0x45, 0x02000000
     c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])

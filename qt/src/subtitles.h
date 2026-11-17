@@ -14,6 +14,7 @@ class Subs : public QObject {
   QML_ELEMENT
   Q_PROPERTY(bool online READ online CONSTANT)                    // an OpenSubtitles API key is built in
   Q_PROPERTY(QString user READ user NOTIFY userChanged)           // logged in to OpenSubtitles as …
+  Q_PROPERTY(bool expired READ expired NOTIFY userChanged)        // #121: the saved login ran out or was refused (log in again)
 public:
   explicit Subs(QObject *parent = nullptr);
   ~Subs() override;
@@ -30,6 +31,7 @@ public:
 
   bool online() const { return !m_key.isEmpty(); }
   QString user() const { return m_user; }
+  bool expired() const { return m_expired; }
   Q_INVOKABLE void search(const QString &query, const QString &langs, const QString &src);   // → searched(result)
   Q_INVOKABLE void download(int fileId, const QString &src, const QString &lang);            // → downloaded(result)
   Q_INVOKABLE void login(const QString &username, const QString &password);                  // → loggedIn(result)
@@ -45,6 +47,8 @@ private:
   void api(const QByteArray &method, const QString &route, const QVariantMap &body, Done done);
   QVariantMap error(int status, const QString &message, const QVariant &json) const;
   void saveSession() const;
+  void dropSession(const QString &why);
+  bool m_expired = false;
   QString m_key, m_token, m_user, m_base = "https://api.opensubtitles.com/api/v1";
   QNetworkAccessManager m_net;
   QThreadPool m_pool;

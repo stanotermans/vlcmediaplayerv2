@@ -277,7 +277,7 @@ QtObject {
     ["prevChapter", "Previous chapter / bookmark", ["P"], () => jumpMark(-1)],
     ["bookmark", "Add bookmark", ["Ctrl+b"], () => addBookmark()],
     ["abRepeat", "A-B repeat (set A, set B, off)", ["a"], () => abCycle()],
-    ["bookmarks", "Chapters and bookmarks", ["Ctrl+B"], () => {}],
+    ["bookmarks", "Chapters and bookmarks", ["Ctrl+B"], () => ctl.bookmarksPanel()],
     ["dvdMenu", "DVD menu", ["M"], () => ctl.en.showDvdMenu()],
     ["audioEarlier", "Audio delay − (sound earlier)", ["j"], () => nudgeAudio(-10)],
     ["audioLater", "Audio delay + (sound later)", ["J"], () => nudgeAudio(10)]

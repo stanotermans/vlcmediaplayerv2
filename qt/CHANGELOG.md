@@ -1,3 +1,7 @@
+## 3.2.15
+- 🐛 **Chapters and bookmarks window:** Ctrl+Shift+B did nothing, because the window was missing in v3. It lists the file's chapters and your bookmarks: click a time to jump there, rename or remove a bookmark, or add one at the current place. It is also in the menu under *Playback* (#120).
+- 🐛 **OpenSubtitles login that ran out:** after a restart the app could show you as logged in while every download asked you to log in, because OpenSubtitles no longer accepted the saved login. A login that has expired or is refused is now dropped, with a message to log in again (#121).
+
 ## 3.2.14
 - 🐛 **Repeat starts the song from the beginning:** a song that resumed from its saved place went back to that place every time it repeated (#118).
 - 🐛 **Every mouse wheel notch scrolls the same distance:** in the library, the sidebar, the queue and Settings, every other notch could go further than the one before (Qt carried the speed of one notch into the next). The scroll speed setting still applies (#116).

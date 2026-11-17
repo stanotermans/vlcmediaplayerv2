@@ -21,6 +21,7 @@ DialogBox {
     auth: qsTr("OpenSubtitles did not accept the login. Check your username and password."),
     limit: qsTr("Download limit reached for today. It resets at midnight (UTC)."),
     login: qsTr("Log in with a free OpenSubtitles.com account to download subtitles."),
+    expired: qsTr("Your OpenSubtitles login has ended. Log in again to download subtitles."),
     busy: qsTr("OpenSubtitles is busy right now. Try again in a moment."),
     network: qsTr("Could not reach OpenSubtitles. Check your internet connection."),
     write: qsTr("Could not save the subtitle file.")
@@ -49,9 +50,10 @@ DialogBox {
       if (r.remaining !== undefined && r.remaining !== null) dlg.ctl.osd(qsTr("Subtitle loaded · %1 downloads left today").arg(r.remaining));
       dlg.done(true);
     }
+    function onUserChanged() { if (dlg.subs.expired) dlg.loginMsg = dlg.errors.expired; }
     function onLoggedIn(r) { pass.text = ""; dlg.loginMsg = r.error ? dlg.err(r) : ""; if (!r.error) dlg.status = ""; }
   }
-  property string loginMsg: ""
+  property string loginMsg: subs && subs.expired ? errors.expired : ""
   Column {
     width: parent.width; spacing: 8
     Row {   // .osbar

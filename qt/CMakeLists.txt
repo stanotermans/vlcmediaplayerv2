@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(velaplayer VERSION 3.2.14 LANGUAGES C CXX)
+project(velaplayer VERSION 3.2.15 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -31,7 +31,7 @@ qt_add_qml_module(vlcr
     qml/player/Playback.qml qml/player/PlayerView.qml qml/player/ControlBar.qml qml/player/SeekBar.qml
     qml/player/MiniPlayer.qml qml/player/PhoneMiniBar.qml qml/player/PhoneControls.qml qml/player/PipWindow.qml qml/player/PixelCat.qml
     qml/player/Subtitles.qml qml/player/SubtitleView.qml qml/player/LyricsView.qml
-    qml/dialogs/Ask.qml qml/dialogs/NewPlaylist.qml qml/dialogs/Network.qml qml/dialogs/MediaInfo.qml qml/dialogs/SearchSubs.qml
+    qml/dialogs/Ask.qml qml/dialogs/NewPlaylist.qml qml/dialogs/Network.qml qml/dialogs/MediaInfo.qml qml/dialogs/Bookmarks.qml qml/dialogs/SearchSubs.qml
     qml/controls/T.qml qml/controls/Icon.qml qml/controls/IconButton.qml qml/controls/Button.qml
     qml/controls/Toggle.qml qml/controls/Segmented.qml qml/controls/Swatches.qml qml/controls/Slider.qml
     qml/controls/TextField.qml qml/controls/Select.qml qml/controls/ColorField.qml

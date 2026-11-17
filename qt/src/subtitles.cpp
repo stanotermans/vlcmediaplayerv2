@@ -1,5 +1,6 @@
 #include "subtitles.h"
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -63,7 +64,20 @@ Subs::Subs(QObject *parent) : QObject(parent) {
     m_token = o.contains("enc") ? QString::fromUtf8(protect(QByteArray::fromBase64(o["enc"].toString().toLatin1()), false)) : o["token"].toString();
     m_user = m_token.isEmpty() ? QString() : o["user"].toObject()["name"].toString();
     if (o.contains("base")) m_base = o["base"].toString();
+    // #121: the token is a JWT; one that has run out is not offered to OpenSubtitles (it refuses it, and the app would
+    // show you as logged in while every download asks you to log in)
+    const QList<QString> part = m_token.split('.');
+    if (part.size() == 3) {
+      const QJsonObject claims = QJsonDocument::fromJson(QByteArray::fromBase64(part[1].toLatin1(), QByteArray::Base64UrlEncoding)).object();
+      const qint64 exp = qint64(claims["exp"].toDouble());
+      if (exp > 0 && exp <= QDateTime::currentSecsSinceEpoch() + 60) dropSession("the saved login expired at " + QDateTime::fromSecsSinceEpoch(exp).toString(Qt::ISODate));
+    }
   }
+}
+void Subs::dropSession(const QString &why) {
+  qWarning("OpenSubtitles: %s", qUtf8Printable(why));
+  m_token.clear(); m_user.clear(); m_expired = true;
+  saveSession(); emit userChanged();
 }
 Subs::~Subs() { m_pool.waitForDone(5000); }
 
@@ -207,6 +221,11 @@ void Subs::search(const QString &query, const QString &langs, const QString &src
 void Subs::download(int fileId, const QString &src, const QString &lang) {
   if (m_token.isEmpty()) return emit downloaded({ { "error", "login" } });   // OpenSubtitles only allows downloads with a (free) account
   api("POST", "/download", { { "file_id", fileId } }, [=](int status, const QVariant &j, const QString &msg) {
+    // #121: OpenSubtitles no longer accepts the saved login: you are logged out, with a message to log in again
+    if (status == 401 && !m_token.isEmpty()) {
+      dropSession("the login was refused (" + msg + ")");
+      return emit downloaded({ { "error", "expired" }, { "message", msg } });
+    }
     if (!ok(status)) return emit downloaded(error(status, msg, j));
     const QVariantMap r = j.toMap();
     if (r["link"].toString().isEmpty()) return emit downloaded({ { "error", "network" }, { "message", msg } });
@@ -252,7 +271,7 @@ void Subs::login(const QString &username, const QString &password) {
   api("POST", "/login", { { "username", username }, { "password", password } }, [=](int status, const QVariant &j, const QString &msg) {
     if (!ok(status)) return emit loggedIn(error(status, msg, j));
     const QVariantMap r = j.toMap();
-    m_token = r["token"].toString();
+    m_token = r["token"].toString(); m_expired = false;
     m_user = r["user"].toMap().value("username", username).toString();
     if (!r["base_url"].toString().isEmpty()) m_base = "https://" + r["base_url"].toString().remove(QRegularExpression("^https?://")).remove(QRegularExpression("/+$")) + "/api/v1";
     saveSession(); emit userChanged();
@@ -261,7 +280,7 @@ void Subs::login(const QString &username, const QString &password) {
 }
 void Subs::logout() {
   if (!m_token.isEmpty()) api("DELETE", "/logout", {}, [](int, const QVariant &, const QString &) {});
-  m_token.clear(); m_user.clear(); m_base = "https://api.opensubtitles.com/api/v1";
+  m_token.clear(); m_user.clear(); m_expired = false; m_base = "https://api.opensubtitles.com/api/v1";
   QFile::remove(dataDir() + "/opensubtitles.json");
   emit userChanged();
 }

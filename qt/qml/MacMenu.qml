@@ -44,6 +44,7 @@ P.MenuBar {
     P.MenuItem { text: qsTr("Normal speed"); onTriggered: bar.pb.runAction("normalSpeed") }
     P.MenuSeparator {}
     P.MenuItem { text: qsTr("Add bookmark"); shortcut: "Ctrl+B"; enabled: !!bar.ctl.current; onTriggered: bar.pb.runAction("bookmark") }
+    P.MenuItem { text: qsTr("Chapters and bookmarks…"); shortcut: "Ctrl+Shift+B"; enabled: !!bar.ctl.current; onTriggered: bar.pb.runAction("bookmarks") }
   }
   P.Menu {
     title: qsTr("Video")

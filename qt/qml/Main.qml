@@ -937,6 +937,7 @@ C.ApplicationWindow {
           { label: qsTr("%1 s back").arg(Settings.values.jump), kbd: "←", action: () => pb.seekTo(pb.curTime() - Settings.values.jump) },
           { sep: true },
           { label: qsTr("Add bookmark"), icon: "bookmark", kbd: "Ctrl + B", action: () => pb.addBookmark(), disabled: !it },
+          { label: qsTr("Chapters and bookmarks…"), kbd: "Ctrl + Shift + B", action: () => bookmarksPanel(), disabled: !it },
           { sep: true }, { header: qsTr("A-B repeat") },
           { label: ab.a !== null ? qsTr("Set point A (%1)").arg(pb.fmt(ab.a)) : qsTr("Set point A"), kbd: "A", action: () => pb.abSet("a"), disabled: !it },
           { label: ab.b !== null ? qsTr("Set point B (%1)").arg(pb.fmt(ab.b)) : qsTr("Set point B"), action: () => pb.abSet("b"), disabled: !it },
@@ -981,6 +982,7 @@ C.ApplicationWindow {
       { label: qsTr("Quit"), icon: "quit", kbd: "Ctrl + Q", action: quit }
     ];
   }
+  function bookmarksPanel() { if (current) dialog("dialogs/Bookmarks.qml", { pb: pb }); else osd(qsTr("Nothing is playing")); }   // #120
   function mediaInfo() { if (current) dialog("dialogs/MediaInfo.qml", { it: library.item(current.src) }); else osd(qsTr("Nothing is playing")); }
   function titleMenu(x, y) {
     menu(openMediaItems().concat([{ sep: true },
