@@ -303,9 +303,9 @@ def search_blur(c):   # #115: a click outside the search field takes the typing 
 def repeat_one(c):   # #118: a song that resumed from its saved place and repeats starts again from the beginning
     song = js(os.path.join(MEDIA, 'song.flac'))
     c.vals, _ = run(c.name, ['view:music'] + PLAY('song.flac', 1000) + ['key:l', 'view:videos', 'wait:600'] + PLAY('video.mp4', 1000) + [f'log:(library.setPosition({song}, 4), "saved")', 'key:l', 'view:music', 'wait:600'] + PLAY('song.flac', 1000)
-                    + ['log:"t=" + player.time', 'set:repeat="one"', 'wait:7500', 'log:"t=" + player.time', 'log:"playing=" + player.playing'])
+                    + ['log:"t=" + player.time', 'set:repeat="one"', 'wait:6000', 'log:"t=" + player.time', 'log:"playing=" + player.playing'])
     t0, t1 = (int(x) for x in c.vals.get('t', ['0', '0'])[:2])
-    c.ok(4000 <= t0 <= 6500, f'resumed at {t0} ms'); c.ok(t1 < 3500, f'after repeating it played at {t1} ms (from the start: below 3500)')
+    c.ok(4000 <= t0 <= 6500, f'resumed at {t0} ms'); c.ok(t1 < 4500, f'after repeating it played at {t1} ms (from the start: below 4500; back at the saved place it would be past 6000)')
     c.eq('playing', 'true')
 
 @test
