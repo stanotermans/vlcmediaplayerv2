@@ -356,7 +356,7 @@ void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &opti
 }
 void VlcPlayer::play() {
   if (!m_mp) return;
-  if (m_state == 6) { vlc.mp_stop(MP(m_mp)); vlc.mp_play(MP(m_mp)); return; }   // ended: from the start
+  if (m_state == 6) { open(m_src, 0, m_opts); return; }   // ended: from the start (#118: not from where it was opened at)
   vlc.mp_set_pause(MP(m_mp), 0);
 }
 void VlcPlayer::pause() { if (m_mp) vlc.mp_set_pause(MP(m_mp), 1); }
@@ -375,7 +375,7 @@ void VlcPlayer::seek(qint64 ms) {
     m_pauseWhenPlaying = paused;
     return;
   }
-  if (m_state == 6) { vlc.mp_stop(MP(m_mp)); vlc.mp_play(MP(m_mp)); m_state = 0; }
+  if (m_state == 6) { open(m_src, ms, m_opts); return; }   // ended: open it again there (#118: a restart kept its start time)
   vlc.mp_set_time(MP(m_mp), ms);
   m_time = ms; emit timeChanged();
 }

@@ -16,6 +16,7 @@ DialogBox {
   Flickable {
     width: parent.width; height: Math.min(grid.height, (C.Overlay.overlay ? C.Overlay.overlay.height : 800) - 220)
     contentHeight: grid.height; clip: true; boundsBehavior: Flickable.StopAtBounds
+    WheelScroll {}   // #116
     C.ScrollBar.vertical: ScrollBar {}
     Grid {   // .kbgrid
       id: grid

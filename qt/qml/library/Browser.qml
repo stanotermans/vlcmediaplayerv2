@@ -114,6 +114,7 @@ Item {
     spacing: list ? 0 : phone ? 14 : 22
     cacheBuffer: 800
     C.ScrollBar.vertical: ScrollBar {}
+    WheelScroll {}   // #116
     delegate: Item {
       id: row
       required property var modelData

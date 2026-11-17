@@ -34,6 +34,7 @@ Rectangle {
     anchors { left: parent.left; right: parent.right; top: sub.bottom; bottom: parent.bottom; leftMargin: 6; rightMargin: 6 }
     topMargin: 8; bottomMargin: 8
     clip: true
+    WheelScroll {}   // #116
     boundsBehavior: Flickable.StopAtBounds
     model: root.sd.rows
     C.ScrollBar.vertical: ScrollBar {}

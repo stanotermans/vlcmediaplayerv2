@@ -22,6 +22,7 @@ DialogBox {
   Flickable {
     width: parent.width; height: Math.min(md.implicitHeight, 420)
     contentHeight: md.implicitHeight; clip: true; boundsBehavior: Flickable.StopAtBounds
+    WheelScroll {}   // #116
     C.ScrollBar.vertical: ScrollBar {}
     T {
       id: md

@@ -206,7 +206,7 @@ Rectangle {
         SettingRow { label: "Search online"; Button { text: "OpenSubtitles…"; onClicked: { root.open = false; root.ctl.searchSubtitles(); } } }
       }
       Section { title: "Synchronization"
-        Slider { label: "Subtitle delay"; box: true; min: -10; max: 10; step: 0.05; center: true; controlled: true; value: root.sb.delay; fmt: v => v.toFixed(3) + " s"
+        Slider { label: "Subtitle delay"; box: true; min: -60; max: 60; step: 0.05; center: true; controlled: true; value: root.sb.delay; fmt: v => v.toFixed(3) + " s"
                  onMoved: v => { root.sb.delay = v; root.ctl.player.setSpuDelay(v); } }
         Item { width: parent.width; height: 14   // .scale
           T { text: "−10 s"; px: 11; color: Theme.muted } T { anchors.horizontalCenter: parent.horizontalCenter; text: "0 s"; px: 11; color: Theme.muted }

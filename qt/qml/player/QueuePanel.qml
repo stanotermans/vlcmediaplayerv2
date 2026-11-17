@@ -62,6 +62,7 @@ Rectangle {
     id: list
     anchors { left: parent.left; right: parent.right; top: rule.bottom; bottom: parent.bottom; leftMargin: 6; rightMargin: 6; bottomMargin: 6 }
     topMargin: 6; bottomMargin: 6
+    WheelScroll {}   // #116
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     model: root.q

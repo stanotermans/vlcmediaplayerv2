@@ -300,6 +300,22 @@ def search_blur(c):   # #115: a click outside the search field takes the typing 
     c.eq('f', 'true', 0); c.eq('f', 'true', 1)
 
 @test
+def repeat_one(c):   # #118: a song that resumed from its saved place and repeats starts again from the beginning
+    song = js(os.path.join(MEDIA, 'song.flac'))
+    c.vals, _ = run(c.name, ['view:music'] + PLAY('song.flac', 1000) + ['key:l', 'view:videos', 'wait:600'] + PLAY('video.mp4', 1000) + [f'log:(library.setPosition({song}, 4), "saved")', 'key:l', 'view:music', 'wait:600'] + PLAY('song.flac', 1000)
+                    + ['log:"t=" + player.time', 'set:repeat="one"', 'wait:7500', 'log:"t=" + player.time', 'log:"playing=" + player.playing'])
+    t0, t1 = (int(x) for x in c.vals.get('t', ['0', '0'])[:2])
+    c.ok(4000 <= t0 <= 6500, f'resumed at {t0} ms'); c.ok(t1 < 3500, f'after repeating it played at {t1} ms (from the start: below 3500)')
+    c.eq('playing', 'true')
+
+@test
+def jump_hold(c):   # #119: a held skip key adds its steps up and seeks at most every 250 ms
+    c.vals, _ = run(c.name, ['set:jump=1'] + PLAY('video.mp4', 1500) + ['pause', 'seek:1', 'wait:500',
+                    'log:(pb.key("ArrowRight", false, 0), pb.key("ArrowRight", true, 0), pb.key("ArrowRight", true, 0), "t=" + player.time)', 'wait:700', 'log:"t=" + player.time'])
+    t0, t1 = (int(x) for x in c.vals.get('t', ['0', '0'])[:2])
+    c.ok(1900 <= t0 <= 2100, f'the first press seeks at once ({t0} ms)'); c.ok(3900 <= t1 <= 4100, f'the repeats add up to +3 s ({t1} ms)')
+
+@test
 def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
     E, S = 0x45, 0x02000000
     c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])

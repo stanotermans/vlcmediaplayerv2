@@ -1,3 +1,9 @@
+## 3.2.14
+- 🐛 **Repeat starts the song from the beginning:** a song that resumed from its saved place went back to that place every time it repeated (#118).
+- 🐛 **Every mouse wheel notch scrolls the same distance:** in the library, the sidebar, the queue and Settings, every other notch could go further than the one before (Qt carried the speed of one notch into the next). The scroll speed setting still applies (#116).
+- ✨ **Subtitle delay up to ±60 seconds** in the quick panel (it stopped at ±10) (#117).
+- 🐛 Holding a skip key (→/←) seeks at most four times a second, with the steps in between added up, instead of at every key repeat (#119).
+
 ## 3.2.13
 - 🐛 **Seeking in Ogg files lands where you click:** in some .ogg files playback jumped seconds past the chosen point, more the further into the song. libVLC's own Ogg reader seeks inaccurately; an Ogg file is now copied once into Matroska (without re-encoding, kept with the app's data) and played from that copy, where seeking is exact. The first seek in a new file switches to the copy (#114).
 - 🐛 **The search field lets go:** a click outside it ends typing, so the keyboard shortcuts work again instead of typing into the search (#115).

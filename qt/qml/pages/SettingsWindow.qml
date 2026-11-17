@@ -54,6 +54,7 @@ DialogBox {
       ListView {
         anchors { left: parent.left; right: parent.right; top: proCard.visible ? proCard.bottom : search.bottom; bottom: about.top; leftMargin: 10; rightMargin: 10; topMargin: 10; bottomMargin: 6 }
         clip: true
+        WheelScroll {}   // #116
         model: win.cats
         C.ScrollBar.vertical: ScrollBar {}
         delegate: Loader {
@@ -108,6 +109,7 @@ DialogBox {
       }
       Flickable {   // .gcontent
         id: flick
+        WheelScroll {}   // #116
         anchors { left: parent.left; right: parent.right; top: top.bottom; bottom: parent.bottom; leftMargin: win.phone ? 14 : 24 }
         contentHeight: (SettingsSearch.q ? results.implicitHeight : page.implicitHeight) + 34
         clip: true

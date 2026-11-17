@@ -97,7 +97,19 @@ QtObject {
   }
   function prev() { if (curTime() > 3) return seekTo(0); step(-1); }
   function seekTo(t) { const d = curDur(); t = Math.max(0, d ? Math.min(d - 0.5, t) : t); player.seek(t * 1000); }
-  function jumpBy(d, label) { if (!it) return; seekTo(curTime() + d); osd(label); }
+  // #119: a held skip key seeks at most every 250 ms (the steps in between add up): a seek every key repeat could
+  // leave libVLC's sound out of step for a while (with MP3 the pitch dropped for a few seconds)
+  property real seekGoal: -1
+  property double lastJump: 0
+  property Timer jumpLater: Timer { interval: 250; onTriggered: { const t = pb.seekGoal; pb.seekGoal = -1; pb.lastJump = Date.now(); if (t >= 0) pb.seekTo(t); } }
+  function jumpBy(d, label) {
+    if (!it) return;
+    const dur = curDur(), from = seekGoal >= 0 ? seekGoal : curTime();
+    const t = Math.max(0, dur ? Math.min(dur - 0.5, from + d) : from + d);
+    if (Date.now() - lastJump < 250 || jumpLater.running) { seekGoal = t; if (!jumpLater.running) jumpLater.start(); }
+    else { lastJump = Date.now(); seekTo(t); }
+    osd(label);
+  }
 
   // ---------- positions and watched marks ----------
   function savePos() {

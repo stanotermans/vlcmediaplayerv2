@@ -20,6 +20,7 @@ DialogBox {
       border.width: 1; border.color: urls.activeFocus ? Theme.accent : Theme.line
       Flickable {
         id: fl
+        WheelScroll {}   // #116
         anchors { fill: parent; margins: 8 }
         contentHeight: urls.contentHeight; clip: true
         TextEdit {
