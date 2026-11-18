@@ -27,7 +27,12 @@ cd "$WORK"
 
 fetch() { [ -f "$2" ] || curl -fsSL --retry 3 -o "$2" "$1"; }
 fetch "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz" ffmpeg.tar.xz
-fetch "https://code.videolan.org/videolan/x264/-/archive/$X264_HASH/x264-$X264_HASH.tar.bz2" x264.tar.bz2
+# x264 through git: code.videolan.org answers archive downloads from CI with a bot check page instead of the archive
+if [ ! -f x264.tar.bz2 ]; then
+  rm -rf x264-git && git init -q x264-git
+  git -C x264-git fetch -q --depth 1 https://code.videolan.org/videolan/x264.git "$X264_HASH"
+  git -C x264-git archive --prefix=x264/ FETCH_HEAD | bzip2 > x264.tar.bz2 && rm -rf x264-git
+fi
 fetch "https://download.videolan.org/pub/videolan/libdvdread/$DVDREAD_VERSION/libdvdread-$DVDREAD_VERSION.tar.bz2" dvdread.tar.bz2
 fetch "https://download.videolan.org/pub/videolan/libdvdnav/$DVDNAV_VERSION/libdvdnav-$DVDNAV_VERSION.tar.bz2" dvdnav.tar.bz2
 fetch "https://download.videolan.org/pub/videolan/dav1d/$DAV1D_VERSION/dav1d-$DAV1D_VERSION.tar.xz" dav1d.tar.xz
