@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(velaplayer VERSION 3.2.15 LANGUAGES C CXX)
+project(velaplayer VERSION 3.2.16 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

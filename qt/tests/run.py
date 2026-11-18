@@ -332,6 +332,14 @@ def subs_expired(c):   # #121: a saved OpenSubtitles login that has run out is d
     c.eq('user', ''); c.eq('expired', 'true')
 
 @test
+def setup_cleanup(c):   # #122: (Windows) an installer left in the temp folder by an update is removed after the start
+    if sys.platform != 'win32': return c.ok(True, 'Windows only')
+    tmp = os.path.join(OUT, c.name, 'temp'); shutil.rmtree(tmp, ignore_errors=True); os.makedirs(tmp)
+    for f in ('Vela-Player-Setup-3.2.14-x64.exe', 'Vela-Player-Setup-3.2.15-x64.exe.part', 'other-Setup.exe'): open(os.path.join(tmp, f), 'w').close()
+    run(c.name, ['wait:11500'], extra_env={'TEMP': tmp, 'TMP': tmp})
+    c.ok(sorted(os.listdir(tmp)) == ['other-Setup.exe'], f'left in temp: {sorted(os.listdir(tmp))}')
+
+@test
 def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
     E, S = 0x45, 0x02000000
     c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])

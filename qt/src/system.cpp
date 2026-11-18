@@ -52,7 +52,17 @@ static const char *REPO = "stanotermans/vlcmediaplayerv2";
 System *System::instance = nullptr;
 static QString serverName() { return "vela-player-" + QString::fromLocal8Bit(qgetenv("USERNAME").isEmpty() ? qgetenv("USER") : qgetenv("USERNAME")); }
 
-System::System(QObject *parent) : QObject(parent) { instance = this; }
+System::System(QObject *parent) : QObject(parent) {
+  instance = this;
+#ifdef Q_OS_WIN
+  // #122: the installer that an update downloaded into the temp folder is removed once the new version runs (a few
+  // seconds later, when the installer has let go of it; one still in use is tried again at the next start)
+  QTimer::singleShot(10000, this, []() {
+    QDir t(QStandardPaths::writableLocation(QStandardPaths::TempLocation));
+    for (const QString &f : t.entryList({ "Vela-Player-Setup-*.exe", "Vela-Player-Setup-*.exe.part" }, QDir::Files)) QFile::remove(t.filePath(f));
+  });
+#endif
+}
 System::~System() {
 #ifdef Q_OS_WIN
   if (m_smtc) static_cast<ISystemMediaTransportControls *>(m_smtc)->Release();

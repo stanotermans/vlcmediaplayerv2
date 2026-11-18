@@ -1,3 +1,6 @@
+## 3.2.16
+- 🐛 **The update's installer no longer stays behind:** on Windows, the installer that an update downloads into the temp folder is removed once the new version has started (#122).
+
 ## 3.2.15
 - 🐛 **Chapters and bookmarks window:** Ctrl+Shift+B did nothing, because the window was missing in v3. It lists the file's chapters and your bookmarks: click a time to jump there, rename or remove a bookmark, or add one at the current place. It is also in the menu under *Playback* (#120).
 - 🐛 **OpenSubtitles login that ran out:** after a restart the app could show you as logged in while every download asked you to log in, because OpenSubtitles no longer accepted the saved login. A login that has expired or is refused is now dropped, with a message to log in again (#121).
