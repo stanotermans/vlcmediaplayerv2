@@ -11,6 +11,8 @@ Column {
                  Toggle { path: "fastSeek" } }
     SettingRow { label: "Always play with FFmpeg"; info: "File types (extensions) that VLC reads and decodes with FFmpeg, for files that don't play well otherwise. Separate them with commas. Also in the right-click menu of a file."
                  TextField { width: 220; path: "classicTypes"; placeholder: "e.g. tgv, bik" } }
+    SettingRow { label: "Extra VLC options"; info: "VLC command-line options for settings that aren't in Vela, separated by spaces, e.g. --network-caching=60000. Options that work per file apply from the next file on, the others after a restart. Options VLC doesn't know are ignored."
+                 TextField { width: 220; path: "vlcArgs"; placeholder: "e.g. --network-caching=60000" } }
   }
   Section {
     title: "Defaults"

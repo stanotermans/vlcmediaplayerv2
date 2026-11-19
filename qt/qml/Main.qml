@@ -120,11 +120,23 @@ C.ApplicationWindow {
       { label: qsTr("Play"), icon: "play", accent: true, action: () => { clearSelection(); playItem(list[0], list); } },
       { label: qsTr("Add %1 items to a playlist…").arg(n), icon: "playlist", action: () => addToPlaylist(srcs) },
       { label: allWatched ? qsTr("Mark as unwatched") : qsTr("Mark as watched"), icon: "eye", action: () => library.setWatched(srcs, !allWatched) },
+      { label: qsTr("Remove text from names…"), icon: "general", action: () => removeFromNames(list) },   // #125
+      srcs.some(s => library.hasOwnName(s)) ? { label: qsTr("Original names"), icon: "general", action: () => library.resetNames(srcs) } : null,
       { sep: true },
       inOwnPlaylist
         ? { label: qsTr("Remove %1 items from playlist").arg(n), icon: "trash", danger: true, action: () => { library.removeFromPlaylist(nav.pl, srcs); clearSelection(); } }
         : { label: qsTr("Remove %1 items from library").arg(n), icon: "trash", danger: true, action: () => removeItems(srcs) }
     ];
+  }
+  // #125: take a piece of text out of the names of the selected items (shown in the app only; the files keep their
+  // names). Suggested: the beginning all the names share, up to a separator ("Artist - Album - ")
+  function removeFromNames(list) {
+    const names = list.map(i => i.name || "");
+    let p = names.reduce((a, b) => { let k = 0; while (k < a.length && k < b.length && a[k] === b[k]) k++; return a.slice(0, k); });
+    if (names.length > 1 && !/[\s\-_.]$/.test(p)) p = p.replace(/[^\s\-_.]*$/, "");
+    dialog("dialogs/Ask.qml", { title: "Remove text from names", mode: "prompt", value: p, okLabel: "Remove",
+                                text: qsTr("This text is taken out of the names of the %1 selected items. Only the names in Vela change, not the files.").arg(list.length) },
+           v => { if (!v) return; const n = library.removeFromNames(list.map(i => i.src), v); osd(n ? qsTr("%1 names changed").arg(n) : qsTr("No name contains this text")); });
   }
   function removeItems(srcs) {
     if (current && srcs.indexOf(current.src) >= 0) pb.stop();

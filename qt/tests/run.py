@@ -340,6 +340,26 @@ def setup_cleanup(c):   # #122: (Windows) an installer left in the temp folder b
     c.ok(sorted(os.listdir(tmp)) == ['other-Setup.exe'], f'left in temp: {sorted(os.listdir(tmp))}')
 
 @test
+def vlc_args(c):   # #123: Extra VLC options go to every file; an option libVLC doesn't know doesn't stop playback
+    c.vals, _ = run(c.name, ['set:vlcArgs="--network-caching=3000 --bogus-option-x=1 --gnutls-priorities=\\"PERFORMANCE\\""'] + PLAY('video.mp4', 2500)
+                    + ['log:"opts=" + en.options(current.src).join(" ")', 'log:"t=" + player.time'])
+    o = c.get('opts'); c.ok(':network-caching=3000' in o and ':gnutls-priorities=PERFORMANCE' in o, f'options: {o!r}')
+    c.ok(int(c.get('t') or 0) > 500, f'plays ({c.get("t")} ms)')
+
+@test
+def mouse_buttons(c):   # #124: right and middle click actions in the player
+    c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['log:(playerView.mouseAction("mute"), "muted=" + player.muted)',
+                    'log:(playerView.mouseAction("play"), "x")', 'wait:600', 'log:"playing=" + player.playing'])
+    c.eq('muted', 'true'); c.eq('playing', 'false')
+
+@test
+def own_names(c):   # #125: text taken out of the names of selected items (in the app only), and the names back
+    S = 'library.items.filter(i => /(video|surround)[.]mp4$/.test(i.src)).map(i => i.src)'
+    c.vals, _ = run(c.name, ['view:videos', 'wait:1500', f'log:"n=" + {S}.length', f'log:"changed=" + library.removeFromNames({S}, "sur")',
+                    f'log:"names=" + {S}.map(s => library.item(s).name).sort().join("|")', f'log:(library.resetNames({S}), "back=" + {S}.map(s => library.item(s).name).sort().join("|"))'])
+    c.eq('n', 2); c.eq('changed', 1); c.eq('names', 'round.mp4|video.mp4'); c.eq('back', 'surround.mp4|video.mp4')
+
+@test
 def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
     E, S = 0x45, 0x02000000
     c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])

@@ -253,6 +253,7 @@ void Library::load() {
   for (const auto &w : o["watched"].toArray()) m_watched[w.toString()] = true;
   m_positions = o["positions"].toObject().toVariantMap();
   m_bookmarks = o["bookmarks"].toObject().toVariantMap();
+  m_names = o["names"].toObject().toVariantMap();
   m_loading = true;
   for (const auto &e : o["library"].toArray()) { const QJsonObject it = e.toObject(); bool n; addOne(it["src"].toString(), true, (qint64)it["added"].toDouble(), &n); }
   m_loading = false;
@@ -268,6 +269,7 @@ void Library::save() {
   o["watched"] = m_remember ? QJsonArray::fromStringList(m_watched.keys()) : QJsonArray();
   o["positions"] = QJsonObject::fromVariantMap(m_positions);
   o["bookmarks"] = QJsonObject::fromVariantMap(m_bookmarks);
+  o["names"] = QJsonObject::fromVariantMap(m_names);
   QSaveFile f(dataDir() + "/library.json");
   if (f.open(QIODevice::WriteOnly)) { f.write(QJsonDocument(o).toJson(QJsonDocument::Compact)); f.commit(); }
   QJsonObject cache;   // only the files that are still in the library
@@ -349,7 +351,7 @@ void Library::addOne(const QString &src, bool manual, qint64 added, bool *isNew)
     return;
   }
   const bool remote = isRemote(src);
-  m_items << QVariantMap{ { "src", src }, { "name", itemName(src) }, { "remote", remote }, { "type", AUDIO_RE.match(src).hasMatch() ? "audio" : "video" },
+  m_items << QVariantMap{ { "src", src }, { "name", m_names.value(src, itemName(src)).toString() }, { "remote", remote }, { "type", AUDIO_RE.match(src).hasMatch() ? "audio" : "video" },
                           { "thumb", QString() }, { "duration", 0.0 }, { "added", (double)(added ? added : m_batch ? m_batch : QDateTime::currentMSecsSinceEpoch()) }, { "manual", manual }, { "ready", false } };
   m_index[src] = m_items.size() - 1;
   *isNew = true;
@@ -509,6 +511,31 @@ void Library::setPosition(const QString &src, double secs) {
   if (secs > 0) m_positions[src] = secs; else m_positions.remove(src);
   emit positionsChanged(); m_saveTimer.start();
 }
+void Library::setName(const QString &src, const QString &name) {
+  if (name.isEmpty() || name == itemName(src)) m_names.remove(src); else m_names[src] = name;
+  const int i = indexOf(src);
+  if (i >= 0) { QVariantMap it = m_items[i].toMap(); it["name"] = m_names.value(src, itemName(src)); m_items[i] = it; }
+}
+int Library::removeFromNames(const QStringList &srcs, const QString &text) {
+  if (text.isEmpty()) return 0;
+  static const QRegularExpression edge(R"(^[\s\-_.,:;|\x{00B7}\x{2013}\x{2014}]+|[\s\-_.,:;|\x{00B7}\x{2013}\x{2014}]+$)");
+  int n = 0;
+  for (const QString &src : srcs) {
+    const int i = indexOf(src); if (i < 0) continue;
+    const QString was = m_items[i].toMap()["name"].toString();
+    QString now = QString(was).replace(text, " ").simplified().remove(edge);
+    if (now.isEmpty() || now == was) continue;
+    setName(src, now); n++;
+  }
+  if (n) { changed(); m_saveTimer.start(); }
+  return n;
+}
+void Library::resetNames(const QStringList &srcs) {
+  bool any = false;
+  for (const QString &src : srcs) if (m_names.contains(src)) { setName(src, QString()); any = true; }
+  if (any) { changed(); m_saveTimer.start(); }
+}
+
 // sorted by time, rounded to milliseconds; an empty list removes the file's bookmarks
 void Library::setBookmarks(const QString &src, const QVariantList &given) {
   QVariantList list;

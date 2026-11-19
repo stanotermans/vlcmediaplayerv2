@@ -41,7 +41,16 @@ QtObject {
   property Connections started: Connections { target: en.player; function onVersionChanged() { en.applyAll(); } }
   // passthrough (Settings → Audio): Dolby/DTS go to the receiver as they are; a libVLC start option
   // (Windows: WASAPI incl. the HD formats; elsewhere VLC's S/PDIF option)
-  readonly property var startArgs: Settings.values.passthrough ? [Qt.platform.os === "windows" ? "--mmdevice-passthrough=2" : "--spdif"] : []
+  readonly property var startArgs: (Settings.values.passthrough ? [Qt.platform.os === "windows" ? "--mmdevice-passthrough=2" : "--spdif"] : []).concat(extraArgs())
+  // #123: Settings → Playback → Extra VLC options ("--network-caching=60000 --gnutls-priorities=PERFORMANCE"): given to
+  // libVLC at the start (all options, after a restart) and to every file (as ":network-caching=60000": the options that
+  // work per file apply from the next file on). Quotes keep spaces in a value.
+  function extraArgs() {
+    const out = [], re = /(?:^|\s)--?([A-Za-z0-9][A-Za-z0-9-]*)(?:=("[^"]*"|'[^']*'|\S*))?/g, s = String(Settings.values.vlcArgs || "");
+    let m;
+    while ((m = re.exec(s))) out.push("--" + m[1] + (m[2] !== undefined ? "=" + m[2].replace(/^(["'])(.*)\1$/, "$2") : ""));
+    return out;
+  }
 
   // MIDI: libVLC's FluidSynth plays it with the chosen SoundFont, or the built-in FluidR3 Mono
   readonly property var midiRe: /\.(mid|midi|kar|rmi|smf)$/i
@@ -56,6 +65,7 @@ QtObject {
   function options(src) {
     const o = midiRe.test(src) ? [":soundfont=" + (Settings.values.soundfont || ctl.library.builtinSoundfont())] : [];
     if (byFfmpeg(src)) o.push(":vlcr-ffmpeg=" + ((ctl.library.item(src) || {}).duration || 0));   // #66: converted by FFmpeg
+    for (const a of extraArgs()) o.push(":" + a.slice(2));   // #123
     const x = extra[src];
     if (x) o.push(":input-slave=" + (/^[a-z][a-z0-9+.-]*:\/\//i.test(x) ? x : "file:///" + x.replace(/\\/g, "/").replace(/^\/+/, "")));
     return o;

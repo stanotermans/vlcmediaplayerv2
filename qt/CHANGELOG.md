@@ -1,3 +1,8 @@
+## 3.2.17
+- ✨ **Extra VLC options:** Settings → Playback → *Extra VLC options* takes VLC command-line options for settings that aren't in Vela, such as `--network-caching=60000`. Options that work per file apply from the next file on, the others after a restart; if libVLC doesn't know an option, Vela starts without the extra options instead of not playing (#123).
+- ✨ **Right and middle mouse button in the player:** Settings → Controls → Mouse. Right-click can open the menu (as before), switch fullscreen on and off, or play/pause; middle-click can do nothing (as before), play/pause, stop, switch fullscreen, mute or quit (#124).
+- ✨ **Remove text from names:** with several items selected, *Remove text from names…* takes a piece of text out of all their names, such as the artist and album at the start of every track (suggested: the beginning they share). Only the names in Vela change, not the files; *Original names* brings them back (#125).
+
 ## 3.2.16
 - 🐛 **The update's installer no longer stays behind:** on Windows, the installer that an update downloads into the temp folder is removed once the new version has started (#122).
 

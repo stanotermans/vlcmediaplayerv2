@@ -219,13 +219,20 @@ Rectangle {
     }
   }
 
+  function mouseAction(a) {
+    if (a === "fullscreen") root.ctl.toggleFs();
+    else if (a === "play") root.ctl.pb.togglePlay();
+    else if (a === "stop") root.ctl.pb.stop();
+    else if (a === "mute") root.ctl.player.muted = !root.ctl.player.muted;
+    else if (a === "quit") root.ctl.quit();
+  }
   // clicks on the picture (not on the cat): play/pause, double click fullscreen, hold for 2×, wheel volume
   MouseArea {
     id: area
     enabled: !root.ctl.phone   // (a phone: PhoneControls takes the taps and swipes)
     anchors.fill: parent
     z: -1
-    acceptedButtons: Qt.LeftButton | Qt.RightButton
+    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
     hoverEnabled: true
     cursorShape: root.ctl.cursorHidden ? Qt.BlankCursor : root.on360 ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor) : Qt.ArrowCursor
     property bool skipClick: false
@@ -247,7 +254,13 @@ Rectangle {
     onCanceled: { hold.stop(); if (root.ctl.pb.fast && root.ctl.pb.fastKey === 0) root.ctl.pb.fastEnd(); }
     onClicked: m => {
       if (skipClick) { skipClick = false; return; }
-      if (m.button === Qt.RightButton) { const p = mapToItem(null, m.x, m.y); root.ctl.menu(root.ctl.playerMenu(), p.x, p.y); return; }
+      // #124: what the right and middle button do (Settings → Controls → Mouse)
+      if (m.button === Qt.RightButton) {
+        const r = Settings.values.rightClick || "menu";
+        if (r === "menu") { const p = mapToItem(null, m.x, m.y); root.ctl.menu(root.ctl.playerMenu(), p.x, p.y); } else root.mouseAction(r);
+        return;
+      }
+      if (m.button === Qt.MiddleButton) return root.mouseAction(Settings.values.middleClick || "none");
       if (root.ctl.en.dvdMenu) return;            // the menu's buttons take the clicks
       click.restart();
     }

@@ -40,6 +40,11 @@ public:
   QVariantMap positions() const { return m_positions; }
   QVariantMap bookmarks() const { return m_bookmarks; }
   Q_INVOKABLE void setBookmarks(const QString &src, const QVariantList &list);
+  // #125: names shown in the app (the files keep theirs): the text taken out of each name (→ how many changed), or
+  // the file names back
+  Q_INVOKABLE int removeFromNames(const QStringList &srcs, const QString &text);
+  Q_INVOKABLE void resetNames(const QStringList &srcs);
+  Q_INVOKABLE bool hasOwnName(const QString &src) const { return m_names.contains(src); }
   int busy() const { return m_busy; }
 
   Q_INVOKABLE void load();
@@ -111,7 +116,8 @@ private:
   QVariantList m_items, m_playlists;
   QHash<QString, int> m_index;
   QStringList m_recent;
-  QVariantMap m_watched, m_positions, m_bookmarks;
+  QVariantMap m_watched, m_positions, m_bookmarks, m_names;
+  void setName(const QString &src, const QString &name);
   void addOne(const QString &src, bool manual, qint64 added, bool *isNew);
   QStringList m_folders;                       // the media folders of the last scan
   QString m_playing;

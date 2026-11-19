@@ -215,9 +215,15 @@ bool VlcPlayer::load() {
 #endif
   // --quiet also keeps libVLC's messages from the log; with the log on they are wanted
   QList<QByteArray> keep = { "--no-video-title-show", "--no-sub-autodetect-file", logFile().isEmpty() ? "--quiet" : "--verbose=2", "--no-osd", "--no-snapshot-preview", "--no-stats", "--no-lua" };
-  for (const QString &a : m_startArgs) keep << a.toUtf8();
-  QVector<const char *> args; for (const QByteArray &a : keep) args << a.constData();
+  QList<QByteArray> all = keep;
+  for (const QString &a : m_startArgs) all << a.toUtf8();
+  QVector<const char *> args; for (const QByteArray &a : all) args << a.constData();
   inst = vlc.new_(args.size(), args.data());
+  if (!inst && all.size() > keep.size()) {   // #123: an option libVLC doesn't know (Extra VLC options) must not stop playback
+    QVector<const char *> base; for (const QByteArray &a : keep) base << a.constData();
+    inst = vlc.new_(base.size(), base.data());
+    if (inst) writeLog(1, "libVLC refused the extra options " + m_startArgs.join(' ') + ": started without them");
+  }
   if (!inst) { m_error = "libvlc_new failed"; emit errorChanged(); return false; }
   m_version = QString::fromUtf8(vlc.get_version());
   vlc.log_set(inst, onLog, nullptr);
