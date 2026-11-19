@@ -1,3 +1,6 @@
+## 3.2.18
+- ✨ **Saving battery** (Settings → Video): **Deinterlacing** can be set to Automatic (as before), Off or On; **Sound only** plays just the sound of videos without decoding the picture (also in the menu under *Video*); **Power saving** decodes video with less work (H.264's in-loop filter skipped, faster decoding, no post-processing). A change applies at once to what is playing (#126).
+
 ## 3.2.17
 - ✨ **Extra VLC options:** Settings → Playback → *Extra VLC options* takes VLC command-line options for settings that aren't in Vela, such as `--network-caching=60000`. Options that work per file apply from the next file on, the others after a restart; if libVLC doesn't know an option, Vela starts without the extra options instead of not playing (#123).
 - ✨ **Right and middle mouse button in the player:** Settings → Controls → Mouse. Right-click can open the menu (as before), switch fullscreen on and off, or play/pause; middle-click can do nothing (as before), play/pause, stop, switch fullscreen, mute or quit (#124).

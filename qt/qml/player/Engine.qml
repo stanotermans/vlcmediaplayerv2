@@ -62,9 +62,20 @@ QtObject {
   // (#76: never MIDI: FFmpeg cannot turn it into sound, libVLC's FluidSynth plays it)
   function byFfmpeg(src) { const e = ext(src); return !!e && !midiRe.test(src) && ffmpegTypes().indexOf(e) >= 0; }
   function setByFfmpeg(e, on) { const l = ffmpegTypes().filter(x => x !== e); if (on) l.push(e); Settings.set("classicTypes", l.join(", ")); }
+  // #126: a change of these settings applies to what is playing at once (opened again from where it is)
+  property Connections settingsWatch: Connections {
+    target: Settings
+    function onChanged(p) { if (["deinterlace", "audioOnly", "powerSave"].indexOf(p) >= 0 && ctl.current) ctl.player.reopen(options(ctl.current.src)); }
+  }
   function options(src) {
     const o = midiRe.test(src) ? [":soundfont=" + (Settings.values.soundfont || ctl.library.builtinSoundfont())] : [];
     if (byFfmpeg(src)) o.push(":vlcr-ffmpeg=" + ((ctl.library.item(src) || {}).duration || 0));   // #66: converted by FFmpeg
+    // #126: deinterlacing off / on (default: libVLC decides), sound only (no picture is decoded), and power saving
+    // (H.264's in-loop filter skipped, the decoder's faster shortcuts on, no post-processing)
+    const di = Settings.values.deinterlace || "auto";
+    if (di === "off") o.push(":deinterlace=0"); else if (di === "on") o.push(":deinterlace=1");
+    if (Settings.values.audioOnly) o.push(":no-video");
+    if (Settings.values.powerSave) o.push(":avcodec-skiploopfilter=4", ":avcodec-fast", ":postproc-q=0");
     for (const a of extraArgs()) o.push(":" + a.slice(2));   // #123
     const x = extra[src];
     if (x) o.push(":input-slave=" + (/^[a-z][a-z0-9+.-]*:\/\//i.test(x) ? x : "file:///" + x.replace(/\\/g, "/").replace(/^\/+/, "")));

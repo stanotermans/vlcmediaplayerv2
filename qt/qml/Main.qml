@@ -960,6 +960,7 @@ C.ApplicationWindow {
           player.titles().map((x, i) => i && !x.menu ? { label: qsTr("Title %1").arg(i) + (x.duration ? "  ·  " + Lib.shortFmt(x.duration / 1000) : ""), checked: player.title === i, action: () => player.setTitle(i) } : null)) : []) },
       { label: qsTr("Video"), icon: "video", sub: () => [
           { label: qsTr("Fullscreen"), icon: "fullscreen", kbd: "F", action: toggleFs },
+          { label: qsTr("Sound only"), checked: !!Settings.values.audioOnly, action: () => Settings.set("audioOnly", !Settings.values.audioOnly) },   // #126
           { label: qsTr("Snapshot"), icon: "camera", kbd: "Shift + S", action: () => pb.snapshot(), disabled: !it },
           { label: qsTr("Picture-in-picture"), icon: "pip", action: togglePip, disabled: !it },
           { label: qsTr("Original size (1:1)"), action: () => originalSize(), disabled: !it || !playerView.showVideo || Theme.mobile },   // #99

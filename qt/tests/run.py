@@ -360,6 +360,15 @@ def own_names(c):   # #125: text taken out of the names of selected items (in th
     c.eq('n', 2); c.eq('changed', 1); c.eq('names', 'round.mp4|video.mp4'); c.eq('back', 'surround.mp4|video.mp4')
 
 @test
+def power_options(c):   # #126: sound only (no picture decoded, from where it was), deinterlacing off and power saving
+    c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['seek:3', 'wait:300', 'set:audioOnly=true', 'wait:1200',
+                    'log:"f0=" + player.framesShown', 'wait:1000', 'log:"a=" + player.framesShown + " " + player.time + " " + playerView.showVideo', 'set:audioOnly=false', 'wait:1200', 'log:"b=" + player.videoSize.width + " " + playerView.showVideo',
+                    'set:deinterlace="off"', 'set:powerSave=true', 'wait:800', 'log:"opts=" + en.options(current.src).join(" ")', 'log:"c=" + player.videoSize.width'])
+    f, t, sv = c.get('a').split(); c.ok(int(f) - int(c.get('f0')) <= 1 and sv == 'false', f'sound only: no picture decoded ({c.get("f0")} → {f} frames, shown {sv})')
+    c.ok(int(t) >= 3000, f'went on from where it was ({t} ms)'); c.ok(c.get('b') == '640 true', f'picture back ({c.get("b")})'); c.ok(c.get('c') == '640', f'plays with power saving ({c.get("c")})')
+    o = c.get('opts'); c.ok(':deinterlace=0' in o and ':avcodec-skiploopfilter=4' in o and ':no-video' not in o, f'options: {o!r}')
+
+@test
 def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
     E, S = 0x45, 0x02000000
     c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])

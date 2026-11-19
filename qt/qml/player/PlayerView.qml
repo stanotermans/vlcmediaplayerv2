@@ -14,7 +14,7 @@ Rectangle {
   property alias video: video
   readonly property var it: ctl.current
   readonly property bool audio: !!it && it.type === "audio"
-  readonly property bool showVideo: !!it && !audio && ctl.player.videoSize.width > 0
+  readonly property bool showVideo: !!it && !audio && ctl.player.videoSize.width > 0 && !Settings.values.audioOnly   // #126: sound only
   readonly property string art: audio ? (it.thumb || "") : ""
   readonly property bool hideCursor: false
   color: showVideo ? "#000000" : Theme.stage

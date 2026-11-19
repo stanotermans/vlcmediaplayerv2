@@ -82,6 +82,7 @@ public:
   Q_INVOKABLE void pause();
   Q_INVOKABLE void togglePause() { m_playing ? pause() : play(); }
   Q_INVOKABLE void seek(qint64 ms);
+  Q_INVOKABLE void reopen(const QStringList &options);   // the same file with other options, from where it is (paused stays paused)
   Q_INVOKABLE void stop();
   static QString oggCopy(const QString &src);   // #114: where the Matroska copy of an Ogg file is kept
   Q_INVOKABLE void nextFrame();

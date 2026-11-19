@@ -366,6 +366,12 @@ void VlcPlayer::play() {
   vlc.mp_set_pause(MP(m_mp), 0);
 }
 void VlcPlayer::pause() { if (m_mp) vlc.mp_set_pause(MP(m_mp), 1); }
+void VlcPlayer::reopen(const QStringList &options) {
+  if (!m_mp || m_src.isEmpty()) return;
+  const bool paused = !m_playing && m_state != 6;
+  open(m_src, m_state == 6 ? 0 : time(), options);
+  m_pauseWhenPlaying = paused;
+}
 void VlcPlayer::seek(qint64 ms) {
   if (!m_mp) return;
   if (m_tc) {   // through FFmpeg: start it again there (paused stays paused)

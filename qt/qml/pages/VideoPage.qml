@@ -9,6 +9,13 @@ Column {
   Section {
     title: "Playback mode"
     SettingRow { label: "Default aspect ratio"; Select { path: "aspect"; options: [["", "Default"], ["fill", "Fill (crop)"], ["stretch", "Stretch"]] } }
+    // #126
+    SettingRow { label: "Deinterlacing"; info: "Removes the comb lines of interlaced video (old TV recordings, DVDs). Automatic only does it for interlaced video; Off saves processing power."
+                 Select { path: "deinterlace"; options: [["auto", "Automatic"], ["off", "Off"], ["on", "On"]] } }
+    SettingRow { label: "Sound only"; info: "Plays only the sound of videos, without decoding the picture: saves battery, for example to listen to a documentary."
+                 Toggle { path: "audioOnly" } }
+    SettingRow { label: "Power saving"; info: "Decodes video with less work (H.264's in-loop filter skipped, faster decoding, no post-processing): a slightly less sharp picture, but less battery and fan noise, and smoother on slow computers."
+                 Toggle { path: "powerSave" } }
   }
   Section {
     title: "Snapshots"
