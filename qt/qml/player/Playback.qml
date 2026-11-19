@@ -13,6 +13,19 @@ QtObject {
   property Frames frames: null
   readonly property var it: ctl ? ctl.current : null
 
+  // #127: a picture size → "480p SD", "720p HD", "1080p Full HD", "1440p QHD", "4K" (a wide 1920 × 800 film is 1080p)
+  function qualityLabel(sz) {
+    if (!sz || sz.width <= 0 || sz.height <= 0) return "";
+    const h = Math.max(Math.min(sz.width, sz.height), Math.round(Math.max(sz.width, sz.height) * 9 / 16));
+    if (h >= 2000) return h >= 4000 ? "8K" : "4K";
+    if (h >= 1400) return "1440p QHD";
+    if (h >= 1000) return "1080p Full HD";
+    if (h >= 700) return "720p HD";
+    const std = [576, 480, 360, 240, 144];
+    let best = std[0];
+    for (const v of std) if (Math.abs(v - h) < Math.abs(best - h)) best = v;
+    return best + "p SD";
+  }
   function fmt(s) { if (!isFinite(s) || s < 0) s = 0; s = Math.floor(s); return [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":"); }
   function curTime() { return player.time / 1000; }
   function curDur() { return player.length > 0 ? player.length / 1000 : (it && it.duration) || 0; }

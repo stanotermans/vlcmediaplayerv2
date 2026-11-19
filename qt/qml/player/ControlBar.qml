@@ -35,6 +35,19 @@ Rectangle {
     id: rightCtl
     anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
     spacing: 6
+    Rectangle {   // #127: the picture's quality ("480p SD", "1080p Full HD"), live: an HLS stream that changes quality updates it
+      id: quality
+      objectName: "qualityBadge"
+      readonly property size sz: root.player.videoSize
+      readonly property string label: root.pb.qualityLabel(sz)
+      visible: root.c.quality !== false && !root.compact && label !== "" && !Settings.values.audioOnly
+      width: ql.implicitWidth + 12; height: 18; radius: 4; anchors.verticalCenter: parent.verticalCenter
+      color: "transparent"; border.width: 1; border.color: qa.containsMouse ? Theme.muted : Theme.line
+      Accessible.role: Accessible.StaticText; Accessible.name: qsTr("Video quality %1").arg(label)
+      T { id: ql; anchors.centerIn: parent; text: quality.label; color: qa.containsMouse ? Theme.text : Theme.muted; px: 11; font.features: { "tnum": 1 } }
+      MouseArea { id: qa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                  onClicked: root.ctl.osd(qsTr("Video: %1 × %2").arg(quality.sz.width).arg(quality.sz.height)) }
+    }
     T {   // #69: a click switches between the length and the time left ("-00:53"), like VLC; the choice is kept
       visible: root.c.time !== false; width: root.compact ? 56 : 70; horizontalAlignment: Text.AlignHCenter; anchors.verticalCenter: parent.verticalCenter
       text: Settings.values.showRemaining ? "-" + root.pb.fmt(Math.max(0, root.pb.curDur() - root.player.time / 1000)) : root.pb.fmt(root.pb.curDur())

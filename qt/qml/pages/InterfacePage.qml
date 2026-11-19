@@ -35,6 +35,7 @@ Column {
     SettingRow { label: "Previous / next"; Toggle { path: "ctl.prevnext" } }
     SettingRow { label: "Play / pause"; Toggle { path: "ctl.play" } }
     SettingRow { label: "Time"; Toggle { path: "ctl.time" } }
+    SettingRow { label: "Video quality"; info: "The quality of the picture next to the length, such as 480p SD or 1080p Full HD. For streams it changes when the stream changes quality."; Toggle { path: "ctl.quality" } }
     SettingRow { label: "Volume"; Toggle { path: "ctl.volume" } }
     SettingRow { label: "Volume bar shape"; Segmented { path: "volShape"; options: [["bar", "Bar"], ["cone", "Cone"]] } }
     SettingRow { label: "Audio"; Toggle { path: "ctl.audio" } }

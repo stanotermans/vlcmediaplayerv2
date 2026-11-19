@@ -30,7 +30,8 @@
    "subs": true,
    "settings": true,
    "queue": true,
-   "library": true
+   "library": true,
+   "quality": true
   },
   "navExpanded": false,
   "autoHideSide": true,
@@ -67,6 +68,7 @@
   "deinterlace": "auto",
   "audioOnly": false,
   "powerSave": false,
+  "maxQuality": 0,
   "forceTx": false,
   "snapshotFormat": "png",
   "snapshotDir": "",

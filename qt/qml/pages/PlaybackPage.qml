@@ -13,6 +13,8 @@ Column {
                  TextField { width: 220; path: "classicTypes"; placeholder: "e.g. tgv, bik" } }
     SettingRow { label: "Extra VLC options"; info: "VLC command-line options for settings that aren't in Vela, separated by spaces, e.g. --network-caching=60000. Options that work per file apply from the next file on, the others after a restart. Options VLC doesn't know are ignored."
                  TextField { width: 220; path: "vlcArgs"; placeholder: "e.g. --network-caching=60000" } }
+    SettingRow { label: "Maximum stream quality"; info: "For streams that come in several qualities (HLS and DASH, such as .m3u8, and YouTube): the stream never plays above this, which saves data and work. Applies from the next stream on."
+                 Select { path: "maxQuality"; options: [[0, "Best available"], [1080, "1080p"], [720, "720p"], [480, "480p"], [360, "360p"]] } }
   }
   Section {
     title: "Defaults"

@@ -76,6 +76,9 @@ QtObject {
     if (di === "off") o.push(":deinterlace=0"); else if (di === "on") o.push(":deinterlace=1");
     if (Settings.values.audioOnly) o.push(":no-video");
     if (Settings.values.powerSave) o.push(":avcodec-skiploopfilter=4", ":avcodec-fast", ":postproc-q=0");
+    // #127: streams in several qualities (HLS / DASH, YouTube) never above the chosen height
+    const mq = Number(Settings.values.maxQuality) || 0;
+    if (mq > 0) o.push(":adaptive-maxheight=" + mq, ":preferred-resolution=" + mq);
     for (const a of extraArgs()) o.push(":" + a.slice(2));   // #123
     const x = extra[src];
     if (x) o.push(":input-slave=" + (/^[a-z][a-z0-9+.-]*:\/\//i.test(x) ? x : "file:///" + x.replace(/\\/g, "/").replace(/^\/+/, "")));

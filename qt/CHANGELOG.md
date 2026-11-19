@@ -1,3 +1,7 @@
+## 3.2.19
+- ✨ **Video quality in the playback bar:** next to the length, a small label shows the picture's quality, such as *480p SD*, *720p HD* or *1080p Full HD*. For streams (HLS .m3u8, YouTube) it changes when the stream changes quality; a click shows the exact size. It can be hidden under Settings → Interface → Player controls (#127).
+- ✨ **Maximum stream quality** (Settings → Playback): streams that come in several qualities (HLS and DASH, YouTube) never play above the chosen height (1080p, 720p, 480p or 360p), which saves data and work (#127).
+
 ## 3.2.18
 - ✨ **Saving battery** (Settings → Video): **Deinterlacing** can be set to Automatic (as before), Off or On; **Sound only** plays just the sound of videos without decoding the picture (also in the menu under *Video*); **Power saving** decodes video with less work (H.264's in-loop filter skipped, faster decoding, no post-processing). A change applies at once to what is playing (#126).
 

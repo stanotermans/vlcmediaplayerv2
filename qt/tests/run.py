@@ -369,6 +369,19 @@ def power_options(c):   # #126: sound only (no picture decoded, from where it wa
     o = c.get('opts'); c.ok(':deinterlace=0' in o and ':avcodec-skiploopfilter=4' in o and ':no-video' not in o, f'options: {o!r}')
 
 @test
+def quality_badge(c):   # #127: the video quality next to the length ("360p SD"), live from the picture; it can be hidden; the maximum stream quality goes to libVLC
+    Q = '(function q(o) { return o.objectName === "qualityBadge" ? o : Array.from(o.children).map(q).find(x => x) || null })(win.contentItem)'
+    c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + [
+        'log:"lbl=" + [Qt.size(640,360), Qt.size(854,480), Qt.size(1280,720), Qt.size(1920,800), Qt.size(1920,1080), Qt.size(2560,1440), Qt.size(3840,2160), Qt.size(0,0)].map(s => pb.qualityLabel(s)).join("|")',
+        'log:"b1=" + ' + Q + '.visible + " " + ' + Q + '.label',
+        'set:ctl.quality=false', 'wait:200', 'log:"b2=" + ' + Q + '.visible',
+        'set:maxQuality=480', 'log:"opts=" + en.options(current.src).join(" ")'])
+    c.eq('lbl', '360p SD|480p SD|720p HD|1080p Full HD|1080p Full HD|1440p QHD|4K|')
+    c.ok(c.get('b1').startswith('true ') and c.get('b1').endswith('p SD'), f'badge shown: {c.get("b1")!r}')
+    c.eq('b2', 'false')
+    o = c.get('opts'); c.ok(':adaptive-maxheight=480' in o and ':preferred-resolution=480' in o, f'options: {o!r}')
+
+@test
 def key_names(c):   # #97: Shift+letter is the capital, also without text (input methods) or with Caps Lock on
     E, S = 0x45, 0x02000000
     c.vals, _ = run(c.name, [f'log:"n=" + keys.nameOf({E}, 0, "e") + keys.nameOf({E}, {S}, "E") + keys.nameOf({E}, {S}, "") + keys.nameOf({E}, 0, "") + keys.nameOf({E}, 0, "E") + keys.nameOf({E}, {S}, "e")'])
