@@ -598,6 +598,7 @@ C.ApplicationWindow {
   Timer { id: updateTimer; interval: 5000; onTriggered: { System.checkUpdates(false); Settings.set("lastUpdateCheck", Date.now()); } }
   WindowFrame { id: frame; maximizeButton: maxBtn; corner: win.corner; aspect: win.lockAspect; extra: Qt.size(win.width - playerView.width, win.height - playerView.height) }
   Component.onCompleted: {
+    System.mark("window ready");   // #131
     // #64: never bigger than the screen (1600 × 1000 is too big at 150 % on a 1080p screen), and in its middle
     // testing: the window on the screen VLCR_SCREEN names (before its size and a maximised start)
     const ts = testScreen ? Qt.application.screens.find(x => x.name === testScreen) : null;

@@ -13,6 +13,7 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QTimer>
 
 #include <QFile>
 #include <QDir>
@@ -76,6 +77,7 @@ static void applyInterfaceSize() {
 }
 
 int main(int argc, char *argv[]) {
+  System::startClock();   // #131
   // the portable Windows version (a file "portable" next to the program) keeps its data in "data" next to it
   {
     const QString exe = QString::fromLocal8Bit(argv[0]);
@@ -88,6 +90,7 @@ int main(int argc, char *argv[]) {
   gnomeCursor();
 #endif
   QGuiApplication app(argc, argv);
+  System::mark("app");
 #ifdef Q_OS_ANDROID
   Android::loadTestEnv();
 #endif
@@ -105,9 +108,10 @@ int main(int argc, char *argv[]) {
   System sys;
   const QStringList paths = System::pathsFromArgs(app.arguments());
   const QVariantMap argOpts = System::optionsFromArgs(app.arguments());   // #128
-  const bool testing = qEnvironmentVariableIsSet("VLCR_SHOT");
+  const bool testing = qEnvironmentVariableIsSet("VLCR_SHOT") && !qEnvironmentVariableIsSet("VLCR_SERVER");   // (#131: the tests of the hand-over set VLCR_SERVER)
   if (!testing && System::forwardToRunning(paths, argOpts)) return 0;
   if (!testing) sys.listen();
+  QObject::connect(&app, &QCoreApplication::aboutToQuit, &sys, &System::stopListening);   // #131
   app.installEventFilter(&sys);   // (#105: files from Finder)
   sys.setStartPaths(paths);
   sys.setStartOptions(argOpts);
@@ -135,6 +139,16 @@ int main(int argc, char *argv[]) {
   ctx->setContextProperty("testScreen", qEnvironmentVariable("VLCR_SCREEN"));
   QObject::connect(engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() { QCoreApplication::exit(1); }, Qt::QueuedConnection);
   engine->loadFromModule("VLCR", "Main");
+  System::mark("interface loaded");
+  // #131: the first picture of the window, and the start written down a few seconds later (libVLC and the library come in between)
+  if (!engine->rootObjects().isEmpty())
+    if (auto *w = qobject_cast<QQuickWindow *>(engine->rootObjects().first())) {
+      QObject::connect(w, &QQuickWindow::frameSwapped, &app, []() {
+        static bool once = false; if (once) return; once = true;
+        System::mark("window shown");
+        QTimer::singleShot(4000, qApp, []() { System::writeStartup(); });
+      }, Qt::QueuedConnection);
+    }
   const int code = app.exec();
   delete engine;   // the library and the settings are saved here
   // a network stream that stalls can keep libVLC's stop busy: end now instead of unloading libVLC under it

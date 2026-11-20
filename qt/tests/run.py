@@ -376,6 +376,37 @@ def minimize_max(c):   # #129: a maximised window that is minimised comes back m
     c.eq('v0', 'true'); c.eq('v1', '3'); c.ok(c.get('v2').startswith('true '), f'maximised again ({c.get("v2")})')
 
 @test
+def startup_log(c):   # #131: every start writes how long its parts took to startup.log in the data folder
+    c.vals, prof = run(c.name, ['wait:6500', 'log:"line=" + System.startupLine()'])
+    p = os.path.join(prof, 'startup.log')
+    text = open(p, encoding='utf-8').read() if os.path.exists(p) else ''
+    c.ok(all(k in text for k in ('interface loaded', 'window shown', 'libVLC started', 'library read')), f'startup.log: {text.strip()!r}')
+    c.ok('window shown' in c.get('line'), f'line: {c.get("line")!r}')
+
+def _handover(c, hang):
+    srv = 'vela-test-%d' % os.getpid()
+    first = {}
+    t = threading.Thread(target=lambda: first.update(vals=run(c.name + '-a', ['wait:9000'], extra_env=dict({'VLCR_SERVER': srv}, **({'VLCR_TEST_NO_ACK': '1'} if hang else {})))[0]))
+    t.start(); time.sleep(4)
+    t0 = time.time()
+    second, _ = run(c.name + '-b', ['wait:2500', 'log:"line=" + System.startupLine()'], extra_env={'VLCR_SERVER': srv, 'ARGS': os.path.join(MEDIA, 'video.mp4')})
+    took = time.time() - t0
+    t.join()
+    return first.get('vals', {}), second, took
+
+@test
+def handover(c):   # #131: a second start hands its file to the running Vela, which answers, and ends at once
+    a, b, took = _handover(c, False)
+    c.ok(took < 3 and not b, f'second start ended at once ({took:.1f} s, logged {sorted(b)})')
+    c.ok(any('video.mp4' in v for v in a.get('opened', [])) or 'opened' in str(a), f'the running Vela got the file: {a!r}')
+
+@test
+def handover_hang(c):   # #131: a running Vela that doesn't answer (closing, hanging): the second start goes on by itself
+    a, b, took = _handover(c, True)
+    line = (b.get('line') or [''])[0]
+    c.ok('did not answer' in line and 'window shown' in line, f'second start opened its own window: {line!r} ({took:.1f} s)')
+
+@test
 def mouse_buttons(c):   # #124: right and middle click actions in the player
     c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['log:(playerView.mouseAction("mute"), "muted=" + player.muted)',
                     'log:(playerView.mouseAction("play"), "x")', 'wait:600', 'log:"playing=" + player.playing'])

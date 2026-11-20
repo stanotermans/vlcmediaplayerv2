@@ -1,4 +1,5 @@
 #include "vlcplayer.h"
+#include "system.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -228,6 +229,7 @@ bool VlcPlayer::load() {
   m_version = QString::fromUtf8(vlc.get_version());
   vlc.log_set(inst, onLog, nullptr);
   writeLog(2, "libVLC " + m_version + " started");
+  System::mark("libVLC started");   // #131
   emit versionChanged();
   applyStereo();
   return true;

@@ -24,6 +24,9 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSet>
+#include <QDateTime>
+#include <QElapsedTimer>
+#include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QSysInfo>
@@ -51,7 +54,9 @@ using namespace ABI::Windows::Foundation;
 
 static const char *REPO = "stanotermans/vlcmediaplayerv2";
 System *System::instance = nullptr;
-static QString serverName() { return "vela-player-" + QString::fromLocal8Bit(qgetenv("USERNAME").isEmpty() ? qgetenv("USER") : qgetenv("USERNAME")); }
+// (testing: VLCR_SERVER gives the tests their own name, away from a Vela that the user has open)
+static QString serverName() { if (qEnvironmentVariableIsSet("VLCR_SERVER")) return qEnvironmentVariable("VLCR_SERVER");
+                              return "vela-player-" + QString::fromLocal8Bit(qgetenv("USERNAME").isEmpty() ? qgetenv("USER") : qgetenv("USERNAME")); }
 
 System::System(QObject *parent) : QObject(parent) {
   instance = this;
@@ -127,8 +132,12 @@ bool System::forwardToRunning(const QStringList &paths, const QVariantMap &opts)
                                          : QJsonDocument(QJsonObject{ { "paths", QJsonArray::fromStringList(paths) }, { "opts", QJsonObject::fromVariantMap(opts) } });
   s.write(d.toJson(QJsonDocument::Compact) + "\n");
   s.waitForBytesWritten(1000);
+  // #131: only handed over when the running Vela answers. One that is closing (or hangs) took the files and did nothing
+  // with them, so the new start ended at once and Vela seemed to take ages to open; now this start goes on by itself.
+  const bool ok = s.waitForReadyRead(3000) && s.readAll().startsWith("ok");
   s.disconnectFromServer();
-  return true;
+  System::mark(ok ? "handed to the running Vela" : "running Vela did not answer");
+  return ok;
 }
 // #105: on macOS a file opened from Finder arrives as a FileOpen event (also the file the app was started with)
 bool System::eventFilter(QObject *o, QEvent *e) {
@@ -144,15 +153,20 @@ void System::listen() {
   QLocalServer::removeServer(serverName());   // a crashed run may have left it
   connect(&m_server, &QLocalServer::newConnection, this, [this]() {
     while (QLocalSocket *c = m_server.nextPendingConnection()) {
-      // read the whole message once it is complete
-      connect(c, &QLocalSocket::disconnected, this, [this, c]() {
-        const QByteArray data = c->readAll();
-        c->deleteLater();
-        const QJsonDocument d = QJsonDocument::fromJson(data);
+      // read the whole message once it is complete (up to its newline), and answer "ok" (#131)
+      auto take = [this, c](bool closing) {
+        if (c->property("done").toBool()) return;
+        QByteArray data = c->property("buf").toByteArray() + c->readAll();
+        if (!data.contains('\n') && !closing) { c->setProperty("buf", data); return; }
+        c->setProperty("done", true);
+        if (!closing && !qEnvironmentVariableIsSet("VLCR_TEST_NO_ACK")) { c->write("ok\n"); c->flush(); }   // (testing: a Vela that hangs)
+        const QJsonDocument d = QJsonDocument::fromJson(data.trimmed());
         const QJsonArray a = d.isObject() ? d.object()["paths"].toArray() : d.array();
         QStringList paths; for (const auto &v : a) paths << v.toString();
         emit openPaths(paths, d.isObject() ? d.object()["opts"].toObject().toVariantMap() : QVariantMap());
-      });
+      };
+      connect(c, &QLocalSocket::readyRead, this, [take]() { take(false); });
+      connect(c, &QLocalSocket::disconnected, this, [take, c]() { take(true); c->deleteLater(); });
     }
   });
   m_server.listen(serverName());
@@ -481,6 +495,54 @@ void System::minimize(QWindow *w) {
   w->showMinimized();
 #endif
 }
+// ---------- #131: the start's timings ----------
+// "before main" is the time from the process's creation to main() (loading the program's DLLs, a virus scanner
+// checking them); the others are milliseconds since main() began.
+namespace {
+QElapsedTimer g_startClock;
+qint64 beforeMain = -1;
+QList<QPair<QString, qint64>> stages;
+bool startupWritten = false;
+}
+void System::startClock() {
+  g_startClock.start();
+#ifdef Q_OS_WIN
+  FILETIME created, exited, kernel, user, now;
+  if (GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user)) {
+    GetSystemTimeAsFileTime(&now);
+    auto ms = [](const FILETIME &f) { return ((qint64(f.dwHighDateTime) << 32) | f.dwLowDateTime) / 10000; };
+    beforeMain = ms(now) - ms(created);
+  }
+#endif
+}
+void System::mark(const QString &stage) {
+  if (!g_startClock.isValid() || startupWritten) return;
+  for (const auto &st : stages) if (st.first == stage) return;   // the first time only
+  stages.append({ stage, g_startClock.elapsed() });
+}
+QString System::startupLine() {
+  QStringList parts;
+  if (beforeMain >= 0) parts << QString("before main %1").arg(beforeMain);
+  for (const auto &st : stages) parts << QString("%1 %2").arg(st.first).arg(st.second);
+  return QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") + "  " + QCoreApplication::applicationVersion() + "  " + parts.join(" \u00b7 ") + " (ms)";
+}
+void System::writeStartup() {
+  if (startupWritten || !g_startClock.isValid()) return;
+  const QString line = startupLine();
+  startupWritten = true;
+  qInfo().noquote() << "Vela Player: start:" << line;
+  const QString dir = qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+  QDir().mkpath(dir);
+  QFile old(dir + "/startup.log");
+  QStringList lines;
+  if (old.open(QIODevice::ReadOnly | QIODevice::Text)) lines = QString::fromUtf8(old.readAll()).split('\n', Qt::SkipEmptyParts);
+  old.close();
+  lines << line;
+  while (lines.size() > 30) lines.removeFirst();
+  QSaveFile f(dir + "/startup.log");
+  if (f.open(QIODevice::WriteOnly | QIODevice::Text)) { f.write((lines.join('\n') + '\n').toUtf8()); f.commit(); }
+}
+
 // testing (#129): what a click on the taskbar button does to a minimised window
 void System::testRestore(QWindow *w) {
   if (!w) return;

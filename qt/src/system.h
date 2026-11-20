@@ -59,7 +59,13 @@ public:
   Q_INVOKABLE void setScrollSpeed(int percent);          // #109: how far a notch of the mouse wheel scrolls a list, against the system's own
   Q_INVOKABLE void testWheel(QWindow *w, qreal x, qreal y, int notches);   // testing: the mouse wheel at this window point
   Q_INVOKABLE void minimize(QWindow *w);   // #129: Windows' own minimise (Qt's kept its own state and could fight the restore)
-  Q_INVOKABLE void testRestore(QWindow *w);   // testing (#129): what a click on the taskbar button does to a minimised window
+  Q_INVOKABLE void testRestore(QWindow *w);
+  // #131: how long each part of the start took, kept in startup.log in the data folder (the last 30 starts)
+  static void startClock();                      // first thing in main()
+  Q_INVOKABLE static void mark(const QString &stage);
+  Q_INVOKABLE static void writeStartup();        // once the window shows and the start has settled
+  Q_INVOKABLE static QString startupLine();
+  void stopListening() { m_server.close(); }    // #131: while closing, a new start no longer hands its files to this one   // testing (#129): what a click on the taskbar button does to a minimised window
   Q_INVOKABLE void testClick(QWindow *w, qreal x, qreal y);   // testing: a left click at this window point
   Q_INVOKABLE void testDrag(QWindow *w, qreal x0, qreal y0, qreal x1, qreal y1);   // testing: press, move in steps, release
   bool mediaAccess() const;

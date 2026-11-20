@@ -1,3 +1,7 @@
+## 3.2.21
+- 🐛 **Slow starts:** when Vela is opened while an earlier Vela is still closing (or hangs), the new start no longer hands its files to that one and stops; it opens by itself after at most 3 seconds. A Vela that is closing also no longer accepts files from a new start (#131).
+- 🔧 **Start times:** every start writes how long its parts took (from Windows starting the program to the window and the library) to *startup.log* in Vela's data folder, the last 30 starts, so a slow start can be looked into (#131).
+
 ## 3.2.20
 - 🐛 **Streams from "Open in VLC" play again:** Vela now reads VLC's command line the way VLC does. The page's referrer and the browser's user agent (`--http-referrer`, `--http-user-agent`) go with the stream, so sites that require them no longer refuse it; the web page itself is no longer put in the queue; and `:meta-title=` gives the item its title (#128).
 - 🐛 **A maximised window stays maximised after minimising:** it came back as a normal window (#129).

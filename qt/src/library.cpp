@@ -1,6 +1,7 @@
 #include <QImage>
 #include <QColor>
 #include "library.h"
+#include "system.h"
 #include <QCollator>
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -245,7 +246,7 @@ void Library::load() {
   if (!f.open(QIODevice::ReadOnly)) {   // first start: v2.x's two example playlists
     m_playlists = { QVariantMap{ { "name", "Cool Songs" }, { "srcs", QStringList() }, { "cover", QString() } },
                     QVariantMap{ { "name", "Anime to Watch" }, { "srcs", QStringList() }, { "cover", QString() } } };
-    emit playlistsChanged(); return;
+    emit playlistsChanged(); System::mark("library read"); return;
   }
   const QJsonObject o = QJsonDocument::fromJson(f.readAll()).object();
   m_playlists = o["playlists"].toArray().toVariantList();
@@ -258,6 +259,7 @@ void Library::load() {
   for (const auto &e : o["library"].toArray()) { const QJsonObject it = e.toObject(); bool n; addOne(it["src"].toString(), true, (qint64)it["added"].toDouble(), &n); }
   m_loading = false;
   emit playlistsChanged(); emit recentChanged(); emit watchedChanged(); emit positionsChanged(); emit bookmarksChanged(); changed();
+  System::mark("library read");   // #131
 }
 void Library::save() {
   QJsonArray lib;
@@ -479,6 +481,7 @@ void Library::probed(const QString &src, const QVariantMap &info, ProbeJob *job)
   m_group.removeOne(job);
   delete job;
   m_busy--; emit busyChanged();
+  if (!m_busy) System::mark("library scanned");   // #131
   if (m_busy == 0 && m_notify.isActive() && m_notify.remainingTime() > 250) m_notify.start(250);   // the last file: show it now
   const int i = indexOf(src);
   if (i < 0) return;
