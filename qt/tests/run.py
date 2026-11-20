@@ -21,6 +21,16 @@ os.makedirs(OUT, exist_ok=True)
 class Quiet(http.server.SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'   # like real servers (libVLC's HLS stalls on Python's default HTTP/1.0)
     def log_message(self, *a): pass
+    # #128: under /guarded/ only with the referrer and user agent that "Open in VLC" gives (as on streaming sites)
+    def do_GET(self):
+        if self.path.startswith('/guarded/'):
+            if self.headers.get('Referer') != 'https://example.test/page' or 'TestBrowser' not in (self.headers.get('User-Agent') or ''):
+                GUARD['denied'] += 1
+                self.send_response(403); self.send_header('Content-Length', '0'); self.end_headers(); return
+            GUARD['allowed'] += 1
+            self.path = self.path[len('/guarded'):]
+        return super().do_GET()
+GUARD = {'denied': 0, 'allowed': 0}
 class Server(socketserver.ThreadingTCPServer):
     daemon_threads = True
     def handle_error(self, *a): pass   # players drop connections when they have enough
@@ -345,6 +355,25 @@ def vlc_args(c):   # #123: Extra VLC options go to every file; an option libVLC 
                     + ['log:"opts=" + en.options(current.src).join(" ")', 'log:"t=" + player.time'])
     o = c.get('opts'); c.ok(':network-caching=3000' in o and ':gnutls-priorities=PERFORMANCE' in o, f'options: {o!r}')
     c.ok(int(c.get('t') or 0) > 500, f'plays ({c.get("t")} ms)')
+
+@test
+def open_in_vlc(c):   # #128: VLC's command line from "Open in VLC": the referrer and user agent go with the stream, the page is not queued, the title is used
+    url = f'{WEB}/guarded/hls/index.m3u8'
+    args = ['--http-referrer', 'https://example.test/page', '--http-user-agent', 'Mozilla/5.0 TestBrowser', '--fullscreen', url, ':meta-title=Episode 8']
+    c.vals, _ = run(c.name, [
+        f'log:"parsed=" + JSON.stringify(System.testArgs({js(args)}))',
+        f'log:(en.addSrcOpts(System.testArgs({js(args)}).reduce((m, x) => (m[x.src] = x, m), {{}})), queueList = null, addSources([{js(url)}]), "added")',
+        'wait:6000', 'log:"playing=" + player.playing + " " + (player.time > 0) + " " + current.name', 'log:"opts=" + en.options(current.src).join(" ")'])
+    p = json.loads(c.get('parsed'))
+    c.ok(len(p) == 1 and p[0]['src'] == url and p[0]['title'] == 'Episode 8', f'one source, the stream, with its title: {p!r}')
+    c.ok(':http-referrer=https://example.test/page' in p[0]['opts'] and ':http-user-agent=Mozilla/5.0 TestBrowser' in p[0]['opts'] and not any('fullscreen' in o for o in p[0]['opts']), f'options: {p[0]["opts"]!r}')
+    c.ok(c.get('playing') == 'true true Episode 8', f'plays with the referrer, under its title ({c.get("playing")}; server allowed {GUARD["allowed"]}, refused {GUARD["denied"]})')
+
+@test
+def minimize_max(c):   # #129: a maximised window that is minimised comes back maximised
+    c.vals, _ = run(c.name, ['wait:1800', 'log:(win.showMaximized(), "max")', 'wait:800', 'log:"v0=" + win.maximized', 'log:(win.minimizeWin(), "min")', 'wait:800',
+                             'log:"v1=" + win.visibility', 'log:(System.testRestore(win), "res")', 'wait:1500', 'log:"v2=" + win.maximized + " " + win.visibility', 'log:"trail=" + win.visTrail'])
+    c.eq('v0', 'true'); c.eq('v1', '3'); c.ok(c.get('v2').startswith('true '), f'maximised again ({c.get("v2")})')
 
 @test
 def mouse_buttons(c):   # #124: right and middle click actions in the player

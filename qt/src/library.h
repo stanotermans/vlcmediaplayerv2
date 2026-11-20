@@ -44,6 +44,7 @@ public:
   // the file names back
   Q_INVOKABLE int removeFromNames(const QStringList &srcs, const QString &text);
   Q_INVOKABLE void resetNames(const QStringList &srcs);
+  Q_INVOKABLE void rename(const QString &src, const QString &name);   // #128: a title given with the source (:meta-title)
   Q_INVOKABLE bool hasOwnName(const QString &src) const { return m_names.contains(src); }
   int busy() const { return m_busy; }
 

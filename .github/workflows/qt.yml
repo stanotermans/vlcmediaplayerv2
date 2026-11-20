@@ -293,6 +293,9 @@ jobs:
           f() { ls artifacts | grep -E "$1" | head -1; }
           link() { n=$(f "$1"); if [ -n "$n" ]; then echo "[\`$n\`]($B/$n)"; else echo "—"; fi; }
           sed -e "s|{{VERSION}}|$V|g"               -e "s|{{WIN_SETUP}}|$(link 'Setup-.*\.exe$')|"               -e "s|{{WIN_PORTABLE}}|$(link 'Portable-.*\.zip$')|"               -e "s|{{MAC_ARM}}|$(link 'mac-arm64\.dmg$')|"               -e "s|{{MAC_X64}}|$(link 'mac-x64\.dmg$')|"               -e "s|{{DEB}}|$(link '\.deb$')|"               -e "s|{{RPM}}|$(link '\.rpm$')|"               -e "s|{{PACMAN}}|$(link '\.pkg\.tar\.zst$')|"               -e "s|{{APPIMAGE}}|$(link '\.AppImage$')|"               -e "s|{{TARGZ}}|$(link '\.tar\.gz$')|" -e "s|{{FLATPAK}}|$(link '\.flatpak$')|"               qt/packaging/release-notes.md > notes.md
+          # #130: what's new in this version (its part of qt/CHANGELOG.md) above the downloads, for readers and software sites
+          awk -v v="## $V" '{ sub(/\r$/, "") } $0 == v { f = 1; next } /^## / { if (f) exit } f' qt/CHANGELOG.md > changes.md
+          if grep -q '[^[:space:]]' changes.md; then { echo "## ✨ What's new in $V"; echo; cat changes.md; echo; cat notes.md; } > notes2.md && mv notes2.md notes.md; fi
           cat notes.md
       - uses: softprops/action-gh-release@v2
         with:

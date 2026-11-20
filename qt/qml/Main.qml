@@ -304,6 +304,7 @@ C.ApplicationWindow {
     onAccepted: library.setPlaylistCover(target, library.readImage(selectedFile)) }
 
   property double stateTime: 0                                     // #95: when the window last changed state
+  function minimizeWin() { if (Theme.mobile) win.showMinimized(); else System.minimize(win); }   // #129
   function toggleMax() { if (Date.now() - stateTime < 500) return; win.maximized ? win.showNormal() : win.showMaximized(); }
   property var settingsWin: null
   property bool devPages: openAtStart.indexOf("components") >= 0   // the design system page (testing)
@@ -398,8 +399,21 @@ C.ApplicationWindow {
   function leaveFs() { fsWanted = false; if (wasMaximized) showMaximized(); else showNormal(); }
   property bool stateKept: false   // set a moment after the start: the first states are the app's own
   Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
+  // #129: Qt maximises this frameless window itself (Windows doesn't know it is maximised), so a maximised window that
+  // was minimised came back as a normal window: maximised again
+  // (maximised: also when Qt reports it as full screen, on a screen without a taskbar)
+  property int lastVisibility: Window.Windowed
+  property bool lastMaximized: false
+  property bool minFromMax: false
+  property string visTrail: ""   // testing (#129): the window states one after another
   onVisibilityChanged: {
     stateTime = Date.now();
+    visTrail += visibility + (maximized ? "m" : "") + " ";
+    if (visibility === Window.Minimized) minFromMax = lastMaximized;
+    else if (visibility === Window.Windowed && lastVisibility === Window.Minimized && minFromMax && !Theme.mobile) { minFromMax = false; lastVisibility = visibility; showMaximized(); return; }
+    else if (visibility !== Window.Hidden) minFromMax = false;
+    if (visibility !== Window.Hidden && visibility !== Window.Minimized) lastMaximized = visibility === Window.Maximized || (visibility === Window.FullScreen && !fsWanted);   // (not `maximized`: not updated yet here)
+    if (visibility !== Window.Hidden) lastVisibility = visibility;
     winNote("state");
     if (mac) { System.styleWindow(win, "main"); timerAt(300, () => System.styleWindow(win, "main")); }   // (Qt sets the window's style again with its state)
     if (visibility === Window.Windowed) timerAt(60, () => win.checkNormal());
@@ -570,7 +584,7 @@ C.ApplicationWindow {
   // files opened while the app runs ("Open with", a double-click), media keys and the system's media overlay
   Connections {
     target: System
-    function onOpenPaths(paths) { player.log("opened by another start: " + paths.join(", ")); win.raiseMain(); if (paths.length) { win.queueList = null; win.addSources(paths); } }
+    function onOpenPaths(paths, opts) { player.log("opened by another start: " + paths.join(", ")); win.raiseMain(); if (paths.length) { en.addSrcOpts(opts || {}); win.queueList = null; win.addSources(paths); } }
     function onMediaButton(b) {
       if (b === "play" || b === "pause") pb.runAction("playPause", true);
       else if (b === "next") pb.runAction("next", true);
@@ -614,7 +628,7 @@ C.ApplicationWindow {
       const mc = Qt.createComponent("MacMenu.qml");
       if (mc.status === Component.Ready) mc.createObject(win, { ctl: win }); else console.warn(mc.errorString());
     }
-    if (opened.length) Qt.callLater(() => { queueList = null; addSources(opened); });
+    if (opened.length) Qt.callLater(() => { en.addSrcOpts(System.startOptions()); queueList = null; addSources(opened); });   // (#128: with their VLC options)
     if (Settings.values.autoUpdate !== false && !shotPath && !Theme.mobile) updateTimer.start();   // (a phone: the store updates it)
     sideHidden = !!Settings.values.sideHidden;   // #91
     if (startFolder) Settings.set("mediaFolders", [startFolder]);
@@ -782,7 +796,7 @@ C.ApplicationWindow {
                  html: modelData === "maxBtn" && win.maximized ? "" : modelData
                  name: modelData === "maxBtn" && win.maximized ? "restore" : "" }
           MouseArea { id: a; anchors.fill: parent; hoverEnabled: true
-            onClicked: modelData === "minBtn" ? win.showMinimized() : modelData === "maxBtn" ? win.toggleMax()
+            onClicked: modelData === "minBtn" ? win.minimizeWin() : modelData === "maxBtn" ? win.toggleMax()
                      : modelData === "fsBtn2" ? win.toggleFs() : win.quit() }
         }
       }

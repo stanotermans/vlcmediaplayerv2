@@ -25,8 +25,10 @@ public:
   ~System() override;
   static System *instance;
   // at startup: true when another copy runs (the paths were handed to it and this one should quit)
-  static bool forwardToRunning(const QStringList &paths);
+  static bool forwardToRunning(const QStringList &paths, const QVariantMap &opts = {});
   static QStringList pathsFromArgs(const QStringList &args);
+  static QVariantList sourcesFromArgs(const QStringList &args);   // #128: VLC's command line: [{ src, opts, title }]
+  static QVariantMap optionsFromArgs(const QStringList &args);
   void listen();
 
   QString version() const;
@@ -36,6 +38,9 @@ public:
 
   Q_INVOKABLE QStringList startPaths() const { return m_startPaths; }
   void setStartPaths(const QStringList &p) { m_startPaths = p; }
+  Q_INVOKABLE QVariantMap startOptions() const { return m_startOptions; }   // #128
+  void setStartOptions(const QVariantMap &o) { m_startOptions = o; }
+  Q_INVOKABLE QVariantList testArgs(const QStringList &args) const { return sourcesFromArgs(QStringList{ "vela" } + args); }   // testing (#128)
   Q_INVOKABLE QString setDefaultPlayer();                // what happened, for the user (already translated keys)
   Q_INVOKABLE void checkUpdates(bool manual);
   Q_INVOKABLE void installUpdate();
@@ -53,6 +58,8 @@ public:
   Q_INVOKABLE void testMouseMove(QWindow *w, qreal x, qreal y);
   Q_INVOKABLE void setScrollSpeed(int percent);          // #109: how far a notch of the mouse wheel scrolls a list, against the system's own
   Q_INVOKABLE void testWheel(QWindow *w, qreal x, qreal y, int notches);   // testing: the mouse wheel at this window point
+  Q_INVOKABLE void minimize(QWindow *w);   // #129: Windows' own minimise (Qt's kept its own state and could fight the restore)
+  Q_INVOKABLE void testRestore(QWindow *w);   // testing (#129): what a click on the taskbar button does to a minimised window
   Q_INVOKABLE void testClick(QWindow *w, qreal x, qreal y);   // testing: a left click at this window point
   Q_INVOKABLE void testDrag(QWindow *w, qreal x0, qreal y0, qreal x1, qreal y1);   // testing: press, move in steps, release
   bool mediaAccess() const;
@@ -66,7 +73,7 @@ public:
   bool eventFilter(QObject *o, QEvent *e) override;      // macOS: QFileOpenEvent
 signals:
   void insetsChanged();
-  void openPaths(const QStringList &paths);              // from "Open with" / a second start
+  void openPaths(const QStringList &paths, const QVariantMap &opts);   // from "Open with" / a second start (#128: with VLC options)
   void mediaButton(const QString &button);               // "play", "pause", "next", "previous", "stop"
   void updateChanged();
   void mediaAccessChanged();
@@ -76,6 +83,7 @@ private:
   void setUpdate(const QString &state, const QString &error = {});
   QLocalServer m_server;
   QStringList m_startPaths;
+  QVariantMap m_startOptions;
   QNetworkAccessManager m_net;
   QVariantMap m_update{ { "state", "idle" } };
   void *m_smtc = nullptr;                                // ISystemMediaTransportControls

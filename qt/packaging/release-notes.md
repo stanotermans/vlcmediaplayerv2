@@ -37,6 +37,8 @@ The design is by **[Juxtopposed](https://www.youtube.com/@juxtopposed)** from th
 **[I Redesigned VLC After 25 Years](https://www.youtube.com/watch?v=ERFeOgqk324)**
 ([Figma file](https://www.figma.com/design/7fsD7tE4rIOTEfaLAAQiDY/VLC-Redesign--Community-)).
 
+🌐 **Website:** https://stanotermans.github.io/vlcmediaplayerv2/ · **All changes:** [CHANGELOG.md](https://github.com/stanotermans/vlcmediaplayerv2/blob/main/qt/CHANGELOG.md)
+
 ---
 Built with Qt (LGPL), libVLC (LGPL/GPL) and FFmpeg (LGPL/GPL).
 

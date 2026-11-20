@@ -104,11 +104,13 @@ int main(int argc, char *argv[]) {
   // one running app: files opened while it runs ("Open with", a double-click) go to it
   System sys;
   const QStringList paths = System::pathsFromArgs(app.arguments());
+  const QVariantMap argOpts = System::optionsFromArgs(app.arguments());   // #128
   const bool testing = qEnvironmentVariableIsSet("VLCR_SHOT");
-  if (!testing && System::forwardToRunning(paths)) return 0;
+  if (!testing && System::forwardToRunning(paths, argOpts)) return 0;
   if (!testing) sys.listen();
   app.installEventFilter(&sys);   // (#105: files from Finder)
   sys.setStartPaths(paths);
+  sys.setStartOptions(argOpts);
   // #104: a shortcut set to "Run: Maximized" (Windows passes that along), or --maximized: the window starts maximised
   bool startMax = app.arguments().contains("--maximized");
 #ifdef Q_OS_WIN

@@ -23,6 +23,7 @@
 #include <QNetworkReply>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QSet>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QSysInfo>
@@ -71,21 +72,60 @@ System::~System() {
 }
 
 // ---------- one running app ----------
-QStringList System::pathsFromArgs(const QStringList &args) {
-  QStringList out;
+// #128: VLC's own command line, as browser extensions ("Open in VLC") send it:
+//   --http-referrer <page> --http-user-agent <browser> <stream> :meta-title=<episode>
+// An option with a value (--name value, --name=value) goes with every source as ":name=value"; ":name=value" after a
+// source goes with that source only (as in VLC). Before, the value of --http-referrer (the web page) was queued as a
+// source and the stream was asked for without the referrer that such sites require.
+QVariantList System::sourcesFromArgs(const QStringList &args) {
+  static const QSet<QString> valued = { "http-referrer", "http-user-agent", "user-agent", "meta-title", "meta-artist", "meta-author",
+    "meta-description", "meta-url", "sub-file", "input-slave", "start-time", "stop-time", "run-time", "network-caching", "file-caching",
+    "live-caching", "disc-caching", "audio-track", "sub-track", "audio-language", "sub-language", "http-proxy", "http-proxy-pwd",
+    "input-repeat", "video-title", "adaptive-maxheight", "adaptive-maxwidth", "adaptive-logic", "preferred-resolution", "rate" };
+  static const QRegularExpression url("^[a-z][a-z0-9+.-]*://", QRegularExpression::CaseInsensitiveOption);
+  QStringList common; QList<QPair<QString, QStringList>> items;
   for (int i = 1; i < args.size(); i++) {
     const QString a = args[i];
-    if (a.startsWith("--") || a.startsWith("-psn_")) continue;
-    if (QRegularExpression("^[a-z][a-z0-9+.-]*://", QRegularExpression::CaseInsensitiveOption).match(a).hasMatch()) out << a;
-    else if (QFileInfo::exists(a)) out << QDir::toNativeSeparators(QFileInfo(a).absoluteFilePath());
+    if (a.startsWith("-psn_")) continue;
+    if (a.startsWith("--")) {
+      QString name = a.mid(2), value; const int eq = name.indexOf('=');
+      if (eq > 0) { value = name.mid(eq + 1); name = name.left(eq); }
+      else if (valued.contains(name) && i + 1 < args.size()) value = args[++i];
+      else continue;   // a switch (--fullscreen, --one-instance, Vela's --maximized): not for the source
+      common << ":" + name + "=" + value;
+    } else if (a.startsWith(':') && a.size() > 1) {
+      if (items.isEmpty()) common << a; else items.last().second << a;
+    } else if (url.match(a).hasMatch()) items.append({ a, {} });
+    else if (QFileInfo::exists(a)) items.append({ QDir::toNativeSeparators(QFileInfo(a).absoluteFilePath()), {} });
+  }
+  QVariantList out;
+  for (const auto &it : items) {
+    const QStringList opts = common + it.second;
+    QString title;
+    for (const QString &o : opts) if (o.startsWith(":meta-title=")) title = o.mid(12);
+    out << QVariantMap{ { "src", it.first }, { "opts", opts }, { "title", title } };
   }
   return out;
 }
-bool System::forwardToRunning(const QStringList &paths) {
+QStringList System::pathsFromArgs(const QStringList &args) {
+  QStringList out;
+  for (const QVariant &v : sourcesFromArgs(args)) out << v.toMap()["src"].toString();
+  return out;
+}
+// what goes with the sources: { src: { opts: [":http-referrer=..."], title } }, only for those that have something
+QVariantMap System::optionsFromArgs(const QStringList &args) {
+  QVariantMap out;
+  for (const QVariant &v : sourcesFromArgs(args)) { const QVariantMap m = v.toMap(); if (!m["opts"].toStringList().isEmpty()) out[m["src"].toString()] = m; }
+  return out;
+}
+bool System::forwardToRunning(const QStringList &paths, const QVariantMap &opts) {
   QLocalSocket s;
   s.connectToServer(serverName());
   if (!s.waitForConnected(500)) return false;
-  s.write(QJsonDocument(QJsonArray::fromStringList(paths)).toJson(QJsonDocument::Compact) + "\n");
+  // (#128: with the options, as an object; a plain list of paths still works)
+  const QJsonDocument d = opts.isEmpty() ? QJsonDocument(QJsonArray::fromStringList(paths))
+                                         : QJsonDocument(QJsonObject{ { "paths", QJsonArray::fromStringList(paths) }, { "opts", QJsonObject::fromVariantMap(opts) } });
+  s.write(d.toJson(QJsonDocument::Compact) + "\n");
   s.waitForBytesWritten(1000);
   s.disconnectFromServer();
   return true;
@@ -95,7 +135,7 @@ bool System::eventFilter(QObject *o, QEvent *e) {
   if (e->type() == QEvent::FileOpen) {
     auto *f = static_cast<QFileOpenEvent *>(e);
     const QString p = !f->file().isEmpty() ? QDir::toNativeSeparators(f->file()) : f->url().toString();
-    if (!p.isEmpty()) QMetaObject::invokeMethod(this, [this, p]() { emit openPaths({ p }); }, Qt::QueuedConnection);
+    if (!p.isEmpty()) QMetaObject::invokeMethod(this, [this, p]() { emit openPaths({ p }, {}); }, Qt::QueuedConnection);
     return true;
   }
   return QObject::eventFilter(o, e);
@@ -108,9 +148,10 @@ void System::listen() {
       connect(c, &QLocalSocket::disconnected, this, [this, c]() {
         const QByteArray data = c->readAll();
         c->deleteLater();
-        const QJsonArray a = QJsonDocument::fromJson(data).array();
+        const QJsonDocument d = QJsonDocument::fromJson(data);
+        const QJsonArray a = d.isObject() ? d.object()["paths"].toArray() : d.array();
         QStringList paths; for (const auto &v : a) paths << v.toString();
-        emit openPaths(paths);
+        emit openPaths(paths, d.isObject() ? d.object()["opts"].toObject().toVariantMap() : QVariantMap());
       });
     }
   });
@@ -429,6 +470,26 @@ void System::testWheel(QWindow *w, qreal x, qreal y, int notches) {
   QCoreApplication::sendEvent(w, &e);
 }
 
+// #129: Qt minimises this frameless window by its own state (with "maximised" or "full screen" in it), and on a restore
+// from the taskbar Qt and Windows could disagree: the window came back normal, or even minimised again. Windows' own
+// minimise leaves it to Windows; the window's own code maximises it again (Main.qml, onVisibilityChanged).
+void System::minimize(QWindow *w) {
+  if (!w) return;
+#ifdef Q_OS_WIN
+  ShowWindow(reinterpret_cast<HWND>(w->winId()), SW_MINIMIZE);
+#else
+  w->showMinimized();
+#endif
+}
+// testing (#129): what a click on the taskbar button does to a minimised window
+void System::testRestore(QWindow *w) {
+  if (!w) return;
+#ifdef Q_OS_WIN
+  SendMessageW(reinterpret_cast<HWND>(w->winId()), WM_SYSCOMMAND, SC_RESTORE, 0);
+#else
+  w->setWindowStates(w->windowStates() & ~Qt::WindowMinimized);
+#endif
+}
 void System::testClick(QWindow *w, qreal x, qreal y) {
   if (!w) return;
   const QPointF local(x, y);

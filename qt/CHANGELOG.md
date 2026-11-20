@@ -1,3 +1,8 @@
+## 3.2.20
+- 🐛 **Streams from "Open in VLC" play again:** Vela now reads VLC's command line the way VLC does. The page's referrer and the browser's user agent (`--http-referrer`, `--http-user-agent`) go with the stream, so sites that require them no longer refuse it; the web page itself is no longer put in the queue; and `:meta-title=` gives the item its title (#128).
+- 🐛 **A maximised window stays maximised after minimising:** it came back as a normal window (#129).
+- 📝 **What's new on the release page:** every GitHub release now starts with that version's changes, and links to the website (#130).
+
 ## 3.2.19
 - ✨ **Video quality in the playback bar:** next to the length, a small label shows the picture's quality, such as *480p SD*, *720p HD* or *1080p Full HD*. For streams (HLS .m3u8, YouTube) it changes when the stream changes quality; a click shows the exact size. It can be hidden under Settings → Interface → Player controls (#127).
 - ✨ **Maximum stream quality** (Settings → Playback): streams that come in several qualities (HLS and DASH, YouTube) never play above the chosen height (1080p, 720p, 480p or 360p), which saves data and work (#127).

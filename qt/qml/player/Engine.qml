@@ -56,6 +56,13 @@ QtObject {
   readonly property var midiRe: /\.(mid|midi|kar|rmi|smf)$/i
   // "Play another media synchronously" (Open network stream → Show more options): its audio plays with the stream
   property var extra: ({})
+  // #128: options that came with a source on the command line ("Open in VLC": :http-referrer=, :http-user-agent=, ...)
+  property var srcOpts: ({})
+  function addSrcOpts(map) {
+    const x = Object.assign({}, srcOpts)
+    for (const src in map) { x[src] = map[src].opts || []; if (map[src].title) ctl.library.rename(src, map[src].title); }
+    srcOpts = x
+  }
   // #66 (v2.x's "Always play with Classic (FFmpeg)"): file types that VLC reads and decodes with FFmpeg
   function ext(src) { const m = /\.([a-z0-9]{1,5})$/i.exec(String(src).split(/[?#]/)[0]); return m ? m[1].toLowerCase() : ""; }
   function ffmpegTypes() { return String(Settings.values.classicTypes || "").toLowerCase().split(/[\s,;.]+/).filter(x => x); }
@@ -80,6 +87,7 @@ QtObject {
     const mq = Number(Settings.values.maxQuality) || 0;
     if (mq > 0) o.push(":adaptive-maxheight=" + mq, ":preferred-resolution=" + mq);
     for (const a of extraArgs()) o.push(":" + a.slice(2));   // #123
+    for (const so of (srcOpts[src] || [])) o.push(so);   // #128
     const x = extra[src];
     if (x) o.push(":input-slave=" + (/^[a-z][a-z0-9+.-]*:\/\//i.test(x) ? x : "file:///" + x.replace(/\\/g, "/").replace(/^\/+/, "")));
     return o;

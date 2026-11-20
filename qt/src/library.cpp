@@ -530,6 +530,10 @@ int Library::removeFromNames(const QStringList &srcs, const QString &text) {
   if (n) { changed(); m_saveTimer.start(); }
   return n;
 }
+void Library::rename(const QString &src, const QString &name) {
+  if (name.trimmed().isEmpty()) return;
+  setName(src, name.trimmed()); changed(); m_saveTimer.start();
+}
 void Library::resetNames(const QStringList &srcs) {
   bool any = false;
   for (const QString &src : srcs) if (m_names.contains(src)) { setName(src, QString()); any = true; }
