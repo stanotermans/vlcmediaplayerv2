@@ -37,6 +37,38 @@ Column {
     }
     Item { width: 1; height: 6 }
   }
+  Section {   // #132
+    id: liveSec
+    title: "Live subtitles (Whisper)"
+    readonly property LiveSubs live: page.ctl.sb.live
+    readonly property var models: { liveSec.live.modelsVersion; return liveSec.live.models(); }
+    Note { visible: !liveSec.live.available; text: liveSec.live.unavailableReason }
+    Note { text: qsTr("Whisper listens to what plays and writes what is said as subtitles, in about 100 languages. It runs on this computer: nothing is sent anywhere. Start it with Shift+V, or under Subtitles in the player. It needs a model, downloaded once.") }
+    Repeater {
+      model: liveSec.models
+      SettingRow {
+        required property var modelData
+        label: modelData.label
+        info: modelData.size + " MB"
+        Row {
+          spacing: 8
+          T { visible: liveSec.live.downloading === modelData.id; anchors.verticalCenter: parent.verticalCenter; color: Theme.muted; px: 12
+              text: Math.round(liveSec.live.progress * 100) + " %" }
+          Button { visible: liveSec.live.downloading === modelData.id; text: qsTr("Cancel"); kind: "ghost"; onClicked: liveSec.live.cancelDownload() }
+          Button { visible: !modelData.have && liveSec.live.downloading !== modelData.id; enabled: liveSec.live.available && liveSec.live.downloading === ""
+                   text: qsTr("Download"); kind: "ghost"; onClicked: liveSec.live.download(modelData.id) }
+          Button { visible: modelData.have; text: Settings.values.liveModel === modelData.id ? qsTr("In use") : qsTr("Use"); kind: Settings.values.liveModel === modelData.id ? "primary" : "ghost"
+                   onClicked: Settings.set("liveModel", modelData.id) }
+          Button { visible: modelData.have; text: qsTr("Remove"); kind: "ghost"; danger: true; onClicked: liveSec.live.removeModel(modelData.id) }
+        }
+      }
+    }
+    SettingRow { label: "Language"; info: "The language that is spoken. Detecting it takes a moment at the start."
+                 Select { path: "liveLang"; options: [["auto", "Detect automatically"], ["en", "English"], ["nl", "Nederlands"], ["de", "Deutsch"], ["fr", "Français"],
+                   ["es", "Español"], ["it", "Italiano"], ["pt", "Português"], ["pl", "Polski"], ["tr", "Türkçe"], ["ru", "Русский"], ["uk", "Українська"],
+                   ["ar", "العربية"], ["hi", "हिन्दी"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "中文"], ["vi", "Tiếng Việt"], ["id", "Bahasa Indonesia"]] } }
+    SettingRow { label: "Translate into English"; info: "Whisper writes the subtitles in English, whatever language is spoken."; Toggle { path: "liveTranslate" } }
+  }
   Section {
     title: "Online subtitles (OpenSubtitles)"
     OsAccount { subs: page.ctl.subs; readonly property string searchLabel: "OpenSubtitles" }

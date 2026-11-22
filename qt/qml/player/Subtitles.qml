@@ -58,7 +58,7 @@ QtObject {
     return timed.length ? { synced: true, lines: timed } : { synced: false, lines: plain };
   }
 
-  function clear() { tracks = []; active = -1; delay = 0; speed = 1; dur = 0; lyrics = null; hoverLines = null; synced = false; lyricsHidden = false; waiting = ({}); player.setSpu(-1); player.setSpuDelay(0); }
+  function clear() { if (live.running) live.stop(); tracks = []; active = -1; delay = 0; speed = 1; dur = 0; lyrics = null; hoverLines = null; synced = false; lyricsHidden = false; waiting = ({}); player.setSpu(-1); player.setSpuDelay(0); }
   // a new file: its own tracks, then files next to it (and .lrc lyrics), then the preferred language (Settings → Subtitles)
   function setup(i) {
     clear();
@@ -87,6 +87,7 @@ QtObject {
   }
   function select(i) {
     player.setSpu(-1);
+    if (live.running && !(tracks[i] && tracks[i].live)) live.stop();   // #132
     if (i < 0 || !tracks[i]) { active = -1; osd(qsTr("Subtitles off")); return; }
     active = i;
     const tr = tracks[i];
@@ -95,6 +96,7 @@ QtObject {
       if (ids[tr.k]) { player.setSpu(ids[tr.k].id); player.setSpuDelay(delay); return osd(qsTr("Subtitles: %1").arg(tr.label)); }
       active = -1; return osd(qsTr("Image-based subtitles are not supported"));
     }
+    if (tr.live) return runLive();   // #132
     if (!tr.cues) {
       osd(qsTr("Loading subtitles…"));
       const r = ++req, w = Object.assign({}, waiting); w[r] = i; waiting = w;
@@ -135,6 +137,51 @@ QtObject {
     return i;
   }
   function lyricAt(at) { if (!hoverLines) return ""; const i = lineAt(hoverLines, at); return i < 0 ? "" : (hoverLines[i].text || "♪"); }
+
+  // ---------- #132: live subtitles (Whisper, on this computer): a track whose lines come in while it plays ----------
+  property LiveSubs live: LiveSubs {}
+  readonly property int liveIndex: tracks.findIndex(t => !!t.live)
+  readonly property bool liveOn: active >= 0 && !!tracks[active] && !!tracks[active].live
+  readonly property string liveModel: Settings.values.liveModel || "base"
+  function toggleLive() { if (liveOn) select(-1); else startLive(); }
+  function startLive() {
+    if (!it) return osd(qsTr("Play something first"));
+    if (!live.available) return osd(live.unavailableReason);
+    if (!live.hasModel(liveModel)) { osd(qsTr("Download a model for live subtitles first")); ctl.openSettings("subtitles"); return; }
+    let i = liveIndex;
+    if (i < 0) { tracks = tracks.concat([{ label: qsTr("Live (Whisper)"), live: true, src: it.src, idx: null, cues: [] }]); i = tracks.length - 1; }
+    select(i);
+  }
+  function runLive() {
+    if (!live.hasModel(liveModel)) { active = -1; osd(qsTr("Download a model for live subtitles first")); ctl.openSettings("subtitles"); return; }
+    live.start(it.src, player.time / 1000, liveModel, Settings.values.liveLang || "auto", !!Settings.values.liveTranslate);
+    osd(qsTr("Live subtitles: listening…"));
+  }
+  // new lines replace what they overlap (a seek back that is done again), in time order
+  function addLive(list) {
+    const i = liveIndex; if (i < 0) return;
+    let cues = (tracks[i].cues || []).slice();
+    for (const g of list) { cues = cues.filter(c => c.e <= g.s + 0.05 || c.s >= g.e - 0.05); cues.push({ s: g.s, e: g.e, h: esc(g.text) }); }
+    cues.sort((a, b) => a.s - b.s);
+    const t = tracks.slice(); t[i] = Object.assign({}, t[i], { cues: cues }); tracks = t;
+  }
+  property Connections liveLines: Connections {
+    target: sb.live
+    function onSegments(list) { sb.addLive(list); }
+    function onError(text) { sb.osd(text); }
+  }
+  property Connections livePos: Connections {
+    target: sb.player
+    function onTimeChanged() { if (sb.live.running) sb.live.setPosition(sb.player.time / 1000); }
+  }
+  property Connections liveSettings: Connections {
+    target: Settings
+    function onChanged(p) {
+      if (["liveModel", "liveLang", "liveTranslate"].indexOf(p) < 0 || !sb.liveOn) return;
+      const t = sb.tracks.slice(); t[sb.liveIndex] = Object.assign({}, t[sb.liveIndex], { cues: [] }); sb.tracks = t;   // (other words now)
+      sb.runLive();
+    }
+  }
 
   // what to show now
   readonly property var cues: active >= 0 && tracks[active] && tracks[active].cues ? tracks[active].cues : null

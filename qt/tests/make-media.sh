@@ -47,6 +47,10 @@ done
 # a minute of Ogg Vorbis (#114: libVLC's own Ogg reader seeks to the wrong place), outside the media folder
 ff -f lavfi -i "sine=f=330:d=60" -c:a libvorbis -q:a 4 "$OUT/extra/song.ogg"
 
+# #132: speech for the live subtitles: whisper.cpp's sample (MIT), outside the media folder
+curl -sSL --retry 5 --retry-delay 10 -o "$OUT/extra/speech.wav" https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.9.5/samples/jfk.wav
+echo "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e  $OUT/extra/speech.wav" | sha256sum -c - >/dev/null
+
 # #119: a minute of MP3 (after quick seeks libVLC played it lower for seconds), outside the media folder
 ff -f lavfi -i "sine=f=523:d=60" -c:a libmp3lame -b:a 192k "$OUT/extra/seek.mp3"
 

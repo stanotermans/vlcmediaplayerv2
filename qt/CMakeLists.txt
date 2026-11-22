@@ -20,6 +20,7 @@ qt_add_executable(vlcr
   src/system.cpp src/system.h
   src/android.cpp src/android.h
   src/store.cpp src/store.h
+  src/livesubs.cpp src/livesubs.h
 )
 set_source_files_properties(qml/Theme.qml qml/SettingsSearch.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(vlcr
@@ -61,6 +62,29 @@ if(NOT DEFINED VLCR_BUILD)
 endif()
 math(EXPR VLCR_VERSION_CODE "(${PROJECT_VERSION_MAJOR} * 10000 + ${PROJECT_VERSION_MINOR} * 100 + ${PROJECT_VERSION_PATCH}) * 100 + ${VLCR_BUILD}")
 target_link_libraries(vlcr PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia Qt6::Svg Qt6::Network)
+# #132: live subtitles with whisper.cpp (MIT), built in (static); for processors with AVX2 (checked at run time) or ARM.
+# Not on Android.
+if(NOT ANDROID)
+  include(FetchContent)
+  set(WHISPER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(WHISPER_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+  set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+  set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64|x64" OR CMAKE_OSX_ARCHITECTURES MATCHES "x86_64")
+    foreach(o GGML_SSE42 GGML_AVX GGML_AVX2 GGML_BMI2 GGML_FMA GGML_F16C)
+      set(${o} ON CACHE BOOL "" FORCE)
+    endforeach()
+  endif()
+  FetchContent_Declare(whisper
+    URL https://github.com/ggml-org/whisper.cpp/archive/refs/tags/v1.9.5.tar.gz
+    URL_HASH SHA256=ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+  FetchContent_MakeAvailable(whisper)
+  target_link_libraries(vlcr PRIVATE whisper)
+  target_compile_definitions(vlcr PRIVATE VLCR_WHISPER)
+endif()
 if(ANDROID)
   # #53: the APK (qt/packaging/android/build.sh): libVLC for Android and FFmpeg go in as extra native libraries
   set(VLCR_ANDROID_LIBS "" CACHE STRING "libvlc.so, libc++_shared.so (libVLC's) and libffmpeg.so for the APK")

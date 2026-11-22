@@ -18,8 +18,8 @@ mkdir -p win64 && cd win64
 # (WaitOnAddress, Windows 8 and newer: in mingw-w64's libsynchronization)
 LIBS=-lsynchronization ../configure --host=x86_64-w64-mingw32 --prefix=/build/prefix \
   --disable-nls --disable-vlc --disable-lua --disable-a52 --disable-libgcrypt --disable-swscale --disable-avcodec \
-  --disable-avformat --disable-postproc --disable-mad --disable-qt --disable-skins2 --disable-chromecast --disable-sout \
-  --disable-vlm --disable-addonmanagermodules --disable-update-check --disable-dbus --disable-xcb --disable-libva \
+  --disable-avformat --disable-postproc --disable-mad --disable-qt --disable-skins2 --disable-chromecast \
+  --disable-addonmanagermodules --disable-update-check --disable-dbus --disable-xcb --disable-libva \
   --disable-dxva2 --disable-d3d11va --disable-dvdread --disable-dvdnav --disable-bluray --disable-taglib --disable-ncurses \
   --disable-srt --disable-gnutls --disable-libxml2 --disable-sparkle --disable-x264 --disable-x26410b --disable-fluidsynth \
   >/build/configure.log 2>&1 || { tail -40 /build/configure.log; exit 1; }

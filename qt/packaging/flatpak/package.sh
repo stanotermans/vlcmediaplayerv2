@@ -14,6 +14,10 @@ rm -rf "$S"; mkdir -p "$S" "$OUT"
 # the sources (without build folders) and the parts that are not built here
 tar -C .. --exclude='qt/build*' --exclude='qt/dist' --exclude='qt/deploy' -cf - qt | tar -C "$S" -xf -
 cp -a "$VLC" "$S/vlc"
+# whisper.cpp (#132, live subtitles): flatpak-builder has no network, so its source is put here (checked)
+curl -sSL --retry 5 --retry-delay 10 -o "$B/whisper.tar.gz" https://github.com/ggml-org/whisper.cpp/archive/refs/tags/v1.9.5.tar.gz
+echo "ff1a9053feb509ff9d7729703355541ae9690073a6b1c40eb692c962e0dc1720  $B/whisper.tar.gz" | sha256sum -c - >/dev/null
+mkdir -p "$S/whisper.cpp" && tar -xzf "$B/whisper.tar.gz" -C "$S/whisper.cpp" --strip-components=1
 cp "$FFMPEG" "$S/ffmpeg"
 cp ../app/assets/FluidR3Mono_GM.sf3 ../LICENSE packaging/linux/vela-player.desktop packaging/flatpak/$ID.metainfo.xml "$S/"
 cp assets/icon-512.png "$S/icon.png"   # (Flatpak takes icons up to 512 px)

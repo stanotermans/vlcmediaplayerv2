@@ -60,7 +60,7 @@ cp -L $ARCH_DIR/libvlc.so.5 $ARCH_DIR/libvlccore.so.9 "$OUT/lib/"   # real files
   [ -x configure ] || ./bootstrap >/dev/null
   ./configure --prefix=/usr --disable-nls --disable-vlc --disable-lua --disable-a52 --disable-libgcrypt --disable-swscale \
     --disable-avcodec --disable-avformat --disable-postproc --disable-mad --disable-qt --disable-skins2 --disable-chromecast \
-    --disable-sout --disable-vlm --disable-addonmanagermodules --disable-update-check --disable-dbus --disable-xcb \
+    --disable-addonmanagermodules --disable-update-check --disable-dbus --disable-xcb \
     --disable-dvdread --disable-dvdnav --disable-bluray --disable-taglib --disable-ncurses --disable-srt --disable-gnutls \
     --disable-libxml2 --disable-x264 --disable-x26410b --disable-fluidsynth --disable-alsa --disable-pulse --disable-libva  \
     --disable-vdpau --disable-wayland --disable-udev --disable-v4l2 --disable-jack --disable-mtp --disable-upnp --disable-avahi  \

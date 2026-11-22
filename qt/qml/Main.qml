@@ -562,6 +562,14 @@ C.ApplicationWindow {
   property alias subs: subs
   FileDialog { id: subDlg; title: qsTr("Add subtitle file"); nameFilters: [qsTr("Subtitles") + " (*.srt *.vtt *.ass *.ssa *.sub *.lrc)", qsTr("All files") + " (*)"]
     onAccepted: sb.addFile(library.toLocal(selectedFile), true) }
+  // #132: the live subtitles made so far, as a .srt file (next to the video, with its name)
+  FileDialog { id: srtDlg; title: qsTr("Save live subtitles"); fileMode: FileDialog.SaveFile; nameFilters: ["SubRip (*.srt)"]; defaultSuffix: "srt"
+    onAccepted: { const f = library.toLocal(selectedFile); osd(sb.live.saveSrt(f, sb.tracks[sb.liveIndex].cues) ? qsTr("Saved %1").arg(f) : qsTr("Could not save %1").arg(f)); } }
+  function saveLiveSrt() {
+    if (sb.liveIndex < 0 || !current) return;
+    if (!current.remote) srtDlg.selectedFile = "file:///" + current.src.replace(/\\/g, "/").replace(/\.[^./]*$/, "") + ".srt";
+    srtDlg.open();
+  }
   function addSubtitleFile() { if (!current) return osd(qsTr("Play something first")); subDlg.currentFolder = "file:///" + current.src.replace(/\\/g, "/").replace(/\/[^/]*$/, ""); subDlg.open(); }
   // Vela Player Pro (#53): the Pro screen, with the part that led there first
   function pro(what) { dialog("dialogs/ProDialog.qml", { ctl: win, what: what || "" }); }
@@ -573,6 +581,8 @@ C.ApplicationWindow {
       { sep: true },
       { label: qsTr("Add file…"), icon: "file", action: addSubtitleFile, disabled: !current },
       { label: qsTr("Search online…"), icon: "search", action: searchSubtitles, disabled: !current },
+      { label: qsTr("Live subtitles (Whisper)"), checked: sb.liveOn, kbd: "Shift+V", action: () => sb.toggleLive(), disabled: !current },   // #132
+      sb.liveIndex >= 0 && (sb.tracks[sb.liveIndex].cues || []).length ? { label: qsTr("Save live subtitles as .srt…"), icon: "download", action: saveLiveSrt } : null,
       sb.lyrics ? { label: qsTr("Show lyrics"), checked: !sb.lyricsHidden, kbd: "Y", action: () => sb.toggleLyrics() } : null,
       { label: qsTr("Delay −0.1 s"), kbd: "G", action: () => sb.nudge(-0.1) },
       { label: qsTr("Delay +0.1 s"), kbd: "H", action: () => sb.nudge(0.1) }

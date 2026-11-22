@@ -302,6 +302,24 @@ def mp3_seek_pitch(c):   # #119: quick seeks in an MP3 no longer make libVLC res
     t = int((c.vals.get('t') or ['0'])[0]); c.ok(29000 <= t <= 32500, f'plays on from the last seek ({t} ms)')
 
 @test
+def live_subs(c):   # #132: live subtitles: Whisper (tiny model) writes what is said in a speech sample as a subtitle track, which can be saved as .srt
+    f = os.path.join(A.media, 'extra', 'speech.wav')
+    models = os.environ.get('VLCR_WHISPER_MODELS', '')
+    if not os.path.exists(f) or not os.path.exists(os.path.join(models, 'ggml-tiny.bin')):
+        return c.ok(not os.environ.get('CI'), 'no extra/speech.wav or no tiny model (VLCR_WHISPER_MODELS)')
+    srt = os.path.join(OUT, c.name, 'live.srt')
+    if os.path.exists(srt): os.remove(srt)
+    c.vals, _ = run(c.name, ['set:liveModel="tiny"', 'set:liveLang="en"', f'playfile:{f}', 'wait:800', 'log:(sb.startLive(), "on=" + sb.liveOn + " " + sb.live.running)', 'wait:9000',
+                             'log:"text=" + (sb.cues || []).map(x => x.h).join(" ")', 'log:"times=" + (sb.cues || []).map(x => x.s.toFixed(1) + "-" + x.e.toFixed(1)).join(",")',
+                             f'log:"saved=" + sb.live.saveSrt({js(srt)}, sb.cues || [])', 'log:(sb.toggleLive(), "off=" + sb.live.running)'],
+                    extra_env={'VLCR_WHISPER_MODELS': models})
+    c.eq('on', 'true true')
+    text = c.get('text').lower()
+    c.ok('country' in text and 'ask' in text, f'what is said: {c.get("text")!r} ({c.get("times")})')
+    c.ok(c.get('saved') == 'true' and os.path.exists(srt) and '-->' in open(srt, encoding='utf-8').read(), f'saved as .srt: {c.get("saved")}')
+    c.eq('off', 'false')
+
+@test
 def ogg_seek(c):   # #114: seeking in an Ogg file lands where asked (it plays from its Matroska copy), paused stays paused
     f = os.path.join(A.media, 'extra', 'song.ogg')
     if not os.path.exists(f): return c.ok(not os.environ.get('CI'), 'no extra/song.ogg in the test media')

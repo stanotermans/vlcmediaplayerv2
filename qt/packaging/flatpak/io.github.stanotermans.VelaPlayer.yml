@@ -22,7 +22,7 @@ modules:
       no-debuginfo: true      # the program is stripped below; libVLC's libraries (patched with patchelf) stay as they are
       strip: false
     build-commands:
-      - cmake -S qt -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr
+      - cmake -S qt -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr -DFETCHCONTENT_SOURCE_DIR_WHISPER=$(pwd)/whisper.cpp
       - cmake --build build
       - strip build/vela-player && install -Dm755 build/vela-player /app/bin/vela-player
       - cp -a vlc /app/bin/vlc

@@ -204,6 +204,8 @@ Rectangle {
         SettingRow { label: "Preferred language"; TextField { width: 160; path: "subLang"; placeholder: "e.g. en, nl" } }
         SettingRow { label: "Load file"; Button { text: ".srt / .ass / .vtt…"; onClicked: root.ctl.addSubtitleFile() } }
         SettingRow { label: "Search online"; Button { text: "OpenSubtitles…"; onClicked: { root.open = false; root.ctl.searchSubtitles(); } } }
+        SettingRow { label: "Live subtitles"; info: "Whisper writes what is said as subtitles, on this computer (Shift+V)."
+                     Button { text: root.sb.liveOn ? "Stop" : "Start"; kind: root.sb.liveOn ? "ghost" : "primary"; onClicked: root.sb.toggleLive() } }   // #132
       }
       Section { title: "Synchronization"
         Slider { label: "Subtitle delay"; box: true; min: -60; max: 60; step: 0.05; center: true; controlled: true; value: root.sb.delay; fmt: v => v.toFixed(3) + " s"

@@ -24,8 +24,8 @@ export PKG_CONFIG_LIBDIR=/nonexistent   # (none of Homebrew's libraries: the cor
 mkdir -p build && cd build
 ../configure --host=$HOST --prefix="$W/prefix" \
   --disable-nls --disable-vlc --disable-lua --disable-a52 --disable-libgcrypt --disable-swscale --disable-avcodec \
-  --disable-avformat --disable-postproc --disable-mad --disable-qt --disable-skins2 --disable-chromecast --disable-sout \
-  --disable-vlm --disable-addonmanagermodules --disable-update-check --disable-dbus --disable-xcb --disable-macosx \
+  --disable-avformat --disable-postproc --disable-mad --disable-qt --disable-skins2 --disable-chromecast \
+  --disable-addonmanagermodules --disable-update-check --disable-dbus --disable-xcb --disable-macosx \
   --disable-sparkle --disable-dvdread --disable-dvdnav --disable-bluray --disable-taglib --disable-ncurses --disable-srt \
   --disable-gnutls --disable-libxml2 --disable-x264 --disable-x26410b --disable-fluidsynth --disable-growl \
   > "$W/configure.log" 2>&1 || { tail -40 "$W/configure.log"; exit 1; }

@@ -276,6 +276,7 @@ QtObject {
     ["rescan", "Rescan", ["F5"], () => ctl.rescan()],                    // #113
     ["lyrics", "Show lyrics", ["y"], () => ctl.sb.toggleLyrics()],
     ["subs", "Cycle subtitle track", ["v"], () => ctl.sb.cycle()],
+    ["liveSubs", "Live subtitles on / off", ["V"], () => ctl.sb.toggleLive()],   // #132
     ["audio", "Cycle audio track", ["b"], () => cycleAudio()],
     ["subMinus", "Subtitle delay −", ["g"], () => ctl.sb.nudge(-0.1)],
     ["subPlus", "Subtitle delay +", ["h"], () => ctl.sb.nudge(0.1)],
