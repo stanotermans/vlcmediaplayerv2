@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <chrono>
+#include <thread>
 #include <vector>
 #ifdef VLCR_WHISPER
 #include "whisper.h"
@@ -162,11 +163,13 @@ void LiveSubs::start(const QString &src, double from, const QString &model, cons
   if (!hasModel(model)) { emit error(tr("Download a model first (Settings → Subtitles → Live subtitles)")); return; }
   m_stop = false; m_jump = -1; m_position = from; m_doneUntil = from; emit progressChanged();
   setRunning(true);
-  m_thread = std::thread(&LiveSubs::worker, this, src, std::max(0.0, from), modelPath(model), lang.isEmpty() ? QStringLiteral("auto") : lang, translate);
+  const QString mp = modelPath(model), lg = lang.isEmpty() ? QStringLiteral("auto") : lang; const double at = std::max(0.0, from);
+  m_thread = QThread::create([this, src, at, mp, lg, translate]() { worker(src, at, mp, lg, translate); });
+  m_thread->start();
 }
 void LiveSubs::stop() {
   m_stop = true;
-  if (m_thread.joinable()) m_thread.join();
+  if (m_thread) { m_thread->wait(); delete m_thread; m_thread = nullptr; }
   setRunning(false);
 }
 void LiveSubs::setPosition(double sec) {

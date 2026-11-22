@@ -11,9 +11,9 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
-#include <thread>
 
 class QNetworkReply;
+class QThread;
 class QFile;
 
 class LiveSubs : public QObject {
@@ -68,7 +68,7 @@ private:
   bool m_running = false;
   std::atomic<double> m_doneUntil{ 0 };  // (written by the worker)
   std::atomic<double> m_runStart{ 0 };   // where this run began
-  std::thread m_thread;
+  QThread *m_thread = nullptr;          // (a QThread: QProcess needs Qt's own thread there, on macOS it hung in a bare std::thread)
   std::atomic<bool> m_stop{ false };
   std::atomic<double> m_position{ 0 };   // playback, seconds
   std::atomic<double> m_jump{ -1 };      // a seek outside what is done: start again here
