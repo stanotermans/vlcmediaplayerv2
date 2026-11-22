@@ -204,6 +204,8 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
   if (!ctx) { post([this]() { emit error(tr("The model could not be loaded")); setRunning(false); }); return; }
 
   constexpr int RATE = 16000;
+  const bool trace = qEnvironmentVariableIsSet("VLCR_WHISPER_LOG");   // (testing)
+  qint64 readTotal = 0;
   const double first = 8, chunk = 15, longest = 28, ahead = 75;   // seconds
   QProcess proc;
   std::vector<float> buf;
@@ -216,6 +218,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
     proc.start(ffmpeg(), { "-hide_banner", "-loglevel", "error", "-nostdin", "-ss", QString::number(at, 'f', 3), "-i", src,
                            "-vn", "-sn", "-dn", "-ac", "1", "-ar", QString::number(RATE), "-f", "s16le", "-" });
     if (!proc.waitForStarted(5000)) qWarning().noquote() << "Vela Player: live subtitles: FFmpeg did not start:" << proc.errorString();
+    else if (trace) qInfo().noquote() << "Vela Player: live subtitles: FFmpeg" << ffmpeg() << "from" << at << "s";
   };
   open(from);
   QByteArray pending;   // half a sample left over
@@ -239,9 +242,13 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
     // read what FFmpeg has
     if (!eof) {
       if (proc.bytesAvailable() == 0 && !proc.waitForReadyRead(100)) {
-        if (proc.state() == QProcess::NotRunning && proc.bytesAvailable() == 0) eof = true;
+        if (proc.state() == QProcess::NotRunning && proc.bytesAvailable() == 0) {
+          eof = true;
+          if (trace) qInfo().noquote() << "Vela Player: live subtitles: FFmpeg ended after" << readTotal << "bytes, exit" << proc.exitCode() << proc.readAllStandardError().left(400);
+        }
       }
-      QByteArray b = pending + proc.readAll();
+      const QByteArray got = proc.readAll(); readTotal += got.size();
+      QByteArray b = pending + got;
       const int n = int(b.size() / 2);
       buf.reserve(buf.size() + size_t(n));
       const qint16 *s = reinterpret_cast<const qint16 *>(b.constData());
@@ -256,6 +263,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
     // far enough ahead of playback: wait (FFmpeg pauses itself once its pipe is full)
     if (bufStart > m_position.load() + ahead) { std::this_thread::sleep_for(std::chrono::milliseconds(200)); continue; }
 
+    if (trace) qInfo().noquote() << "Vela Player: live subtitles: Whisper on" << len << "s";
     if (whisper_full(ctx, p, buf.data(), int(buf.size())) != 0) continue;   // (aborted: a seek or a stop)
     const int ns = whisper_full_n_segments(ctx);
     if (qEnvironmentVariableIsSet("VLCR_WHISPER_LOG")) qInfo().noquote() << "Vela Player: live subtitles:" << len << "s of sound from" << bufStart << "s:" << ns << "segments";
