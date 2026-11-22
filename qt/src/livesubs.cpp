@@ -240,7 +240,13 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
   p.abort_callback = [](void *data) { auto *self = static_cast<LiveSubs *>(data); return self->m_stop.load() || self->m_jump.load() >= 0; };
   p.abort_callback_user_data = this;
 
+  qint64 lastTrace = 0;
   while (!m_stop) {
+    if (trace && QDateTime::currentMSecsSinceEpoch() - lastTrace > 1000) {
+      lastTrace = QDateTime::currentMSecsSinceEpoch();
+      qInfo().noquote() << "Vela Player: live subtitles: read" << readTotal << "bytes, buffer" << buf.size() << "eof" << eof << "FFmpeg state" << proc.state()
+                        << "available" << proc.bytesAvailable() << "position" << m_position.load() << "start" << bufStart;
+    }
     const double j = m_jump.exchange(-1);
     if (j >= 0) { open(j); pending.clear(); want = first; post([this]() { emit progressChanged(); }); continue; }
     // read what FFmpeg has
@@ -252,8 +258,6 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
         }
       }
       const QByteArray got = proc.readAll(); readTotal += got.size();
-      if (trace) { static thread_local qint64 last = 0; const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        if (now - last > 1000) { last = now; qInfo().noquote() << "Vela Player: live subtitles: read" << readTotal << "bytes, FFmpeg state" << proc.state() << "error" << proc.error() << "stderr" << proc.readAllStandardError().left(300); } }
       QByteArray b = pending + got;
       const int n = int(b.size() / 2);
       buf.reserve(buf.size() + size_t(n));
