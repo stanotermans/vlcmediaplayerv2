@@ -198,7 +198,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
 #ifdef VLCR_WHISPER
   auto post = [this](auto fn) { QMetaObject::invokeMethod(this, fn, Qt::QueuedConnection); };
   whisper_context_params cp = whisper_context_default_params();
-  cp.use_gpu = true;   // (Metal on a Mac; elsewhere this build has only the processor)
+  cp.use_gpu = !qEnvironmentVariableIsSet("VLCR_WHISPER_CPU");   // (Metal on a Mac; elsewhere this build has only the processor. Testing: the CI's Macs have a virtual GPU)
   whisper_context *ctx = whisper_init_from_file_with_params(modelPath.toUtf8().constData(), cp);
   if (!ctx) { cp.use_gpu = false; ctx = whisper_init_from_file_with_params(modelPath.toUtf8().constData(), cp); }   // (no usable GPU: the processor)
   if (!ctx) { post([this]() { emit error(tr("The model could not be loaded")); setRunning(false); }); return; }
