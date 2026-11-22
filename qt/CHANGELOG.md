@@ -1,3 +1,7 @@
+## 3.2.22
+- 🐛 **The window no longer waits for libVLC:** on some PCs starting libVLC (VLC's playback engine) sometimes takes 15–45 seconds, and the window stayed away all that time. libVLC now starts in the background: the window and the library are there at once, and a file you opened plays as soon as libVLC is ready (#131).
+- 🔧 **startup.log** also shows how long loading libVLC's files took (*libVLC loaded*), apart from starting it, and waits for libVLC before it writes the line (#131).
+
 ## 3.2.21
 - 🐛 **Slow starts:** when Vela is opened while an earlier Vela is still closing (or hangs), the new start no longer hands its files to that one and stops; it opens by itself after at most 3 seconds. A Vela that is closing also no longer accepts files from a new start (#131).
 - 🔧 **Start times:** every start writes how long its parts took (from Windows starting the program to the window and the library) to *startup.log* in Vela's data folder, the last 30 starts, so a slow start can be looked into (#131).

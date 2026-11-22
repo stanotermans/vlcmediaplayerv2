@@ -147,6 +147,8 @@ private:
   static void onDisplay(void *opaque, void *picture);
   void poll();
   bool load();
+  void startAsync();                          // #131
+  bool started(void *instance, const QString &err);
   void show(const QVideoFrame &fr);
 
   QPointer<QVideoSink> m_sink, m_extra;
@@ -157,6 +159,8 @@ private:
   int m_volume = 80, m_state = 0;
   double m_rate = 1;
   QStringList m_startArgs;
+  bool m_starting = false;                    // #131: libVLC is starting on a worker thread
+  QVariantMap m_pendingOpen;                  // a file asked for meanwhile
   bool m_logAll = false;
   bool m_dvd = false, m_recording = false, m_fastSeek = false;
   // #66: playing through FFmpeg (the time counts from where FFmpeg started)

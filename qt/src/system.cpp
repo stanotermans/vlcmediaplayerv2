@@ -24,6 +24,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSet>
+#include <mutex>
 #include <QDateTime>
 #include <QElapsedTimer>
 #include <QSaveFile>
@@ -503,6 +504,7 @@ QElapsedTimer g_startClock;
 qint64 beforeMain = -1;
 QList<QPair<QString, qint64>> stages;
 bool startupWritten = false;
+std::mutex startLock;   // (marks also come from libVLC's start on its worker thread)
 }
 void System::startClock() {
   g_startClock.start();
@@ -516,11 +518,18 @@ void System::startClock() {
 #endif
 }
 void System::mark(const QString &stage) {
+  std::lock_guard<std::mutex> g(startLock);
   if (!g_startClock.isValid() || startupWritten) return;
   for (const auto &st : stages) if (st.first == stage) return;   // the first time only
   stages.append({ stage, g_startClock.elapsed() });
 }
+bool System::hasMark(const QString &stage) {
+  std::lock_guard<std::mutex> g(startLock);
+  for (const auto &st : stages) if (st.first == stage) return true;
+  return false;
+}
 QString System::startupLine() {
+  std::lock_guard<std::mutex> g(startLock);
   QStringList parts;
   if (beforeMain >= 0) parts << QString("before main %1").arg(beforeMain);
   for (const auto &st : stages) parts << QString("%1 %2").arg(st.first).arg(st.second);
@@ -529,7 +538,7 @@ QString System::startupLine() {
 void System::writeStartup() {
   if (startupWritten || !g_startClock.isValid()) return;
   const QString line = startupLine();
-  startupWritten = true;
+  { std::lock_guard<std::mutex> g(startLock); startupWritten = true; }
   qInfo().noquote() << "Vela Player: start:" << line;
   const QString dir = qEnvironmentVariable("VLCR_USER_DATA", QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
   QDir().mkpath(dir);

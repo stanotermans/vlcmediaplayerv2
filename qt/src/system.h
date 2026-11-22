@@ -65,6 +65,7 @@ public:
   Q_INVOKABLE static void mark(const QString &stage);
   Q_INVOKABLE static void writeStartup();        // once the window shows and the start has settled
   Q_INVOKABLE static QString startupLine();
+  static bool hasMark(const QString &stage);
   void stopListening() { m_server.close(); }    // #131: while closing, a new start no longer hands its files to this one   // testing (#129): what a click on the taskbar button does to a minimised window
   Q_INVOKABLE void testClick(QWindow *w, qreal x, qreal y);   // testing: a left click at this window point
   Q_INVOKABLE void testDrag(QWindow *w, qreal x0, qreal y0, qreal x1, qreal y1);   // testing: press, move in steps, release

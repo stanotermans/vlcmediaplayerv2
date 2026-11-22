@@ -146,7 +146,13 @@ int main(int argc, char *argv[]) {
       QObject::connect(w, &QQuickWindow::frameSwapped, &app, []() {
         static bool once = false; if (once) return; once = true;
         System::mark("window shown");
-        QTimer::singleShot(4000, qApp, []() { System::writeStartup(); });
+        // (written once libVLC has started too, which can take long on a slow start: at most 90 seconds)
+        auto *t = new QTimer(qApp); t->setInterval(1000);
+        QObject::connect(t, &QTimer::timeout, qApp, [t, n = 0]() mutable {
+          if (++n < 4 || (!System::hasMark("libVLC started") && n < 90)) return;
+          System::writeStartup(); t->deleteLater();
+        });
+        t->start();
       }, Qt::QueuedConnection);
     }
   const int code = app.exec();

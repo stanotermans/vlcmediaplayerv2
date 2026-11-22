@@ -395,6 +395,17 @@ def _handover(c, hang):
     return first.get('vals', {}), second, took
 
 @test
+def slow_vlc(c):   # #131: while libVLC starts slowly the window is already there, and a file asked for meanwhile plays once it is ready
+    c.vals, _ = run(c.name, ['play:video.mp4', 'wait:10000', 'log:"line=" + System.startupLine()', 'log:"playing=" + player.playing + " " + (player.time > 0)'],
+                    extra_env={'VLCR_TEST_SLOW_VLC': '6000'})
+    import re as _re
+    ms = dict((k, int(v)) for k, v in _re.findall(r'(window shown|libVLC started) (\d+)', c.get('line')))
+    c.ok(ms.get('window shown', 1e9) + 2500 < ms.get('libVLC started', 0), f'window before libVLC: {c.get("line")!r}')
+    text = open(os.path.join(_, 'startup.log'), encoding='utf-8').read() if os.path.exists(os.path.join(_, 'startup.log')) else ''
+    c.ok('libVLC started' in text, f'startup.log waits for libVLC: {text.strip()!r}')
+    c.eq('playing', 'true true')
+
+@test
 def handover(c):   # #131: a second start hands its file to the running Vela, which answers, and ends at once
     a, b, took = _handover(c, False)
     c.ok(took < 3 and not b, f'second start ended at once ({took:.1f} s, logged {sorted(b)})')

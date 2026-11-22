@@ -1,5 +1,6 @@
 #include "vlcplayer.h"
 #include "system.h"
+#include <QPointer>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -133,14 +134,16 @@ static int stereoMode;                               // 0 as in the file, 1 ster
 static QByteArray fxFilters;                         // "compressor:spatializer"
 static QList<QPair<QByteArray, QPair<int, double>>> fxParams;
 
-bool VlcPlayer::load() {
-  if (inst) return true;
+// #131: libVLC's DLLs and libvlc_new, without touching the player (it may run on a worker thread). On some PCs this
+// sometimes takes 15–45 seconds (a virus scanner checking libVLC's files, a slow disk after waking up); on the
+// interface's thread the window stayed away all that time.
+static libvlc_instance_t *startLib(const QStringList &startArgs, bool quiet, QString *err) {
 #ifdef _WIN32
   QString dir = qEnvironmentVariable("VLCR_VLC", QCoreApplication::applicationDirPath() + "/vlc");
   SetDllDirectoryW(reinterpret_cast<const wchar_t *>(QDir::toNativeSeparators(dir).utf16()));
   HMODULE dll = LoadLibraryW(reinterpret_cast<const wchar_t *>(QDir::toNativeSeparators(dir + "/libvlc.dll").utf16()));
-  if (!dll) { m_error = "libVLC not found in " + dir; emit errorChanged(); return false; }
-#define LOAD(f, s) if (!(*(FARPROC *)&vlc.f = GetProcAddress(dll, s))) { m_error = "libVLC: missing " s; emit errorChanged(); return false; }
+  if (!dll) { *err = "libVLC not found in " + dir; return nullptr; }
+#define LOAD(f, s) if (!(*(FARPROC *)&vlc.f = GetProcAddress(dll, s))) { *err = "libVLC: missing " s; return nullptr; }
 #else
   // the bundled libVLC (phase 7 packages it next to the program), or the system's
   QString dir = qEnvironmentVariable("VLCR_VLC", QCoreApplication::applicationDirPath() + "/vlc");
@@ -166,8 +169,8 @@ bool VlcPlayer::load() {
   void *dll = open(dir + "/lib/libvlc.so.5");
   if (!dll) dll = open("libvlc.so.5");                                 // a system libVLC (development)
 #endif
-  if (!dll) { m_error = "libVLC not found in " + dir; emit errorChanged(); return false; }
-#define LOAD(f, s) if (!(*(void **)&vlc.f = dlsym(dll, s))) { m_error = "libVLC: missing " s; emit errorChanged(); return false; }
+  if (!dll) { *err = "libVLC not found in " + dir; return nullptr; }
+#define LOAD(f, s) if (!(*(void **)&vlc.f = dlsym(dll, s))) { *err = "libVLC: missing " s; return nullptr; }
 #endif
   LOAD(new_, "libvlc_new") LOAD(get_version, "libvlc_get_version")
   LOAD(media_new_path, "libvlc_media_new_path") LOAD(media_release, "libvlc_media_release")
@@ -215,17 +218,57 @@ bool VlcPlayer::load() {
   }
 #endif
   // --quiet also keeps libVLC's messages from the log; with the log on they are wanted
-  QList<QByteArray> keep = { "--no-video-title-show", "--no-sub-autodetect-file", logFile().isEmpty() ? "--quiet" : "--verbose=2", "--no-osd", "--no-snapshot-preview", "--no-stats", "--no-lua" };
+  QList<QByteArray> keep = { "--no-video-title-show", "--no-sub-autodetect-file", quiet ? "--quiet" : "--verbose=2", "--no-osd", "--no-snapshot-preview", "--no-stats", "--no-lua" };
   QList<QByteArray> all = keep;
-  for (const QString &a : m_startArgs) all << a.toUtf8();
+  for (const QString &a : startArgs) all << a.toUtf8();
   QVector<const char *> args; for (const QByteArray &a : all) args << a.constData();
-  inst = vlc.new_(args.size(), args.data());
+  System::mark("libVLC loaded");   // #131: its DLLs
+  if (qEnvironmentVariableIsSet("VLCR_TEST_SLOW_VLC")) std::this_thread::sleep_for(std::chrono::milliseconds(qEnvironmentVariableIntValue("VLCR_TEST_SLOW_VLC")));   // (testing: a slow start)
+  libvlc_instance_t *inst = vlc.new_(args.size(), args.data());
   if (!inst && all.size() > keep.size()) {   // #123: an option libVLC doesn't know (Extra VLC options) must not stop playback
     QVector<const char *> base; for (const QByteArray &a : keep) base << a.constData();
     inst = vlc.new_(base.size(), base.data());
-    if (inst) writeLog(1, "libVLC refused the extra options " + m_startArgs.join(' ') + ": started without them");
+    if (inst) writeLog(1, "libVLC refused the extra options " + startArgs.join(' ') + ": started without them");
   }
-  if (!inst) { m_error = "libvlc_new failed"; emit errorChanged(); return false; }
+  if (!inst) { *err = "libvlc_new failed"; return nullptr; }
+  return inst;
+}
+static std::atomic<int> g_starting{ 0 };
+bool VlcPlayer::load() {
+  if (inst) return true;
+  if (m_starting || !m_error.isEmpty()) return false;   // starting on the worker thread (or failed)
+  QString err;
+  libvlc_instance_t *i = startLib(m_startArgs, logFile().isEmpty(), &err);
+  return started(i, err);
+}
+// #131: libVLC starts on a worker thread, the window shows meanwhile; what is asked of the player before it is ready
+// waits (a file to open) or is set again once it is (the equalizer, effects: Engine.qml on versionChanged)
+void VlcPlayer::startAsync() {
+#ifdef Q_OS_ANDROID
+  load();   // (Android: through Java, on this thread)
+#else
+  if (inst || m_starting) return;
+  m_starting = true; g_starting++;
+  const QStringList args = m_startArgs; const bool quiet = logFile().isEmpty();
+  QPointer<VlcPlayer> self(this);
+  std::thread([self, args, quiet]() {
+    QString err;
+    libvlc_instance_t *i = startLib(args, quiet, &err);
+    QMetaObject::invokeMethod(qApp, [self, i, err]() {
+      g_starting--;
+      if (!self) return;
+      self->m_starting = false;
+      if (self->started(i, err) && self->m_pendingOpen.contains("src")) {
+        const QVariantMap p = self->m_pendingOpen; self->m_pendingOpen.clear();
+        self->open(p["src"].toString(), p["startMs"].toLongLong(), p["options"].toStringList());
+      }
+    }, Qt::QueuedConnection);
+  }).detach();
+#endif
+}
+bool VlcPlayer::started(void *instance, const QString &err) {
+  if (!instance) { m_error = err; m_pendingOpen.clear(); emit errorChanged(); return false; }
+  inst = static_cast<libvlc_instance_t *>(instance);
   m_version = QString::fromUtf8(vlc.get_version());
   vlc.log_set(inst, onLog, nullptr);
   writeLog(2, "libVLC " + m_version + " started");
@@ -236,15 +279,15 @@ bool VlcPlayer::load() {
 }
 
 VlcPlayer::VlcPlayer(QObject *parent) : QObject(parent) {
-  // after QML has set the properties (startArgs)
-  QMetaObject::invokeMethod(this, [this]() { load(); }, Qt::QueuedConnection);
+  // after QML has set the properties (startArgs); on a worker thread (#131)
+  QMetaObject::invokeMethod(this, [this]() { startAsync(); }, Qt::QueuedConnection);
   m_timer.setInterval(50);
   connect(&m_timer, &QTimer::timeout, this, &VlcPlayer::poll);
   m_timer.start();
 }
 static libvlc_media_player_t *MP(void *p) { return static_cast<libvlc_media_player_t *>(p); }
 static std::atomic<int> g_stopping{ 0 };
-bool VlcPlayer::stopsPending() { return g_stopping > 0; }
+bool VlcPlayer::stopsPending() { return g_stopping > 0 || g_starting > 0; }   // (#131: or libVLC still starting)
 void VlcPlayer::release(void *mp, int waitMs) {
   auto done = std::make_shared<std::promise<void>>();
   auto fut = done->get_future();
@@ -308,6 +351,7 @@ QString VlcPlayer::oggCopy(const QString &src) {
 }
 
 void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &options) {
+  if (m_starting) { m_pendingOpen = { { "src", src }, { "startMs", startMs }, { "options", options } }; return; }   // #131
   if (!load()) return;
   stop();
   const bool url = QRegularExpression("^[a-z][a-z0-9+.-]*://", QRegularExpression::CaseInsensitiveOption).match(src).hasMatch();
