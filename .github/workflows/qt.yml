@@ -142,7 +142,7 @@ jobs:
           mkdir -p wmodels
           [ -f wmodels/ggml-tiny.bin ] || curl -sSL --retry 5 --retry-delay 10 -o wmodels/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin
           python3 -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')" || python -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')"
-          echo "VLCR_WHISPER_MODELS=$PWD/wmodels" >> "$GITHUB_ENV"
+          echo "VLCR_WHISPER_MODELS=$(cd wmodels && (pwd -W 2>/dev/null || pwd))" >> "$GITHUB_ENV"   # (Windows: a path Python can open)
       - name: Tests
         run: python qt/tests/run.py "qt/deploy/Vela Player/Vela Player.exe" testdata --out test-out
       - uses: actions/upload-artifact@v4
@@ -215,7 +215,7 @@ jobs:
           mkdir -p wmodels
           [ -f wmodels/ggml-tiny.bin ] || curl -sSL --retry 5 --retry-delay 10 -o wmodels/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin
           python3 -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')" || python -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')"
-          echo "VLCR_WHISPER_MODELS=$PWD/wmodels" >> "$GITHUB_ENV"
+          echo "VLCR_WHISPER_MODELS=$(cd wmodels && (pwd -W 2>/dev/null || pwd))" >> "$GITHUB_ENV"   # (Windows: a path Python can open)
       - name: Tests
         if: matrix.arch == 'arm64'
         run: python3 qt/tests/run.py "qt/build-mac-arm64/Vela Player.app/Contents/MacOS/Vela Player" testdata --out test-out
@@ -273,7 +273,7 @@ jobs:
           mkdir -p wmodels
           [ -f wmodels/ggml-tiny.bin ] || curl -sSL --retry 5 --retry-delay 10 -o wmodels/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin
           python3 -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')" || python -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')"
-          echo "VLCR_WHISPER_MODELS=$PWD/wmodels" >> "$GITHUB_ENV"
+          echo "VLCR_WHISPER_MODELS=$(cd wmodels && (pwd -W 2>/dev/null || pwd))" >> "$GITHUB_ENV"   # (Windows: a path Python can open)
       - name: Tests
         run: xvfb-run -a -s "-screen 0 1600x1000x24" python3 qt/tests/run.py qt/build-linux/AppDir/AppRun testdata --out test-out
       - name: libVLC for the Flatpak

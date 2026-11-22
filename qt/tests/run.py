@@ -305,8 +305,9 @@ def mp3_seek_pitch(c):   # #119: quick seeks in an MP3 no longer make libVLC res
 def live_subs(c):   # #132: live subtitles: Whisper (tiny model) writes what is said in a speech sample as a subtitle track, which can be saved as .srt
     f = os.path.join(A.media, 'extra', 'speech.wav')
     models = os.environ.get('VLCR_WHISPER_MODELS', '')
+    if not models: return c.ok(True, 'no Whisper model given (VLCR_WHISPER_MODELS): skipped')
     if not os.path.exists(f) or not os.path.exists(os.path.join(models, 'ggml-tiny.bin')):
-        return c.ok(not os.environ.get('CI'), 'no extra/speech.wav or no tiny model (VLCR_WHISPER_MODELS)')
+        return c.ok(not os.environ.get('CI'), f'no extra/speech.wav or no tiny model in {models}')
     srt = os.path.join(OUT, c.name, 'live.srt')
     if os.path.exists(srt): os.remove(srt)
     c.vals, _ = run(c.name, ['set:liveModel="tiny"', 'set:liveLang="en"', f'playfile:{f}', 'wait:800', 'log:(sb.startLive(), "on=" + sb.liveOn + " " + sb.live.running)', 'wait:9000',

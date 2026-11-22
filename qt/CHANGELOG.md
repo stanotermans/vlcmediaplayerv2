@@ -1,3 +1,7 @@
+## 3.2.23
+- ✨ **Live subtitles:** Whisper listens to what plays and writes what is said as subtitles, in about 100 languages, on this computer (nothing is sent anywhere). Turn it on with **Shift+V**, under *Subtitles* in the player or in the quick settings; it starts where you are, keeps ahead of playback and follows seeks. Choose and download a model once under *Settings → Subtitles → Live subtitles* (Tiny 75 MB to Large v3 Turbo 547 MB), the language (or automatic) and optionally a translation into English. What it wrote can be saved as a .srt file (#132).
+- 🐛 **No more lower pitch after seeking:** after quick seeks, VLC's playback engine corrected a small timing difference by playing slower (or faster) for a few seconds, which made the sound lower (or higher). Vela now uses libVLC with a fix that corrects it at once, on Windows, macOS and Linux (#119).
+
 ## 3.2.22
 - 🐛 **The window no longer waits for libVLC:** on some PCs starting libVLC (VLC's playback engine) sometimes takes 15–45 seconds, and the window stayed away all that time. libVLC now starts in the background: the window and the library are there at once, and a file you opened plays as soon as libVLC is ready (#131).
 - 🔧 **startup.log** also shows how long loading libVLC's files took (*libVLC loaded*), apart from starting it, and waits for libVLC before it writes the line (#131).
