@@ -310,7 +310,7 @@ def live_subs(c):   # #132: live subtitles: Whisper (tiny model) writes what is 
         return c.ok(not os.environ.get('CI'), f'no extra/speech.wav or no tiny model in {models}')
     srt = os.path.join(OUT, c.name, 'live.srt')
     if os.path.exists(srt): os.remove(srt)
-    c.vals, _ = run(c.name, ['set:liveModel="tiny"', 'set:liveLang="en"', f'playfile:{f}', 'wait:800', 'log:(sb.startLive(), "on=" + sb.liveOn + " " + sb.live.running)', 'wait:15000',
+    c.vals, _ = run(c.name, ['set:liveModel="tiny"', 'set:liveLang="en"', f'playfile:{f}', 'wait:3000', 'seek:0', 'wait:300', 'log:(sb.startLive(), "on=" + sb.liveOn + " " + sb.live.running)', 'wait:15000',
                              'log:"text=" + (sb.cues || []).map(x => x.h).join(" ")', 'log:"times=" + (sb.cues || []).map(x => x.s.toFixed(1) + "-" + x.e.toFixed(1)).join(",")',
                              f'log:"saved=" + sb.live.saveSrt({js(srt)}, sb.cues || [])', 'log:(sb.toggleLive(), "off=" + sb.live.running)'],
                     extra_env=dict({'VLCR_WHISPER_MODELS': models, 'VLCR_WHISPER_LOG': '1'}, **({'VLCR_WHISPER_CPU': '1'} if os.environ.get('CI') and sys.platform == 'darwin' else {})))   # (the CI's Macs: a virtual GPU)

@@ -216,11 +216,6 @@ jobs:
           [ -f wmodels/ggml-tiny.bin ] || curl -sSL --retry 5 --retry-delay 10 -o wmodels/ggml-tiny.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin
           python3 -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')" || python -c "import hashlib,sys; h=hashlib.sha1(open('wmodels/ggml-tiny.bin','rb').read()).hexdigest(); sys.exit(h!='bd577a113a864445d4c299885e0cb97d4ba92b5f')"
           echo "VLCR_WHISPER_MODELS=$(cd wmodels && (pwd -W 2>/dev/null || pwd))" >> "$GITHUB_ENV"   # (Windows: a path Python can open)
-      - name: FFmpeg's sound for the live subtitles (diagnosis, #132)
-        if: matrix.arch == 'arm64'
-        run: |
-          F="qt/build-mac-arm64/Vela Player.app/Contents/MacOS/ffmpeg"
-          "$F" -hide_banner -loglevel error -nostdin -ss 1 -i testdata/extra/speech.wav -vn -sn -dn -ac 1 -ar 16000 -f s16le - | wc -c || true
       - name: Tests
         if: matrix.arch == 'arm64'
         run: python3 qt/tests/run.py "qt/build-mac-arm64/Vela Player.app/Contents/MacOS/Vela Player" testdata --out test-out
