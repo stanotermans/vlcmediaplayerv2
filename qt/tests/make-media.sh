@@ -47,6 +47,9 @@ done
 # a minute of Ogg Vorbis (#114: libVLC's own Ogg reader seeks to the wrong place), outside the media folder
 ff -f lavfi -i "sine=f=330:d=60" -c:a libvorbis -q:a 4 "$OUT/extra/song.ogg"
 
+# #119: a minute of MP3 (after quick seeks libVLC played it lower for seconds), outside the media folder
+ff -f lavfi -i "sine=f=523:d=60" -c:a libmp3lame -b:a 192k "$OUT/extra/seek.mp3"
+
 # a folder with episodes
 cp "$M/video.mp4" "$M/Show/Show_S01E01.mp4"; cp "$M/video.mp4" "$M/Show/Show_S01E02.mp4"
 

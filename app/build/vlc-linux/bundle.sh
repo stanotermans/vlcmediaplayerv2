@@ -48,6 +48,28 @@ tar -xJf /tmp/ffmpeg.tar.xz -C $FF --strip-components=1
 
 rm -rf "$OUT"; mkdir -p "$OUT/lib/vlc"
 cp -L $ARCH_DIR/libvlc.so.5 $ARCH_DIR/libvlccore.so.9 "$OUT/lib/"   # real files under their soname (no symlinks)
+# #119: libvlccore rebuilt from Debian's source of the same version, with Vela's patches (app/build/libvlccore/*.patch);
+# Debian's plugins stay
+( set -e
+  sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
+  apt-get update -qq && apt-get install -y -qq --no-install-recommends dpkg-dev autoconf automake libtool gettext autopoint flex bison patch >/dev/null
+  rm -rf /tmp/vlcsrc && mkdir -p /tmp/vlcsrc && cd /tmp/vlcsrc
+  apt-get source -qq "vlc=$(dpkg-query -W -f='${Version}' libvlccore9)" >/dev/null 2>&1
+  cd vlc-*/
+  for f in "$APP"/build/libvlccore/*.patch; do patch -p1 --forward < "$f"; done
+  [ -x configure ] || ./bootstrap >/dev/null
+  ./configure --prefix=/usr --disable-nls --disable-vlc --disable-lua --disable-a52 --disable-libgcrypt --disable-swscale \
+    --disable-avcodec --disable-avformat --disable-postproc --disable-mad --disable-qt --disable-skins2 --disable-chromecast \
+    --disable-sout --disable-vlm --disable-addonmanagermodules --disable-update-check --disable-dbus --disable-xcb \
+    --disable-dvdread --disable-dvdnav --disable-bluray --disable-taglib --disable-ncurses --disable-srt --disable-gnutls \
+    --disable-libxml2 --disable-x264 --disable-x26410b --disable-fluidsynth --disable-alsa --disable-pulse --disable-libva  \
+    --disable-vdpau --disable-wayland --disable-udev --disable-v4l2 --disable-jack --disable-mtp --disable-upnp --disable-avahi  \
+    --disable-kwallet --disable-freetype --disable-libass --disable-gles2 --disable-sdl-image --disable-svg > /tmp/core-configure.log 2>&1 || { tail -40 /tmp/core-configure.log; exit 1; }
+  make -s -C compat -j"$(nproc)" >/dev/null
+  make -s -C src -j"$(nproc)" > /tmp/core-make.log 2>&1 || { tail -40 /tmp/core-make.log; exit 1; }
+  cp -L src/.libs/libvlccore.so.9 "$OUT/lib/libvlccore.so.9"
+  echo "libvlccore $(dpkg-query -W -f='${Version}' libvlccore9) rebuilt with: $(ls "$APP"/build/libvlccore/*.patch | xargs -n1 basename | tr '\n' ' ')"
+)
 for l in libavcodec.so.59 libavformat.so.59 libavutil.so.57 libswscale.so.6 libswresample.so.4; do cp -L /tmp/ffp/lib/$l "$OUT/lib/"; done
 # plugins, without the VLC interface, visualizations, service discovery and streaming (like the Windows bundle)
 cp -a $ARCH_DIR/vlc/plugins "$OUT/lib/vlc/"

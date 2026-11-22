@@ -1,0 +1,35 @@
+Vela Player (#119): after a seek, VLC 3 corrected a small audio drift by resampling, slowing (or speeding)
+playback by 2 Hz more on every buffer, without a limit, until the drift had halved. For a few seconds the sound
+played noticeably lower (or higher). Correct it at once instead, like VLC already does for larger drifts: a few
+milliseconds of silence when the audio is early, the output's buffer flushed when it is late.
+
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -301,6 +301,27 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+     if (!aout_FiltersCanResample(owner->filters))
+         return;
+
++    /* Vela Player: no resampling (it changes the pitch for seconds); the drift is corrected at once */
++    if (drift > +AOUT_MAX_PTS_DELAY)
++    {
++        msg_Dbg (aout, "playback too late (%"PRId64"): flushing buffers", drift);
++        aout_OutputFlush (aout, false);
++        aout_StopResampling (aout);
++        owner->sync.end = VLC_TICK_INVALID;
++        owner->sync.discontinuity = true;
++        return;
++    }
++    if (drift < -AOUT_MAX_PTS_ADVANCE)
++    {
++        msg_Dbg (aout, "playback too early (%"PRId64"): playing silence", drift);
++        aout_DecSilence (aout, -drift, dec_pts);
++        aout_StopResampling (aout);
++        owner->sync.discontinuity = true;
++        return;
++    }
++    if (owner->sync.resamp_type == AOUT_RESAMPLING_NONE)
++        return;
++
+     /* Resampling */
+     if (drift > +AOUT_MAX_PTS_DELAY
+      && owner->sync.resamp_type != AOUT_RESAMPLING_UP)
