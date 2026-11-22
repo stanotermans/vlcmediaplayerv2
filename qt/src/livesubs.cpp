@@ -1,6 +1,7 @@
 #include "livesubs.h"
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -11,6 +12,7 @@
 #include <QStandardPaths>
 #include <QThread>
 #include <algorithm>
+#include <cstdio>
 #include <chrono>
 #include <vector>
 #ifdef VLCR_WHISPER
@@ -75,7 +77,7 @@ bool cpuOk() {
 }
 
 #ifdef VLCR_WHISPER
-void quiet(enum ggml_log_level, const char *, void *) {}
+void quiet(enum ggml_log_level, const char *text, void *) { if (qEnvironmentVariableIsSet("VLCR_WHISPER_LOG")) fputs(text, stderr); }   // (testing: Whisper's own messages)
 #endif
 }
 
@@ -198,6 +200,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
   whisper_context_params cp = whisper_context_default_params();
   cp.use_gpu = true;   // (Metal on a Mac; elsewhere this build has only the processor)
   whisper_context *ctx = whisper_init_from_file_with_params(modelPath.toUtf8().constData(), cp);
+  if (!ctx) { cp.use_gpu = false; ctx = whisper_init_from_file_with_params(modelPath.toUtf8().constData(), cp); }   // (no usable GPU: the processor)
   if (!ctx) { post([this]() { emit error(tr("The model could not be loaded")); setRunning(false); }); return; }
 
   constexpr int RATE = 16000;
@@ -212,7 +215,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
     m_runStart = at; m_doneUntil = at;
     proc.start(ffmpeg(), { "-hide_banner", "-loglevel", "error", "-nostdin", "-ss", QString::number(at, 'f', 3), "-i", src,
                            "-vn", "-sn", "-dn", "-ac", "1", "-ar", QString::number(RATE), "-f", "s16le", "-" });
-    proc.waitForStarted(5000);
+    if (!proc.waitForStarted(5000)) qWarning().noquote() << "Vela Player: live subtitles: FFmpeg did not start:" << proc.errorString();
   };
   open(from);
   QByteArray pending;   // half a sample left over
@@ -255,6 +258,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
 
     if (whisper_full(ctx, p, buf.data(), int(buf.size())) != 0) continue;   // (aborted: a seek or a stop)
     const int ns = whisper_full_n_segments(ctx);
+    if (qEnvironmentVariableIsSet("VLCR_WHISPER_LOG")) qInfo().noquote() << "Vela Player: live subtitles:" << len << "s of sound from" << bufStart << "s:" << ns << "segments";
     struct Seg { double s, e; QString text; };
     std::vector<Seg> segs;
     for (int i = 0; i < ns; i++) {
