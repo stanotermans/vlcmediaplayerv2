@@ -1,6 +1,7 @@
 #include "livesubs.h"
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -248,6 +249,8 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
         }
       }
       const QByteArray got = proc.readAll(); readTotal += got.size();
+      if (trace) { static thread_local qint64 last = 0; const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        if (now - last > 1000) { last = now; qInfo().noquote() << "Vela Player: live subtitles: read" << readTotal << "bytes, FFmpeg state" << proc.state() << "error" << proc.error() << "stderr" << proc.readAllStandardError().left(300); } }
       QByteArray b = pending + got;
       const int n = int(b.size() / 2);
       buf.reserve(buf.size() + size_t(n));
