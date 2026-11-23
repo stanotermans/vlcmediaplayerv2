@@ -168,6 +168,7 @@ void LiveSubs::start(const QString &src, double from, const QString &model, cons
   m_thread->start();
 }
 void LiveSubs::stop() {
+  if (m_running && qEnvironmentVariableIsSet("VLCR_WHISPER_LOG")) qInfo().noquote() << "Vela Player: live subtitles: stop";
   m_stop = true;
   if (m_thread) { m_thread->wait(); delete m_thread; m_thread = nullptr; }
   setRunning(false);
@@ -241,6 +242,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
   p.abort_callback_user_data = this;
 
   qint64 lastTrace = 0;
+  if (trace) qInfo().noquote() << "Vela Player: live subtitles: worker loop, stop" << m_stop.load();
   while (!m_stop) {
     if (trace && QDateTime::currentMSecsSinceEpoch() - lastTrace > 1000) {
       lastTrace = QDateTime::currentMSecsSinceEpoch();
@@ -328,6 +330,7 @@ void LiveSubs::worker(QString src, double from, QString modelPath, QString lang,
     want = chunk;
     post([this, out]() { if (!out.isEmpty()) emit segments(out); emit progressChanged(); });
   }
+  if (trace) qInfo().noquote() << "Vela Player: live subtitles: worker done";
   if (proc.state() != QProcess::NotRunning) { proc.kill(); proc.waitForFinished(2000); }
   whisper_free(ctx);
 #else

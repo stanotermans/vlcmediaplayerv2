@@ -58,7 +58,7 @@ QtObject {
     return timed.length ? { synced: true, lines: timed } : { synced: false, lines: plain };
   }
 
-  function clear() { if (live.running) live.stop(); tracks = []; active = -1; delay = 0; speed = 1; dur = 0; lyrics = null; hoverLines = null; synced = false; lyricsHidden = false; waiting = ({}); player.setSpu(-1); player.setSpuDelay(0); }
+  function clear() { if (live.running) { if (Qt.application.arguments && Qt.platform.os) console.trace(); live.stop(); } tracks = []; active = -1; delay = 0; speed = 1; dur = 0; lyrics = null; hoverLines = null; synced = false; lyricsHidden = false; waiting = ({}); player.setSpu(-1); player.setSpuDelay(0); }
   // a new file: its own tracks, then files next to it (and .lrc lyrics), then the preferred language (Settings → Subtitles)
   function setup(i) {
     clear();
@@ -87,7 +87,7 @@ QtObject {
   }
   function select(i) {
     player.setSpu(-1);
-    if (live.running && !(tracks[i] && tracks[i].live)) live.stop();   // #132
+    if (live.running && !(tracks[i] && tracks[i].live)) { console.trace(); live.stop(); }   // #132
     if (i < 0 || !tracks[i]) { active = -1; osd(qsTr("Subtitles off")); return; }
     active = i;
     const tr = tracks[i];
