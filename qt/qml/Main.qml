@@ -675,8 +675,10 @@ C.ApplicationWindow {
   }
   // one step after the other, each after its own short wait (one long timer per step could fire out of order:
   // timers may be a few percent early or late)
+  // (they begin once libVLC has started, which happens in the background; a step "nowait": at once)
   function testSteps(steps, i) {
     i = i || 0;
+    if (i === 0 && steps.indexOf("nowait") < 0 && !player.version && !player.error) return timerAt(50, () => testSteps(steps, 0));
     if (i >= steps.length) { stepsDone = true; return; }
     const s = steps[i], k = s.split(":")[0], v = s.slice(k.length + 1);
     timerAt((i === 0 ? 600 : 0) + (k === "wait" ? +v : k === "set" ? 60 : 500), () => { testStep(k, v); testSteps(steps, i + 1); });   // first: the library is read

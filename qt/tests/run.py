@@ -58,8 +58,15 @@ def run(name, steps, extra_env=None, profile=None):
     for k in [k for k, v in env.items() if v is None]: env.pop(k)   # (None: leave that variable out)
     cmd = [A.app] if not A.app.endswith('.app') else [os.path.join(A.app, 'Contents', 'MacOS', os.path.basename(A.app)[:-4])]
     cmd += env.pop('ARGS', '').split()   # (extra_env ARGS: arguments for the app)
-    p = subprocess.run(cmd, env=env, timeout=ms / 1000 + 60, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(p.stdout)
+    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try: out = p.communicate(timeout=ms / 1000 + 60)[0]
+    except subprocess.TimeoutExpired:   # it hangs: what its threads do (macOS), and what it printed
+        if sys.platform == 'darwin':
+            subprocess.run(['sample', str(p.pid), '2', '-file', os.path.join(OUT, name, 'hang.txt')], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        p.kill(); out = p.communicate()[0]
+        with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(out)
+        raise
+    with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(out)
     vals = {}
     if os.path.exists(log):
         for line in open(log, encoding='utf-8'):
@@ -414,8 +421,16 @@ def _handover(c, hang):
     return first.get('vals', {}), second, took
 
 @test
+def slow_vlc_stop(c):   # a file stopped or paused while libVLC still starts does not play once it is ready
+    for k, step in (('stop', 'log:(pb.stop(), "did=stop")'), ('pause', 'pause')):
+        v, _ = run(c.name + '-' + k, ['nowait', 'play:video.mp4', step, 'log:"early=" + (player.version !== "")', 'wait:9000', 'log:"playing=" + player.playing + " " + player.time'],
+                   extra_env={'VLCR_TEST_SLOW_VLC': '5000'})
+        c.ok(v.get('early') == ['false'], f'{k}: libVLC was still starting ({v.get("early")})')
+        c.ok((v.get('playing') or [''])[0].startswith('false'), f'{k}: does not play ({v.get("playing")})')
+
+@test
 def slow_vlc(c):   # #131: while libVLC starts slowly the window is already there, and a file asked for meanwhile plays once it is ready
-    c.vals, _ = run(c.name, ['play:video.mp4', 'wait:10000', 'log:"line=" + System.startupLine()', 'log:"playing=" + player.playing + " " + (player.time > 0)'],
+    c.vals, _ = run(c.name, ['nowait', 'play:video.mp4', 'wait:10000', 'log:"line=" + System.startupLine()', 'log:"playing=" + player.playing + " " + (player.time > 0)'],
                     extra_env={'VLCR_TEST_SLOW_VLC': '6000'})
     import re as _re
     ms = dict((k, int(v)) for k, v in _re.findall(r'(window shown|libVLC started) (\d+)', c.get('line')))

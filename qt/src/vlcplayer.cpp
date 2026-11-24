@@ -259,8 +259,9 @@ void VlcPlayer::startAsync() {
       if (!self) return;
       self->m_starting = false;
       if (self->started(i, err) && self->m_pendingOpen.contains("src")) {
-        const QVariantMap p = self->m_pendingOpen; self->m_pendingOpen.clear();
+        const QVariantMap p = self->m_pendingOpen; const bool paused = self->m_pendingPause; self->m_pendingOpen.clear();
         self->open(p["src"].toString(), p["startMs"].toLongLong(), p["options"].toStringList());
+        if (paused) self->m_pauseWhenPlaying = true;
       }
     }, Qt::QueuedConnection);
   }).detach();
@@ -351,7 +352,7 @@ QString VlcPlayer::oggCopy(const QString &src) {
 }
 
 void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &options) {
-  if (m_starting) { m_pendingOpen = { { "src", src }, { "startMs", startMs }, { "options", options } }; return; }   // #131
+  if (m_starting) { m_pendingOpen = { { "src", src }, { "startMs", startMs }, { "options", options } }; m_pendingPause = false; return; }   // #131
   if (!load()) return;
   stop();
   const bool url = QRegularExpression("^[a-z][a-z0-9+.-]*://", QRegularExpression::CaseInsensitiveOption).match(src).hasMatch();
@@ -411,7 +412,10 @@ void VlcPlayer::play() {
   if (m_state == 6) { open(m_src, 0, m_opts); return; }   // ended: from the start (#118: not from where it was opened at)
   vlc.mp_set_pause(MP(m_mp), 0);
 }
-void VlcPlayer::pause() { if (m_mp) vlc.mp_set_pause(MP(m_mp), 1); }
+void VlcPlayer::pause() {
+  if (m_mp) vlc.mp_set_pause(MP(m_mp), 1);
+  else if (!m_pendingOpen.isEmpty()) m_pendingPause = true;   // (libVLC still starts: paused once the file plays)
+}
 void VlcPlayer::reopen(const QStringList &options) {
   if (!m_mp || m_src.isEmpty()) return;
   const bool paused = !m_playing && m_state != 6;
@@ -494,6 +498,7 @@ void VlcPlayer::makeOggCopy(const QString &src) {
 }
 
 void VlcPlayer::stop() {
+  m_pendingOpen.clear(); m_pendingPause = false;   // (a file that waits for libVLC: no longer wanted)
   if (!m_mp) return;
   if (m_recording) record(false);
   void *mp = m_mp; m_mp = nullptr;

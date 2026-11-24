@@ -161,6 +161,7 @@ private:
   QStringList m_startArgs;
   bool m_starting = false;                    // #131: libVLC is starting on a worker thread
   QVariantMap m_pendingOpen;                  // a file asked for meanwhile
+  bool m_pendingPause = false;                // … and paused before it could play
   bool m_logAll = false;
   bool m_dvd = false, m_recording = false, m_fastSeek = false;
   // #66: playing through FFmpeg (the time counts from where FFmpeg started)

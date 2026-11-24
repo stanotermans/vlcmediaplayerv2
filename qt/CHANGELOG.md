@@ -1,5 +1,6 @@
 ## 3.2.24
 - 🐛 **Sound cutting out or glitching:** 3.2.23 used a changed libVLC core against the lower pitch after seeking (#119). That change is the likely cause of sound dropping out (#133) and glitching at higher speeds (#134), so Vela uses VideoLAN's own libVLC again. The lower pitch for a few seconds after quick seeks can occur again until there is a better fix.
+- 🐛 **Stop and pause while libVLC starts:** a file that was stopped or paused in that moment started playing anyway (since 3.2.22).
 
 ## 3.2.23
 - ✨ **Live subtitles:** Whisper listens to what plays and writes what is said as subtitles, in about 100 languages, on this computer (nothing is sent anywhere). Turn it on with **Shift+V**, under *Subtitles* in the player or in the quick settings; it starts where you are, keeps ahead of playback and follows seeks. Choose and download a model once under *Settings → Subtitles → Live subtitles* (Tiny 75 MB to Large v3 Turbo 547 MB), the language (or automatic) and optionally a translation into English. What it wrote can be saved as a .srt file (#132).
