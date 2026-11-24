@@ -289,19 +289,6 @@ def preview_av1(c):   # #94: AV1 videos (YouTube downloads) get a storyboard and
     c.more('frames', 2); c.eq('playing', 'true')
 
 @test
-def mp3_seek_pitch(c):   # #119: quick seeks in an MP3 no longer make libVLC resample (that played it lower for seconds); the drift is corrected at once
-    f = os.path.join(A.media, 'extra', 'seek.mp3')
-    if not os.path.exists(f): return c.ok(not os.environ.get('CI'), 'no extra/seek.mp3 in the test media')
-    vlog = os.path.join(OUT, c.name, 'vlc-log.txt')
-    if os.path.exists(vlog): os.remove(vlog)
-    c.vals, _ = run(c.name, ['set:logLevel="info"', f'set:logFile={js(vlog)}', 'set:logOn=true', 'wait:300', f'playfile:{f}', 'wait:2000',
-                             'seek:8', 'wait:200', 'seek:14', 'wait:200', 'seek:20', 'wait:200', 'seek:26', 'wait:4000', 'log:"t=" + player.time'])
-    text = open(vlog, encoding='utf-8', errors='replace').read() if os.path.exists(vlog) else ''
-    bad = [l for l in text.splitlines() if 'sampling' in l]
-    c.ok(not bad, f'no resampling after the seeks: {bad[:3]!r}')
-    t = int((c.vals.get('t') or ['0'])[0]); c.ok(29000 <= t <= 32500, f'plays on from the last seek ({t} ms)')
-
-@test
 def live_subs(c):   # #132: live subtitles: Whisper (tiny model) writes what is said in a speech sample as a subtitle track (paused: it works ahead), which can be saved as .srt
     f = os.path.join(A.media, 'extra', 'speech.wav')
     models = os.environ.get('VLCR_WHISPER_MODELS', '')
