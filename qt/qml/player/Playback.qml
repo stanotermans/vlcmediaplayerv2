@@ -44,7 +44,7 @@ QtObject {
   property bool fit: false               // resize the window to the next video once its size is known
   property real resumeOffer: 0           // #79: the saved place the resume bar offers (seconds; 0 = no bar)
   function acceptResume() { const t = resumeOffer; resumeOffer = 0; if (t) { seekTo(t); osd(qsTr("Resuming from %1").arg(Lib.shortFmt(t))); } }
-  function playItem(i, list) {
+  function playItem(i, list, fresh) {   // fresh: from the beginning (what shuffle picks, #135)
     if (!i) return;
     savePos();
     abClear(true);
@@ -52,7 +52,7 @@ QtObject {
     ctl.current = i; ctl.sideOverride = false;
     library.playing = i.src; library.hurry(i.src);
     const pos = library.positions[i.src];
-    const saved = Settings.values.resume && pos && pos < (i.duration || 1e9) - 5 ? pos : 0;
+    const saved = !fresh && Settings.values.resume && pos && pos < (i.duration || 1e9) - 5 ? pos : 0;
     // #79: "always" resumes, "ask" starts from the beginning and offers the saved place (the bar), "never" starts over
     const mode = Settings.values.resumeMode || "always";
     const resumeAt = mode === "always" ? saved : 0;
@@ -102,7 +102,7 @@ QtObject {
   }
   function step(dir, auto) {
     const q = queue(); if (!q.length) return;
-    if (Settings.values.shuffle && q.length > 1) { let n; do { n = q[Math.floor(Math.random() * q.length)]; } while (it && n.src === it.src); return playItem(n); }
+    if (Settings.values.shuffle && q.length > 1) { let n; do { n = q[Math.floor(Math.random() * q.length)]; } while (it && n.src === it.src); return playItem(n, undefined, true); }
     let pos = q.findIndex(x => it && x.src === it.src) + dir;
     if (pos >= q.length) { if (Settings.values.repeat === "all") pos = 0; else return auto ? null : osd(qsTr("End of the list")); }
     if (pos < 0) pos = Settings.values.repeat === "all" ? q.length - 1 : 0;

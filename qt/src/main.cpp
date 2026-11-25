@@ -13,6 +13,10 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QEventLoop>
+#include <QThread>
+#include <QDebug>
+#include <QScreen>
 #include <QTimer>
 
 #include <QFile>
@@ -123,6 +127,16 @@ int main(int argc, char *argv[]) {
 #endif
 
 
+  // testing: VLCR_SCREEN must be there (Windows sometimes knows a screen's name a moment later): never on another screen
+  if (const QString want = qEnvironmentVariable("VLCR_SCREEN"); !want.isEmpty()) {
+    auto there = [&want]() { for (QScreen *sc : QGuiApplication::screens()) if (sc->name() == want) return true; return false; };
+    for (int i = 0; i < 50 && !there(); i++) { QCoreApplication::processEvents(QEventLoop::AllEvents, 50); QThread::msleep(50); }
+    if (!there()) {
+      QStringList names; for (QScreen *sc : QGuiApplication::screens()) names << sc->name();
+      qCritical().noquote() << "VLCR_SCREEN" << want << "not found, only:" << names.join(", ");
+      return 3;
+    }
+  }
   auto *engine = new QQmlApplicationEngine;
   engine->rootContext()->setContextProperty("qtVersion", QString(qVersion()));
   engine->rootContext()->setContextProperty("System", &sys);

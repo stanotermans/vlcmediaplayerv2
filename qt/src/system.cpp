@@ -488,6 +488,15 @@ void System::testWheel(QWindow *w, qreal x, qreal y, int notches) {
 // #129: Qt minimises this frameless window by its own state (with "maximised" or "full screen" in it), and on a restore
 // from the taskbar Qt and Windows could disagree: the window came back normal, or even minimised again. Windows' own
 // minimise leaves it to Windows; the window's own code maximises it again (Main.qml, onVisibilityChanged).
+// #134: Qt's own maximise only gives this frameless window the size of the screen; Windows didn't know about it (round
+// corners and a gap around it, and minimising forgot it: #129). Asked the way the title bar's button does it.
+void System::maximize(QWindow *w) {
+  if (!w) return;
+#ifdef Q_OS_WIN
+  if (w->isVisible() && w->handle()) { PostMessageW(reinterpret_cast<HWND>(w->winId()), WM_SYSCOMMAND, SC_MAXIMIZE, 0); return; }
+#endif
+  w->showMaximized();
+}
 void System::minimize(QWindow *w) {
   if (!w) return;
 #ifdef Q_OS_WIN
@@ -553,6 +562,13 @@ void System::writeStartup() {
 }
 
 // testing (#129): what a click on the taskbar button does to a minimised window
+bool System::testZoomed(QWindow *w) const {
+#ifdef Q_OS_WIN
+  return w && IsZoomed(reinterpret_cast<HWND>(w->winId()));
+#else
+  return w && (w->windowStates() & Qt::WindowMaximized);
+#endif
+}
 void System::testRestore(QWindow *w) {
   if (!w) return;
 #ifdef Q_OS_WIN

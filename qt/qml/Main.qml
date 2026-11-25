@@ -305,7 +305,8 @@ C.ApplicationWindow {
 
   property double stateTime: 0                                     // #95: when the window last changed state
   function minimizeWin() { if (Theme.mobile) win.showMinimized(); else System.minimize(win); }   // #129
-  function toggleMax() { if (Date.now() - stateTime < 500) return; win.maximized ? win.showNormal() : win.showMaximized(); }
+  function toggleMax() { if (Date.now() - stateTime < 500) return; win.maximized ? win.showNormal() : win.maximizeWin(); }
+  function maximizeWin() { if (Qt.platform.os === "windows") System.maximize(win); else win.showMaximized(); }   // #134
   property var settingsWin: null
   property bool devPages: openAtStart.indexOf("components") >= 0   // the design system page (testing)
   function openSettings(page) {
@@ -396,7 +397,7 @@ C.ApplicationWindow {
   // #73: after fullscreen back to how the window was (maximised or not), and maximised again after a restart
   property bool wasMaximized: false
   function enterFs() { wasMaximized = maximized; fsWanted = true; showFullScreen(); }
-  function leaveFs() { fsWanted = false; if (wasMaximized) showMaximized(); else showNormal(); }
+  function leaveFs() { fsWanted = false; if (wasMaximized) { if (Qt.platform.os === "windows") { showNormal(); timerAt(50, maximizeWin); } else showMaximized(); } else showNormal(); }
   property bool stateKept: false   // set a moment after the start: the first states are the app's own
   Timer { interval: 1500; running: true; onTriggered: win.stateKept = true }
   // #129: Qt maximises this frameless window itself (Windows doesn't know it is maximised), so a maximised window that
@@ -410,7 +411,7 @@ C.ApplicationWindow {
     stateTime = Date.now();
     visTrail += visibility + (maximized ? "m" : "") + " ";
     if (visibility === Window.Minimized) minFromMax = lastMaximized;
-    else if (visibility === Window.Windowed && lastVisibility === Window.Minimized && minFromMax && !Theme.mobile) { minFromMax = false; lastVisibility = visibility; showMaximized(); return; }
+    else if (visibility === Window.Windowed && lastVisibility === Window.Minimized && minFromMax && !Theme.mobile) { minFromMax = false; lastVisibility = visibility; maximizeWin(); return; }
     else if (visibility !== Window.Hidden) minFromMax = false;
     if (visibility !== Window.Hidden && visibility !== Window.Minimized) lastMaximized = visibility === Window.Maximized || (visibility === Window.FullScreen && !fsWanted);   // (not `maximized`: not updated yet here)
     if (visibility !== Window.Hidden) lastVisibility = visibility;
@@ -613,6 +614,10 @@ C.ApplicationWindow {
     // testing: the window on the screen VLCR_SCREEN names (before its size and a maximised start)
     const ts = testScreen ? Qt.application.screens.find(x => x.name === testScreen) : null;
     if (ts) { win.screen = ts; win.x = ts.virtualX + 40; win.y = ts.virtualY + 40; }
+    if (testScreen) timerAt(60, () => {   // (on another screen after all: stop, do not test there)
+      if (win.screen.name === testScreen) return;
+      console.warn("VLCR_SCREEN: the window is on " + win.screen.name + " at " + win.x + "," + win.y + " (found: " + !!ts + ")"); Qt.exit(3);
+    });
     if (Theme.mobile) win.visibility = Window.Maximized;   // a phone: the whole screen, never a desktop window size (#53)
     else if (!shotPath) {
       // this screen (desktopAvailable… spans all monitors), leaving room for the taskbar
@@ -621,9 +626,12 @@ C.ApplicationWindow {
       win.x = sc.virtualX + Math.round((aw - win.width) / 2); win.y = sc.virtualY + Math.round((ah - win.height) / 2);
     }
     if ((((!shotPath || Settings.values.testStartMax) && Settings.values.winMaximized) || startMaximized) && !Theme.mobile) {   // (#104: or asked by the shortcut)   // #73: shown maximised (testStartMax: also in a test)
-      win.visibility = Window.Maximized;
-      // a shortcut tells Windows "normal window", which Windows applies to the first showing of the window: again after it
-      timerAt(150, () => { if (!win.maximized && !win.fullscreen) win.showMaximized(); });
+      // #134 (Windows): shown first, then maximised by Windows itself
+      if (Qt.platform.os === "windows") timerAt(150, () => { if (!win.fullscreen) win.maximizeWin(); });
+      else {
+        win.visibility = Window.Maximized;
+        timerAt(150, () => { if (!win.maximized && !win.fullscreen) win.showMaximized(); });
+      }
     }
     I18n.setLanguage(Settings.values.language || "");
     subs.loadFonts(Settings.values.customFonts || []);

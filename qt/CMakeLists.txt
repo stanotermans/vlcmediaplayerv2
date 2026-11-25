@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(velaplayer VERSION 3.2.24 LANGUAGES C CXX)
+project(velaplayer VERSION 3.2.25 LANGUAGES C CXX)
 if(APPLE)
   enable_language(OBJC OBJCXX)   # (here: whisper.cpp's Metal code needs them, and languages must be enabled at the top)
 endif()

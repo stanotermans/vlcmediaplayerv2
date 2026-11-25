@@ -42,6 +42,7 @@
     <category>Player</category>
   </categories>
   <releases>
+    <release version="3.2.25" date="2026-11-25"/>
     <release version="3.2.24" date="2026-11-24"/>
     <release version="3.2.23" date="2026-11-22"/>
     <release version="3.2.22" date="2026-11-22"/>

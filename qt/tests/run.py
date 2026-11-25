@@ -40,7 +40,7 @@ WEB = 'http://127.0.0.1:%d' % httpd.server_address[1]
 
 def js(s): return json.dumps(s)   # a string inside a step, e.g. a path for set:recDir=…
 
-def run(name, steps, extra_env=None, profile=None):
+def run(name, steps, extra_env=None, profile=None, _again=0):
     """Starts the app, returns the logged values ({ name: [values] }) and the profile folder."""
     prof = profile or os.path.join(OUT, name, 'profile')
     if not profile: shutil.rmtree(prof, ignore_errors=True)   # every test starts from a fresh profile
@@ -67,6 +67,9 @@ def run(name, steps, extra_env=None, profile=None):
         with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(out)
         raise
     with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(out)
+    if p.returncode == 3 and os.environ.get('VLCR_SCREEN') and _again < 5:   # not on the test screen: again
+        print('      (', out.decode('utf-8', 'replace').strip().splitlines()[-1][:200], ')')
+        return run(name, steps, extra_env, profile, _again + 1)
     vals = {}
     if os.path.exists(log):
         for line in open(log, encoding='utf-8'):
@@ -227,6 +230,17 @@ def resume_ask(c):   # #79: Resume set to Ask starts from the beginning and offe
     c.eq('offer', 6, 0); c.eq('bar', 'true', 0); c.near('t', 2500, 1700, 0)   # from the beginning (each step takes 0.5 s), with the bar
     c.eq('offer', 0, 1); c.eq('bar', 'false', 1); c.near('t', 8000, 1300, 1)   # Resume: on from the saved place
     c.eq('offer', 0, 2); c.near('t', 2500, 1700, 2)                            # Never: from the beginning, no bar
+
+@test
+def shuffle_start(c):   # #135: what shuffle picks starts at the beginning (also with Ask: no bar); a file that is clicked still resumes
+    SRC = 'library.items.find(i => i.name === "Show_S01E0%d.mp4").src'
+    c.vals, _ = run(c.name, ['view:videos', 'dir:0', 'wait:800', 'play:Show_S01E01.mp4', 'wait:1500', 'set:shuffle=true', 'log:(library.setPosition(' + SRC % 2 + ', 6), "set")',
+                             'log:(pb.step(1), "stepped")', 'wait:1500', 'log:"now=" + current.name + " " + player.time',
+                             'set:resumeMode="ask"', 'log:(library.setPosition(' + SRC % 1 + ', 6), "set")', 'log:(pb.step(1), "stepped")', 'wait:1200', 'log:"ask=" + current.name + " " + pb.resumeOffer',
+                             'set:resumeMode="always"', 'log:(library.setPosition(' + SRC % 2 + ', 6), "set")', 'play:Show_S01E02.mp4', 'wait:1500', 'log:"click=" + current.name + " " + player.time'])
+    n, t = c.get('now').rsplit(' ', 1); c.ok(n == 'Show_S01E02.mp4' and 0 < int(t) < 4500, f'shuffle from the beginning: {n} at {t} ms')
+    c.eq('ask', 'Show_S01E01.mp4 0')
+    n, t = c.get('click').rsplit(' ', 1); c.ok(n == 'Show_S01E02.mp4' and int(t) >= 6000, f'clicked: resumes ({n} at {t} ms)')
 
 @test
 def midi_not_ffmpeg(c):   # #76: MIDI on the "always with FFmpeg" list still plays (with FluidSynth, not through FFmpeg)
@@ -397,9 +411,10 @@ def open_in_vlc(c):   # #128: VLC's command line from "Open in VLC": the referre
 
 @test
 def minimize_max(c):   # #129: a maximised window that is minimised comes back maximised
-    c.vals, _ = run(c.name, ['wait:1800', 'log:(win.showMaximized(), "max")', 'wait:800', 'log:"v0=" + win.maximized', 'log:(win.minimizeWin(), "min")', 'wait:800',
-                             'log:"v1=" + win.visibility', 'log:(System.testRestore(win), "res")', 'wait:1500', 'log:"v2=" + win.maximized + " " + win.visibility', 'log:"trail=" + win.visTrail'])
+    c.vals, _ = run(c.name, ['wait:1800', 'log:(win.maximizeWin(), "max")', 'wait:800', 'log:"v0=" + win.maximized', 'log:"z0=" + System.testZoomed(win)', 'log:(win.minimizeWin(), "min")', 'wait:800',
+                             'log:"v1=" + win.visibility', 'log:(System.testRestore(win), "res")', 'wait:1500', 'log:"v2=" + win.maximized + " " + win.visibility', 'log:"trail=" + win.visTrail', 'log:"z2=" + System.testZoomed(win)', 'log:(win.toggleFs(), "fs")', 'wait:900', 'log:(win.toggleFs(), "fs")', 'wait:1200', 'log:"z3=" + System.testZoomed(win) + " " + win.maximized + " " + win.fullscreen'])
     c.eq('v0', 'true'); c.eq('v1', '3'); c.ok(c.get('v2').startswith('true '), f'maximised again ({c.get("v2")})')
+    c.eq('z0', 'true'); c.eq('z2', 'true'); c.eq('z3', 'true true false')   # #134: for the system too, also after fullscreen
 
 @test
 def startup_log(c):   # #131: every start writes how long its parts took to startup.log in the data folder
@@ -456,6 +471,13 @@ def mouse_buttons(c):   # #124: right and middle click actions in the player
     c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + ['log:(playerView.mouseAction("mute"), "muted=" + player.muted)',
                     'log:(playerView.mouseAction("play"), "x")', 'wait:600', 'log:"playing=" + player.playing'])
     c.eq('muted', 'true'); c.eq('playing', 'false')
+
+@test
+def left_click(c):   # PR 136: a left click on the video plays / pauses, or does nothing; a double click still works
+    CLICK = 'log:(System.testClick(win, playerView.mapToItem(null, 0, 0).x + playerView.width / 2, playerView.mapToItem(null, 0, 0).y + playerView.height / 3), "c")'
+    c.vals, _ = run(c.name, PLAY('video.mp4', 1500) + [CLICK, 'wait:700', 'log:"p1=" + player.playing', CLICK, 'wait:700', 'log:"p2=" + player.playing',
+                    'set:leftClick="none"', CLICK, 'wait:700', 'log:"p3=" + player.playing', 'set:leftClick="play"', CLICK, 'wait:700', 'log:"p4=" + player.playing'])
+    c.eq('p1', 'false'); c.eq('p2', 'true'); c.eq('p3', 'true'); c.eq('p4', 'false')
 
 @test
 def own_names(c):   # #125: text taken out of the names of selected items (in the app only), and the names back
@@ -567,8 +589,8 @@ def pro_trial(c):   # #53: Pro on a phone: a 7-day trial, once; then Pro works w
 
 @test
 def start_maximized(c):   # #104: --maximized (and a Windows shortcut set to "Run: Maximized") starts the window maximised
-    c.vals, _ = run(c.name, ['wait:1500', 'log:"max=" + win.maximized'], extra_env={'ARGS': '--maximized'})
-    c.eq('max', 'true')
+    c.vals, _ = run(c.name, ['wait:1500', 'log:"max=" + win.maximized', 'log:"zoomed=" + System.testZoomed(win)'], extra_env={'ARGS': '--maximized'})
+    c.eq('max', 'true'); c.eq('zoomed', 'true')   # #134: for the system too, not only for Qt
 
 @test
 def open_playlist(c):   # #106: an opened .m3u plays its files and is kept as a playlist (also when it is Latin-1)
