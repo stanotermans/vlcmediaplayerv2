@@ -262,6 +262,7 @@ Rectangle {
       }
       if (m.button === Qt.MiddleButton) return root.mouseAction(Settings.values.middleClick || "none");
       if (root.ctl.en.dvdMenu) return;            // the menu's buttons take the clicks
+      if ((Settings.values.leftClick || "play") === "none") return;
       click.restart();
     }
     onDoubleClicked: { click.stop(); if ((Settings.values.dblclick || "fullscreen") === "fullscreen") root.ctl.toggleFs(); else root.ctl.pb.togglePlay(); }

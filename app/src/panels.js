@@ -337,6 +337,7 @@ function pages(App) {
       sec('Keyboard shortcuts', ...keyEditor(App)),
       sec('Mouse',
         row('Scroll wheel in player', select([['volume', 'Volume'], ['seek', 'Seek'], ['none', 'Nothing']], { get: () => S.get('wheel') || 'volume', set: v => S.set('wheel', v), path: 'wheel' })),
+        row('Left-click in player', select([['play', 'Play / pause'], ['none', 'Nothing']], { get: () => S.get('leftClick') || 'play', set: v => S.set('leftClick', v), path: 'leftClick' })),
         row('Double-click in player', select([['fullscreen', 'Fullscreen'], ['play', 'Play / pause']], { get: () => S.get('dblclick') || 'fullscreen', set: v => S.set('dblclick', v), path: 'dblclick' }))),
     ],
     playback: () => [

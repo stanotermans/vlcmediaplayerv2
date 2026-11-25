@@ -57,6 +57,8 @@ Column {
     last: true
     SettingRow { label: "Scroll wheel in player"
                  Select { options: [["volume", "Volume"], ["seek", "Seek"], ["none", "Nothing"]]; value: Settings.values.wheel || "volume"; onPicked: v => Settings.set("wheel", v) } }
+    SettingRow { label: "Left-click in player"
+                 Select { options: [["play", "Play / pause"], ["none", "Nothing"]]; value: Settings.values.leftClick || "play"; onPicked: v => Settings.set("leftClick", v) } }
     SettingRow { label: "Double-click in player"
                  Select { options: [["fullscreen", "Fullscreen"], ["play", "Play / pause"]]; value: Settings.values.dblclick || "fullscreen"; onPicked: v => Settings.set("dblclick", v) } }
     SettingRow { label: "Right-click in player"; info: "With another choice than the menu, the menu is still under ⋯ in the title bar."   // #124
