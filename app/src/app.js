@@ -872,7 +872,12 @@ function toggleLibrary() { mode === 'player' ? showBrowser() : showPlayer(); }
 // A single click waits briefly: if it turns out to be a double click (fullscreen), it must not also pause and
 // resume the video (#32).
 let clickT = null;
-function clickToggle() { if (FAST.skipClick) { FAST.skipClick = false; return; } clearTimeout(clickT); clickT = setTimeout(() => { clickT = null; togglePlay(); }, 230); }
+function clickToggle() {
+  if (FAST.skipClick) { FAST.skipClick = false; return; }
+  if ((S.get('leftClick') || 'play') === 'none') return;
+  clearTimeout(clickT);
+  clickT = setTimeout(() => { clickT = null; togglePlay(); }, 230);
+}
 video.addEventListener('click', clickToggle);
 /* ---------- hold for 2× speed (#46): while Shift+Space or the mouse button on the video is held ---------- */
 const FAST = { on: false, rate: 1, key: null, holdT: null, skipClick: false };
