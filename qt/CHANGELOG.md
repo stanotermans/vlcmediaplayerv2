@@ -2,6 +2,7 @@
 - ✨ **Shuffle starts at the beginning:** what shuffle picks now plays from the start instead of where you left off. A file you open yourself still resumes (#135).
 - ✨ **Left-click in player** (Settings → Controls → Mouse): *Play / pause* (as before) or *Nothing*. Thanks to MrTomRod (#136).
 - 🐛 **Really maximised (Windows):** starting maximised only gave the window the size of the screen, with round corners and a gap around it; Windows itself now maximises it. The same goes for coming back from fullscreen and from minimised (#134, #129).
+- 🐛 **The window stays on its screen:** with several screens at different scaling, a window that came out too big for its screen was moved to the main screen; it now stays on its own screen at a size that fits.
 
 ## 3.2.24
 - 🐛 **Sound cutting out or glitching:** 3.2.23 used a changed libVLC core against the lower pitch after seeking (#119). That change is the likely cause of sound dropping out (#133) and glitching at higher speeds (#134), so Vela uses VideoLAN's own libVLC again. The lower pitch for a few seconds after quick seeks can occur again until there is a better fix.
