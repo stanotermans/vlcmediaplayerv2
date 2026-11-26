@@ -559,7 +559,7 @@ def state_paint(c):   # #96: after maximise / back the window keeps drawing; it 
 def restore_size(c):   # #102: back from maximised at a size of a few pixels (or bigger than the screen): the last good size
     c.vals, _ = run(c.name, ['size:1000x600', 'wait:1500', 'log:(win.toggleMax(), "max")', 'wait:900',
                     # what Windows did on the reporter's PC: the restored window at its minimum size in the corner
-                    'log:(win.showNormal(), win.x = Screen.virtualX, win.y = Screen.virtualY, win.width = 136, win.height = 39, "tiny")', 'wait:900',
+                    'log:(win.normalWin(), win.x = Screen.virtualX, win.y = Screen.virtualY, win.width = 136, win.height = 39, "tiny")', 'wait:900',
                     'log:"size=" + win.width + "x" + win.height'])
     c.eq('size', '1000x600')
 
