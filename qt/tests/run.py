@@ -295,8 +295,8 @@ def side_l_key(c):   # #91: a hidden sidebar stays hidden when L goes from the p
 @test
 def lyrics_snap(c):   # #96: fullscreen lyrics, then the window manager takes the window out of fullscreen and tiles it
     c.vals, _ = run(c.name, ['set:fitWindow=true', 'size:1000x600', 'view:music'] + PLAY('song.flac', 2500) + ['fs', 'wait:900',
-                    'log:(win.normalWin(), win.y = win.screen.virtualY, win.height = win.screen.height - 48, "tiled")', 'wait:1500',   # (the height of its own screen, as a window manager tiles)
-                    'log:"lock=" + win.lockAspect', 'log:"win=" + win.visible + " " + win.visibility', 'log:"h=" + (win.height === win.screen.height - 48)',
+                    'log:(win.normalWin(), win.y = win.screen.virtualY, win.height = Math.min(win.screen.height, Screen.desktopAvailableHeight), "tiled")', 'wait:1500',   # (as high as its own screen allows, as a window manager tiles)
+                    'log:"lock=" + win.lockAspect', 'log:"win=" + win.visible + " " + win.visibility', 'log:"h=" + (win.height === Math.min(win.screen.height, Screen.desktopAvailableHeight))',
                     'log:"tiled=" + win.tiled + " " + win.corner'])
     c.eq('lock', 0); c.eq('win', 'true 2')
     if sys.platform == 'win32': c.eq('h', 'true')   # (the height the window manager gave it is kept; macOS keeps it under its menu bar)
@@ -335,9 +335,12 @@ def black_bars(c):   # #137: black bars inside the picture are found and cut off
     CROP = 'JSON.stringify(player.autoCrop) + " " + Math.round(playerView.children[0].ch)'
     got = {}
     for name, on in (('letterbox', True), ('pillarbox', True), ('darkstart', True), ('letterbox', False)):
-        v, _ = run(c.name + '-' + name + ('' if on else '-off'), [f'set:autoCrop={"true" if on else "false"}', 'playfile:' + os.path.join(E, name + '.mp4'), 'wait:9000', 'log:"crop=" + JSON.stringify(player.autoCrop)'])
+        v, _ = run(c.name + '-' + name + ('' if on else '-off'), [f'set:autoCrop={"true" if on else "false"}', 'playfile:' + os.path.join(E, name + '.mp4'), 'wait:9000', 'log:"crop=" + JSON.stringify(player.autoCrop)',
+                   'log:"frame=" + player.frameSize.width + "x" + player.frameSize.height'])
         got[name + ('' if on else '-off')] = json.loads((v.get('crop') or ['{}'])[0])
-    near = lambda d, t, b, l, r: all(abs(d.get(k, -99) - w) <= 2 for k, w in zip('tblr', (t, b, l, r)))
+        # (a decoder may hand over frames taller than the video, black underneath: those rows are a bar too)
+        got[name + ('' if on else '-off')]['pad'] = max(0, int((v.get('frame') or ['0x360'])[0].split('x')[1]) - 360) if on else 0
+    near = lambda d, t, b, l, r: all(abs(d.get(k, -99) - w) <= 2 for k, w in zip('tblr', (t, b + d['pad'], l, r)))
     c.ok(near(got['letterbox'], 44, 44, 0, 0), f"letterbox: {got['letterbox']}")
     c.ok(near(got['pillarbox'], 0, 0, 80, 80), f"pillarbox: {got['pillarbox']}")
     c.ok(near(got['darkstart'], 0, 0, 0, 0), f"dark start, then a full picture: {got['darkstart']}")
