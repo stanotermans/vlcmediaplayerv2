@@ -497,6 +497,13 @@ void System::maximize(QWindow *w) {
 #endif
   w->showMaximized();
 }
+void System::restoreNormal(QWindow *w) {
+  if (!w) return;
+#ifdef Q_OS_WIN
+  if (w->handle() && IsZoomed(reinterpret_cast<HWND>(w->winId()))) { ShowWindow(reinterpret_cast<HWND>(w->winId()), SW_RESTORE); return; }
+#endif
+  w->showNormal();
+}
 void System::minimize(QWindow *w) {
   if (!w) return;
 #ifdef Q_OS_WIN

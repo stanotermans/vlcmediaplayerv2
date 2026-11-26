@@ -68,7 +68,7 @@ def run(name, steps, extra_env=None, profile=None, _again=0):
         raise
     with open(os.path.join(OUT, name, 'output.txt'), 'wb') as f: f.write(out)
     if p.returncode == 3 and os.environ.get('VLCR_SCREEN') and _again < 5:   # not on the test screen: again
-        print('      (', out.decode('utf-8', 'replace').strip().splitlines()[-1][:200], ')')
+        print('      ( not on the test screen:', (out.decode('utf-8', 'replace').strip().splitlines() or ['?'])[-1][:200], ')')
         return run(name, steps, extra_env, profile, _again + 1)
     vals = {}
     if os.path.exists(log):

@@ -305,7 +305,8 @@ C.ApplicationWindow {
 
   property double stateTime: 0                                     // #95: when the window last changed state
   function minimizeWin() { if (Theme.mobile) win.showMinimized(); else System.minimize(win); }   // #129
-  function toggleMax() { if (Date.now() - stateTime < 500) return; win.maximized ? win.showNormal() : win.maximizeWin(); }
+  function toggleMax() { if (Date.now() - stateTime < 500) return; win.maximized ? win.normalWin() : win.maximizeWin(); }
+  function normalWin() { if (Qt.platform.os === "windows") System.restoreNormal(win); else win.showNormal(); }   // #134
   function maximizeWin() { if (Qt.platform.os === "windows") System.maximize(win); else win.showMaximized(); }   // #134
   property var settingsWin: null
   property bool devPages: openAtStart.indexOf("components") >= 0   // the design system page (testing)
@@ -439,16 +440,18 @@ C.ApplicationWindow {
   // restored a size it never had: Qt took a maximised window on a screen without a taskbar for fullscreen) or bigger
   // than the screen, gets the last good size back, or a size in the middle of the screen
   property rect normalRect: Qt.rect(0, 0, 0, 0)
-  function sane(r) { return r.width >= 400 && r.height >= 280 && r.width <= Screen.desktopAvailableWidth + 8 && r.height <= Screen.desktopAvailableHeight + 8; }
+  // (the screen the window is on, not the desktop of all screens together: that put the window on the main screen)
+  function sane(r) { const sc = win.screen; return r.width >= 400 && r.height >= 280 && (!sc || (r.width <= sc.width + 8 && r.height <= sc.height + 8)); }
   function keepNormal() {
     const r = Qt.rect(x, y, width, height);
     if (visibility === Window.Windowed && !tiled && !fitting && sane(r)) normalRect = r;
   }
   function checkNormal() {
     if (visibility !== Window.Windowed || Theme.mobile || sane(Qt.rect(x, y, width, height))) return;
-    const sw = Screen.desktopAvailableWidth, sh = Screen.desktopAvailableHeight;
+    const sc = win.screen, sw = sc.width, sh = sc.height - 48;   // (48: the taskbar)
+    const onIt = r => r.x + r.width / 2 >= sc.virtualX && r.x + r.width / 2 < sc.virtualX + sc.width && r.y + r.height / 2 >= sc.virtualY && r.y + r.height / 2 < sc.virtualY + sc.height;
     let r = normalRect;
-    if (!sane(r)) { const w = Math.min(1600, sw - 96), h = Math.min(1000, sh - 96); r = Qt.rect(Screen.virtualX + (sw - w) / 2, Screen.virtualY + (sh - h) / 2, w, h); }
+    if (!sane(r) || !onIt(r)) { const w = Math.min(1600, sw - 96), h = Math.min(1000, sh - 96); r = Qt.rect(sc.virtualX + (sw - w) / 2, sc.virtualY + (sh - h) / 2, w, h); }
     winNote("bad size after a state change, back to " + Math.round(r.width) + "x" + Math.round(r.height));
     fitting = true;
     win.width = Math.round(r.width); win.height = Math.round(r.height); win.x = Math.round(r.x); win.y = Math.round(r.y);
@@ -502,7 +505,7 @@ C.ApplicationWindow {
     if (!(s.width > 0) || Theme.mobile) return;
     const was = fullscreen || maximized;
     if (fullscreen) leaveFs();
-    if (maximized) showNormal();
+    if (maximized) normalWin();
     timerAt(was ? 250 : 0, () => {
       const turned = ((Settings.values.vf || {}).rotate || 0) % 180 === 90, dpr = Screen.devicePixelRatio;
       const vw = (turned ? s.height : s.width) / dpr, vh = (turned ? s.width : s.height) / dpr;
@@ -613,7 +616,7 @@ C.ApplicationWindow {
     // #64: never bigger than the screen (1600 × 1000 is too big at 150 % on a 1080p screen), and in its middle
     // testing: the window on the screen VLCR_SCREEN names (before its size and a maximised start)
     const ts = testScreen ? Qt.application.screens.find(x => x.name === testScreen) : null;
-    if (ts) { win.screen = ts; win.x = ts.virtualX + 40; win.y = ts.virtualY + 40; }
+    if (ts) { win.screen = ts; win.width = Math.min(1600, ts.width - 96); win.height = Math.min(1000, ts.height - 96); win.x = ts.virtualX + 40; win.y = ts.virtualY + 40; }
     if (testScreen) timerAt(60, () => {   // (on another screen after all: stop, do not test there)
       if (win.screen.name === testScreen) return;
       console.warn("VLCR_SCREEN: the window is on " + win.screen.name + " at " + win.x + "," + win.y + " (found: " + !!ts + ")"); Qt.exit(3);
@@ -708,7 +711,7 @@ C.ApplicationWindow {
     else if (k === "resume") pb.acceptResume();
     else if (k === "look") playerView.look360(+v.split(",")[0], +v.split(",")[1]);
     else if (k === "zoom") playerView.zoom360(+v);
-    else if (k === "size") { win.showNormal(); win.width = +v.split("x")[0]; win.height = +v.split("x")[1]; }
+    else if (k === "size") { win.normalWin(); win.width = +v.split("x")[0]; win.height = +v.split("x")[1]; }
     else if (k === "play") { const i = vis.find(x => x.name === v) || vis[+v || 0]; playItem(i, vis); }
     else if (k === "seek") pb.seekTo(+v);
     else if (k === "pause") player.pause();

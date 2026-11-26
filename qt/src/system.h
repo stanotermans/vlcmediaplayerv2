@@ -59,6 +59,7 @@ public:
   Q_INVOKABLE void setScrollSpeed(int percent);          // #109: how far a notch of the mouse wheel scrolls a list, against the system's own
   Q_INVOKABLE void testWheel(QWindow *w, qreal x, qreal y, int notches);   // testing: the mouse wheel at this window point
   Q_INVOKABLE void maximize(QWindow *w);   // #134: Windows' own maximise (Qt only gives this frameless window the size of the screen)
+  Q_INVOKABLE void restoreNormal(QWindow *w);   // #134: back from Windows' own maximise (Qt's showNormal left it maximised)
   Q_INVOKABLE void minimize(QWindow *w);   // #129: Windows' own minimise (Qt's kept its own state and could fight the restore)
   Q_INVOKABLE bool testZoomed(QWindow *w) const;   // testing: whether Windows itself has the window maximised (elsewhere: Qt's state)
   Q_INVOKABLE void testRestore(QWindow *w);
