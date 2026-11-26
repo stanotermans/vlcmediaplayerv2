@@ -69,6 +69,7 @@
   "audioOnly": false,
   "powerSave": false,
   "maxQuality": 0,
+  "autoCrop": false,
   "liveModel": "base",
   "liveLang": "auto",
   "liveTranslate": false,

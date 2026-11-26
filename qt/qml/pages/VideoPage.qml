@@ -9,6 +9,8 @@ Column {
   Section {
     title: "Playback mode"
     SettingRow { label: "Default aspect ratio"; Select { path: "aspect"; options: [["", "Default"], ["fill", "Fill (crop)"], ["stretch", "Stretch"]] } }
+    SettingRow { label: "Remove black bars automatically"; info: "Black bars inside the video (letterbox or pillarbox) are cut off. Vela finds them in the first seconds and after a seek. Your own crop (Video → Crop) goes first."   // #137
+                 Toggle { path: "autoCrop" } }
     // #126
     SettingRow { label: "Deinterlacing"; info: "Removes the comb lines of interlaced video (old TV recordings, DVDs). Automatic only does it for interlaced video; Off saves processing power."
                  Select { path: "deinterlace"; options: [["auto", "Automatic"], ["off", "Off"], ["on", "On"]] } }

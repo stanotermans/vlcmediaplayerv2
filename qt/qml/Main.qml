@@ -545,6 +545,7 @@ C.ApplicationWindow {
   Engine { id: en; ctl: win }
   property alias en: en
   VlcPlayer {
+    autoCropOn: !!Settings.values.autoCrop   // #137
     id: player
     startArgs: en.startArgs
     logAll: Settings.values.logLevel === "info"
@@ -692,7 +693,11 @@ C.ApplicationWindow {
     if (i === 0 && steps.indexOf("nowait") < 0 && !player.version && !player.error) return timerAt(50, () => testSteps(steps, 0));
     if (i >= steps.length) { stepsDone = true; return; }
     const s = steps[i], k = s.split(":")[0], v = s.slice(k.length + 1);
-    timerAt((i === 0 ? 600 : 0) + (k === "wait" ? +v : k === "set" ? 60 : 500), () => { testStep(k, v); testSteps(steps, i + 1); });   // first: the library is read
+    timerAt((i === 0 ? 600 : 0) + (k === "wait" ? +v : k === "set" ? 60 : 500), () => {
+      // (a step that fails is logged and the next one runs: it stopped the steps, and the app never quit)
+      try { testStep(k, v); } catch (e) { player.log("step error=" + s + ": " + e); console.warn("test step", s, e); }
+      testSteps(steps, i + 1);
+    });   // first: the library is read
   }
   function timerAt(ms, fn) { const t = Qt.createQmlObject("import QtQuick; Timer {}", win); t.interval = ms; t.triggered.connect(() => { fn(); t.destroy(); }); t.start(); }
   function testStep(k, v) {

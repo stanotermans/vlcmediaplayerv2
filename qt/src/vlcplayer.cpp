@@ -355,6 +355,7 @@ void VlcPlayer::open(const QString &src, qint64 startMs, const QStringList &opti
   if (m_starting) { m_pendingOpen = { { "src", src }, { "startMs", startMs }, { "options", options } }; m_pendingPause = false; return; }   // #131
   if (!load()) return;
   stop();
+  resetBars();   // #137
   const bool url = QRegularExpression("^[a-z][a-z0-9+.-]*://", QRegularExpression::CaseInsensitiveOption).match(src).hasMatch();
   // ":vlcr-ffmpeg=<seconds>": play through FFmpeg (the length comes from the library: the stream does not know it)
   QStringList opts; double tcLen = -1;
@@ -424,6 +425,7 @@ void VlcPlayer::reopen(const QStringList &options) {
 }
 void VlcPlayer::seek(qint64 ms) {
   if (!m_mp) return;
+  m_lastBarSample = -1;   // (#137: the next frame is a new moment)
   if (m_tc) {   // through FFmpeg: start it again there (paused stays paused)
     const bool paused = !m_playing;
     open(m_src, qMax<qint64>(0, m_tcLength > 0 ? qMin(ms, m_tcLength - 300) : ms), m_opts);
@@ -680,8 +682,72 @@ bool VlcPlayer::record(bool on, const QString &folder) {
 
 void VlcPlayer::show(const QVideoFrame &fr) {
   m_last = fr;
+  sampleBars(fr);   // #137
   if (m_sink) m_sink->setVideoFrame(fr);
   if (m_extra) m_extra->setVideoFrame(fr);
+}
+
+// ---- #137: black bars inside the picture ----
+// A row (or column) is a bar when nearly all of it is black (Y at most 32 on the video range 16…235). A frame that is
+// black almost everywhere (a fade, a dark scene) tells nothing and is skipped. The bars are what frames from at least
+// three moments, a second apart, agree on: the smallest bar on each side. Later frames can only make the bars smaller
+// (a bright scene that reaches further), so a dark opening scene does not cut the picture for good.
+namespace {
+QRect contentOf(const QVideoFrame &in) {
+  QVideoFrame fr(in);
+  if (!fr.map(QVideoFrame::ReadOnly)) return {};
+  const uchar *y = fr.bits(0); const int stride = fr.bytesPerLine(0), W = fr.width(), H = fr.height();
+  auto dark = [&](int x0, int y0, int dx, int dy, int n) {
+    int bright = 0, seen = 0;
+    for (int i = 0; i < n; i += 2, seen++) if (y[(y0 + dy * i) * stride + x0 + dx * i] > 32) bright++;
+    return bright * 100 <= seen;                      // at most 1 % not black
+  };
+  int t = 0, b = H - 1, l = 0, r = W - 1;
+  while (t < H / 2 && dark(0, t, 1, 0, W)) t++;
+  while (b > H / 2 && dark(0, b, 1, 0, W)) b--;
+  while (l < W / 2 && dark(l, t, 0, 1, b - t + 1)) l++;
+  while (r > W / 2 && dark(r, t, 0, 1, b - t + 1)) r--;
+  fr.unmap();
+  // black nearly everywhere (a fade), or only a small part shows (a logo or a title on black): no answer. Real bars
+  // always leave more than half (a 2.39:1 film in 16:9 keeps 74 % of the height, 4:3 in 16:9 75 % of the width)
+  const QRect c(QPoint(l, t), QPoint(r, b));
+  if (c.width() * 2 < W || c.height() * 2 < H) return {};
+  return c;
+}
+}
+void VlcPlayer::resetBars() {
+  m_barSamples.clear(); m_lastBarSample = -1;
+  if (!m_bars.isNull()) { m_bars = QRect(); emit autoCropChanged(); }
+}
+void VlcPlayer::setAutoCropOn(bool on) {
+  if (on == m_cropOn) return;
+  m_cropOn = on; resetBars(); emit autoCropChanged();
+}
+QVariantMap VlcPlayer::autoCrop() const {
+  // (bars of less than 1 % are noise or an encoder's edge; even numbers, like the picture)
+  const QSize f = m_barsFrame;
+  if (m_bars.isNull() || !f.isValid()) return { { "t", 0 }, { "b", 0 }, { "l", 0 }, { "r", 0 } };
+  auto side = [](int px, int of) { return px * 100 < of ? 0 : px & ~1; };
+  return { { "t", side(m_bars.top(), f.height()) }, { "b", side(f.height() - 1 - m_bars.bottom(), f.height()) },
+           { "l", side(m_bars.left(), f.width()) }, { "r", side(f.width() - 1 - m_bars.right(), f.width()) } };
+}
+QVariantMap VlcPlayer::testBars() const {
+  const QRect c = m_last.isValid() ? contentOf(m_last) : QRect();
+  return { { "valid", !c.isNull() }, { "t", c.top() }, { "l", c.left() }, { "w", c.width() }, { "h", c.height() } };
+}
+void VlcPlayer::sampleBars(const QVideoFrame &fr) {
+  if (!m_cropOn || !fr.isValid()) return;
+  if (m_lastBarSample >= 0 && qAbs(m_time - m_lastBarSample) < 1000) return;   // one frame a second (of playing time)
+  m_lastBarSample = m_time;
+  const QRect c = contentOf(fr);
+  if (c.isNull()) return;
+  if (fr.size() != m_barsFrame) { m_barSamples.clear(); m_barsFrame = fr.size(); }
+  m_barSamples << c;
+  if (m_barSamples.size() < 3) return;
+  QRect u = m_barSamples.first();
+  for (const QRect &s : std::as_const(m_barSamples)) u = u.united(s);
+  if (m_barSamples.size() > 30) m_barSamples.removeFirst();
+  if (u != m_bars) { m_bars = u; emit autoCropChanged(); }
 }
 
 // ---- video: libVLC writes I420 into a picture of its own; a frame that shares the picture goes to the sink ----

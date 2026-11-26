@@ -1,3 +1,6 @@
+## 3.2.26
+- ✨ **Remove black bars automatically** (Settings → Video, and the quick settings): black bars inside the video (letterbox, pillarbox) are found in the frames that play and cut off. Frames from several moments must agree, so a dark scene or a logo on black does not cut the picture. Your own crop goes first. Off by default (#137).
+
 ## 3.2.25
 - ✨ **Shuffle starts at the beginning:** what shuffle picks now plays from the start instead of where you left off. A file you open yourself still resumes (#135).
 - ✨ **Left-click in player** (Settings → Controls → Mouse): *Play / pause* (as before) or *Nothing*. Thanks to MrTomRod (#136).

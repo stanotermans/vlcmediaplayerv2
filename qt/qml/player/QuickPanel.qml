@@ -114,6 +114,7 @@ Rectangle {
       width: body.width - 10
       Section { title: "Picture"
         SettingRow { label: "Aspect ratio"; Select { width: 160; path: "aspect"; options: [["", "Default"], ["fill", "Fill (crop)"], ["stretch", "Stretch"]] } }
+        SettingRow { label: "Remove black bars"; Toggle { path: "autoCrop" } }   // #137
         SettingRow { label: "Rotate"; Select { width: 160; path: "vf.rotate"; options: [[0, "0°"], [90, "90°"], [180, "180°"], [270, "270°"]] } }
         SettingRow { label: "Zoom"; Select { width: 160; path: "vf.zoom"; options: [[1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [2, "2×"]] } }
         SettingRow { label: "Mirror"; Toggle { path: "vf.mirror" } }

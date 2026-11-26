@@ -51,6 +51,12 @@ ff -f lavfi -i "sine=f=330:d=60" -c:a libvorbis -q:a 4 "$OUT/extra/song.ogg"
 curl -sSL --retry 5 --retry-delay 10 -o "$OUT/extra/speech.wav" https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.9.5/samples/jfk.wav
 echo "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e  $OUT/extra/speech.wav" | sha256sum -c - >/dev/null
 
+# #137: black bars inside the picture (letterbox 44 px, pillarbox 80 px), and a dark start (only a small square in the
+# middle for 4 s) before a picture without bars; outside the media folder
+ff -f lavfi -i "testsrc2=s=640x272:r=25:d=10" -vf "pad=640:360:0:44:black" -c:v libx264 -g 25 -pix_fmt yuv420p "$OUT/extra/letterbox.mp4"
+ff -f lavfi -i "testsrc2=s=480x360:r=25:d=10" -vf "pad=640:360:80:0:black" -c:v libx264 -g 25 -pix_fmt yuv420p "$OUT/extra/pillarbox.mp4"
+ff -f lavfi -i "color=c=black:s=640x360:r=25:d=4" -f lavfi -i "color=c=white:s=64x64:r=25:d=4" -f lavfi -i "testsrc2=s=640x360:r=25:d=6"    -filter_complex "[0][1]overlay=288:148[a];[a][2]concat=n=2:v=1[v]" -map "[v]" -c:v libx264 -g 25 -pix_fmt yuv420p "$OUT/extra/darkstart.mp4"
+
 # #119: a minute of MP3 (after quick seeks libVLC played it lower for seconds), outside the media folder
 ff -f lavfi -i "sine=f=523:d=60" -c:a libmp3lame -b:a 192k "$OUT/extra/seek.mp3"
 

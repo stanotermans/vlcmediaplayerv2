@@ -295,8 +295,8 @@ def side_l_key(c):   # #91: a hidden sidebar stays hidden when L goes from the p
 @test
 def lyrics_snap(c):   # #96: fullscreen lyrics, then the window manager takes the window out of fullscreen and tiles it
     c.vals, _ = run(c.name, ['set:fitWindow=true', 'size:1000x600', 'view:music'] + PLAY('song.flac', 2500) + ['fs', 'wait:900',
-                    'log:(win.showNormal(), win.y = Screen.virtualY, win.height = Screen.desktopAvailableHeight, "tiled")', 'wait:1500',
-                    'log:"lock=" + win.lockAspect', 'log:"win=" + win.visible + " " + win.visibility', 'log:"h=" + (win.height === Screen.desktopAvailableHeight)',
+                    'log:(win.normalWin(), win.y = win.screen.virtualY, win.height = win.screen.height - 48, "tiled")', 'wait:1500',   # (the height of its own screen, as a window manager tiles)
+                    'log:"lock=" + win.lockAspect', 'log:"win=" + win.visible + " " + win.visibility', 'log:"h=" + (win.height === win.screen.height - 48)',
                     'log:"tiled=" + win.tiled + " " + win.corner'])
     c.eq('lock', 0); c.eq('win', 'true 2')
     if sys.platform == 'win32': c.eq('h', 'true')   # (the height the window manager gave it is kept; macOS keeps it under its menu bar)
@@ -327,6 +327,21 @@ def live_subs(c):   # #132: live subtitles: Whisper (tiny model) writes what is 
     c.ok('country' in text and 'ask' in text, f'what is said: {c.get("text")!r} ({c.get("times")})')
     c.ok(c.get('saved') == 'true' and os.path.exists(srt) and '-->' in open(srt, encoding='utf-8').read(), f'saved as .srt: {c.get("saved")}')
     c.eq('off', 'false')
+
+@test
+def black_bars(c):   # #137: black bars inside the picture are found and cut off (when switched on); a dark start does not cut the picture for good
+    E = os.path.join(A.media, 'extra')
+    if not os.path.exists(os.path.join(E, 'letterbox.mp4')): return c.ok(not os.environ.get('CI'), 'no extra/letterbox.mp4 in the test media')
+    CROP = 'JSON.stringify(player.autoCrop) + " " + Math.round(playerView.children[0].ch)'
+    got = {}
+    for name, on in (('letterbox', True), ('pillarbox', True), ('darkstart', True), ('letterbox', False)):
+        v, _ = run(c.name + '-' + name + ('' if on else '-off'), [f'set:autoCrop={"true" if on else "false"}', 'playfile:' + os.path.join(E, name + '.mp4'), 'wait:9000', 'log:"crop=" + JSON.stringify(player.autoCrop)'])
+        got[name + ('' if on else '-off')] = json.loads((v.get('crop') or ['{}'])[0])
+    near = lambda d, t, b, l, r: all(abs(d.get(k, -99) - w) <= 2 for k, w in zip('tblr', (t, b, l, r)))
+    c.ok(near(got['letterbox'], 44, 44, 0, 0), f"letterbox: {got['letterbox']}")
+    c.ok(near(got['pillarbox'], 0, 0, 80, 80), f"pillarbox: {got['pillarbox']}")
+    c.ok(near(got['darkstart'], 0, 0, 0, 0), f"dark start, then a full picture: {got['darkstart']}")
+    c.ok(near(got['letterbox-off'], 0, 0, 0, 0), f"switched off: {got['letterbox-off']}")
 
 @test
 def ogg_seek(c):   # #114: seeking in an Ogg file lands where asked (it plays from its Matroska copy), paused stays paused

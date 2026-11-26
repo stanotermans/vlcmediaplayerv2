@@ -43,6 +43,10 @@ class VlcPlayer : public QObject {
   Q_PROPERTY(bool recording READ recording NOTIFY recordingChanged)
   Q_PROPERTY(QString error READ error NOTIFY errorChanged)
   Q_PROPERTY(int framesShown READ framesShown NOTIFY timeChanged)
+  // #137: black bars inside the picture (letterbox, pillarbox), found in the frames that play: { t, b, l, r } in the
+  // picture's pixels, all 0 until frames from several moments agree; looked for while autoCropOn
+  Q_PROPERTY(QVariantMap autoCrop READ autoCrop NOTIFY autoCropChanged)
+  Q_PROPERTY(bool autoCropOn READ autoCropOn WRITE setAutoCropOn NOTIFY autoCropChanged)
 public:
   explicit VlcPlayer(QObject *parent = nullptr);
   ~VlcPlayer() override;
@@ -116,7 +120,12 @@ public:
   // VLC's Record: the playing streams saved unchanged (with sound) into folder until record(false)
   Q_INVOKABLE bool record(bool on, const QString &folder = {});
 
+  QVariantMap autoCrop() const;
+  bool autoCropOn() const { return m_cropOn; }
+  void setAutoCropOn(bool on);
+  Q_INVOKABLE QVariantMap testBars() const;   // testing: what the last frame alone shows
 signals:
+  void autoCropChanged();
   void videoSinkChanged();
   void timeChanged();
   void lengthChanged();
@@ -153,6 +162,13 @@ private:
 
   QPointer<QVideoSink> m_sink, m_extra;
   QVideoFrame m_last;
+  bool m_cropOn = false;
+  QList<QRect> m_barSamples;                  // #137: per sampled frame, the part that is not a bar
+  QRect m_bars;                               // what all samples agree on (empty: none yet)
+  QSize m_barsFrame;
+  qint64 m_lastBarSample = -1;
+  void sampleBars(const QVideoFrame &fr);
+  void resetBars();
   QTimer m_timer;
   qint64 m_time = 0, m_length = 0;
   bool m_playing = false, m_loading = false, m_muted = false;

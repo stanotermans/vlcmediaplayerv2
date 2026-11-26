@@ -60,7 +60,10 @@ Rectangle {
     visible: root.showVideo
     clip: true
     readonly property var vf: Settings.values.vf || {}
-    readonly property var crop: vf.crop || { t: 0, b: 0, l: 0, r: 0 }
+    // your own crop (Video → Crop), or else the black bars Vela found (#137, Settings → Video)
+    readonly property var ownCrop: vf.crop || { t: 0, b: 0, l: 0, r: 0 }
+    readonly property bool ownSet: !!(ownCrop.t || ownCrop.b || ownCrop.l || ownCrop.r)
+    readonly property var crop: ownSet || !Settings.values.autoCrop ? ownCrop : root.ctl.player.autoCrop
     readonly property size full: root.ctl.player.videoSize
     readonly property real sx: root.ctl.player.frameSize.width > 0 ? full.width / root.ctl.player.frameSize.width : 1   // crop is in the picture's pixels
     readonly property real cw: Math.max(1, full.width - (crop.l + crop.r) * sx)
