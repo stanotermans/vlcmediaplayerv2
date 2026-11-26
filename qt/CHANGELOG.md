@@ -1,5 +1,6 @@
 ## 3.2.26
 - ✨ **Remove black bars automatically** (Settings → Video, and the quick settings): black bars inside the video (letterbox, pillarbox) are found in the frames that play and cut off. Frames from several moments must agree, so a dark scene or a logo on black does not cut the picture. Your own crop goes first. Off by default (#137).
+- 🐛 **The whole picture again (Windows):** libVLC drew each frame a few rows taller than the video and Vela showed only its top: the picture was stretched a little and its bottom was cut off (7 % at 360p, 2.5 % at 720p, 1 % at 1080p). Frames now have the video's own size.
 
 ## 3.2.25
 - ✨ **Shuffle starts at the beginning:** what shuffle picks now plays from the start instead of where you left off. A file you open yourself still resumes (#135).

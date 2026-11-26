@@ -687,6 +687,7 @@ void VlcPlayer::show(const QVideoFrame &fr) {
   if (m_extra) m_extra->setVideoFrame(fr);
 }
 
+static QSize g_fmtIn, g_fmtLines;   // (testing: the size libVLC asked for, see onFormat)
 // ---- #137: black bars inside the picture ----
 // A row (or column) is a bar when nearly all of it is black (Y at most 32 on the video range 16…235). A frame that is
 // black almost everywhere (a fade, a dark scene) tells nothing and is skipped. The bars are what frames from at least
@@ -724,16 +725,31 @@ void VlcPlayer::setAutoCropOn(bool on) {
   m_cropOn = on; resetBars(); emit autoCropChanged();
 }
 QVariantMap VlcPlayer::autoCrop() const {
-  // (bars of less than 1 % are noise or an encoder's edge; even numbers, like the picture)
-  const QSize f = m_barsFrame;
-  if (m_bars.isNull() || !f.isValid()) return { { "t", 0 }, { "b", 0 }, { "l", 0 }, { "r", 0 } };
-  auto side = [](int px, int of) { return px * 100 < of ? 0 : px & ~1; };
-  return { { "t", side(m_bars.top(), f.height()) }, { "b", side(f.height() - 1 - m_bars.bottom(), f.height()) },
-           { "l", side(m_bars.left(), f.width()) }, { "r", side(f.width() - 1 - m_bars.right(), f.width()) } };
+  // The frames libVLC draws can be another size than the picture (640 × 386 for a 640 × 360 video): the bars are found
+  // in the frame and given in the picture's pixels (frameSize), like Video → Crop. Bars of less than 1 % are noise or an
+  // encoder's edge; even numbers, like the picture.
+  const QSize f = m_barsFrame, p = m_frameSize.isValid() ? m_frameSize : m_barsFrame;
+  if (m_bars.isNull() || !f.isValid() || !p.isValid()) return { { "t", 0 }, { "b", 0 }, { "l", 0 }, { "r", 0 } };
+  auto side = [](int px, int of, int to) { if (px * 100 < of) return 0; return qRound(double(px) * to / of) & ~1; };
+  return { { "t", side(m_bars.top(), f.height(), p.height()) }, { "b", side(f.height() - 1 - m_bars.bottom(), f.height(), p.height()) },
+           { "l", side(m_bars.left(), f.width(), p.width()) }, { "r", side(f.width() - 1 - m_bars.right(), f.width(), p.width()) } };
 }
 QVariantMap VlcPlayer::testBars() const {
   const QRect c = m_last.isValid() ? contentOf(m_last) : QRect();
-  return { { "valid", !c.isNull() }, { "t", c.top() }, { "l", c.left() }, { "w", c.width() }, { "h", c.height() } };
+  QVariantMap m{ { "valid", !c.isNull() }, { "t", c.top() }, { "l", c.left() }, { "w", c.width() }, { "h", c.height() } };
+  m["asked"] = QString("%1x%2 lines %3 pitch %4").arg(g_fmtIn.width()).arg(g_fmtIn.height()).arg(g_fmtLines.width()).arg(g_fmtLines.height());
+  m["viewport"] = QString("%1x%2").arg(m_format.viewport().width()).arg(m_format.viewport().height());
+  QVideoFrame fr(m_last);
+  if (fr.isValid() && fr.map(QVideoFrame::ReadOnly)) {   // (the raw picture: its format, line length and some Y values)
+    m["fmt"] = int(fr.pixelFormat()); m["size"] = QString("%1x%2").arg(fr.width()).arg(fr.height());
+    m["stride"] = fr.bytesPerLine(0); m["planes"] = fr.planeCount();
+    QStringList col, row; const uchar *y = fr.bits(0); const int st = fr.bytesPerLine(0);
+    for (int yy : { 0, 20, 43, 46, 100, 180, 300, 313, 316, 340, 359 }) if (yy < fr.height()) col << QString::number(y[yy * st + fr.width() / 2]);
+    for (int xx : { 0, 40, 79, 82, 200, 320, 500, 557, 560, 600, 639 }) if (xx < fr.width()) row << QString::number(y[(fr.height() / 2) * st + xx]);
+    m["col"] = col.join(","); m["row"] = row.join(",");
+    fr.unmap();
+  }
+  return m;
 }
 void VlcPlayer::sampleBars(const QVideoFrame &fr) {
   if (!m_cropOn || !fr.isValid()) return;
@@ -769,6 +785,19 @@ private:
 }
 unsigned VlcPlayer::onFormat(void **opaque, char *chroma, unsigned *w, unsigned *h, unsigned *pitches, unsigned *lines) {
   auto *self = static_cast<VlcPlayer *>(*opaque);
+  g_fmtIn = QSize(int(*w), int(*h)); g_fmtLines = QSize(int(lines[0]), int(pitches[0]));   // (testing: what libVLC asks)
+  // libVLC offers the decoder's size, a few rows (and columns) bigger than the picture (640 × 386 for 640 × 360), and
+  // then stretches the picture to whatever size is answered: the frames are asked at the picture's own size (the video
+  // track's), so nothing is stretched and no rows are cut off below
+  if (auto *mp = MP(self->m_mp)) if (libvlc_media_t *m = vlc.mp_get_media(mp)) {
+    media_track **t = nullptr; const unsigned n = vlc.media_tracks_get(m, &t);
+    for (unsigned i = 0; i < n; i++) if (t[i]->type == 1 && t[i]->detail) {
+      const auto *v = static_cast<video_track *>(t[i]->detail);
+      if (v->width && v->height && v->width <= *w && v->height <= *h && *w - v->width < 64 && *h - v->height < 64) { *w = v->width; *h = v->height; break; }
+    }
+    if (t) vlc.media_tracks_release(t, n);
+    vlc.media_release(m);
+  }
   const unsigned W = (*w + 1) & ~1u, H = (*h + 1) & ~1u;
   std::memcpy(chroma, "I420", 4); *w = W; *h = H;
   QVideoFrameFormat f(QSize(int(W), int(H)), QVideoFrameFormat::Format_YUV420P);

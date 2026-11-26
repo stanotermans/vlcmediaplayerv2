@@ -116,8 +116,9 @@ def library(c):
 def playback(c):
     c.vals, _ = run(c.name, PLAY('video.mp4', 2500) + ['log:"playing="+player.playing', 'log:"time="+player.time', 'log:"length="+player.length',
                     'log:"size="+player.frameSize.width+"x"+player.frameSize.height', 'log:"frames="+player.framesShown', 'pause', 'wait:300',
-                    'log:"playing="+player.playing', 'log:"error="+player.error'])
+                    'log:"playing="+player.playing', 'log:"error="+player.error', 'log:"buffer=" + player.testBars().size'])
     c.eq('playing', 'true', 0); c.more('time', 1000); c.near('length', 12000, 300); c.eq('size', '640x360'); c.more('frames', 10)
+    c.eq('buffer', '640x360')   # (the frames at the picture's own size: libVLC offered 640 × 386 and stretched the picture to it)
     c.eq('playing', 'false'); c.eq('error', '')
 
 @test
@@ -338,9 +339,7 @@ def black_bars(c):   # #137: black bars inside the picture are found and cut off
         v, _ = run(c.name + '-' + name + ('' if on else '-off'), [f'set:autoCrop={"true" if on else "false"}', 'playfile:' + os.path.join(E, name + '.mp4'), 'wait:9000', 'log:"crop=" + JSON.stringify(player.autoCrop)',
                    'log:"frame=" + player.frameSize.width + "x" + player.frameSize.height'])
         got[name + ('' if on else '-off')] = json.loads((v.get('crop') or ['{}'])[0])
-        # (a decoder may hand over frames taller than the video, black underneath: those rows are a bar too)
-        got[name + ('' if on else '-off')]['pad'] = max(0, int((v.get('frame') or ['0x360'])[0].split('x')[1]) - 360) if on else 0
-    near = lambda d, t, b, l, r: all(abs(d.get(k, -99) - w) <= 2 for k, w in zip('tblr', (t, b + d['pad'], l, r)))
+    near = lambda d, t, b, l, r: all(abs(d.get(k, -99) - w) <= 2 for k, w in zip('tblr', (t, b, l, r)))   # (in the picture's pixels)
     c.ok(near(got['letterbox'], 44, 44, 0, 0), f"letterbox: {got['letterbox']}")
     c.ok(near(got['pillarbox'], 0, 0, 80, 80), f"pillarbox: {got['pillarbox']}")
     c.ok(near(got['darkstart'], 0, 0, 0, 0), f"dark start, then a full picture: {got['darkstart']}")
