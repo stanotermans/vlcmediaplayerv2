@@ -1,0 +1,64 @@
+Vela Player (#119): after a seek, VLC 3 corrected a small audio drift by playing up to several percent slower (or
+faster) for seconds, which lowered (or raised) the pitch audibly. The correction stays, but never more than 0.3 %
+(about 5 cents). Nothing is flushed or silenced (3.2.23's patch did that, and the sound dropped out: #133, #134).
+The resampling is logged now and then (a warning), which the tests read.
+
+diff --git a/src/audio_output/aout_internal.h b/src/audio_output/aout_internal.h
+index ee40a33..68053c1 100644
+--- a/src/audio_output/aout_internal.h
++++ b/src/audio_output/aout_internal.h
+@@ -179,6 +179,7 @@ static inline void aout_SetWavePhysicalChannels(audio_sample_format_t *fmt)
+ 
+ /* From filters.c */
+ bool aout_FiltersCanResample (aout_filters_t *filters);
++int aout_FiltersResampling (aout_filters_t *filters);   /* Vela Player: the current resampling (Hz) */
+ 
+ void aout_ChangeViewpoint(audio_output_t *aout,
+                           const vlc_viewpoint_t *p_viewpoint);
+diff --git a/src/audio_output/dec.c b/src/audio_output/dec.c
+index 7eca0de..4a6d50c 100644
+--- a/src/audio_output/dec.c
++++ b/src/audio_output/dec.c
+@@ -344,7 +344,13 @@ static void aout_DecSynchronize (audio_output_t *aout, vlc_tick_t dec_pts,
+          * value, then it is time to switch back the resampling direction. */
+         adj *= -1;
+ 
+-    if (!aout_FiltersAdjustResampling (owner->filters, adj))
++    bool still = aout_FiltersAdjustResampling (owner->filters, adj);
++    {   /* Vela Player (#119): what the resampling is, now and then (the tests read it) */
++        int r = aout_FiltersResampling (owner->filters);
++        if (r != 0 && r % 20 == 0)
++            msg_Warn (aout, "resampling %+d Hz of %u", r, owner->mixer_format.i_rate);
++    }
++    if (!still)
+     {   /* Everything is back to normal: stop resampling. */
+         owner->sync.resamp_type = AOUT_RESAMPLING_NONE;
+         msg_Dbg (aout, "resampling stopped (drift: %"PRId64" us)", drift);
+diff --git a/src/audio_output/filters.c b/src/audio_output/filters.c
+index 585379e..e1b6b18 100644
+--- a/src/audio_output/filters.c
++++ b/src/audio_output/filters.c
+@@ -693,9 +693,23 @@ bool aout_FiltersAdjustResampling (aout_filters_t *filters, int adjust)
+         filters->resampling += adjust;
+     else
+         filters->resampling = 0;
++    /* Vela Player (#119): never more than 0.3 % faster or slower (about 5 cents of pitch); without a limit it reached
++     * several percent after a seek and the sound played audibly lower for seconds */
++    int cap = filters->resampler->fmt_in.audio.i_rate * 3 / 1000;
++    if (cap < 2)
++        cap = 2;
++    if (filters->resampling > cap)
++        filters->resampling = cap;
++    if (filters->resampling < -cap)
++        filters->resampling = -cap;
+     return filters->resampling != 0;
+ }
+ 
++int aout_FiltersResampling (aout_filters_t *filters)
++{
++    return filters->resampling;
++}
++
+ block_t *aout_FiltersPlay (aout_filters_t *filters, block_t *block, int rate)
+ {
+     int nominal_rate = 0;

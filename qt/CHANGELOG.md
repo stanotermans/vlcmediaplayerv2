@@ -1,3 +1,6 @@
+## 3.2.27
+- 🐛 **No lower pitch after seeking, without dropouts:** after quick seeks, VLC's playback engine played up to 1.1 % slower for a few seconds to get back in time, which lowered the pitch audibly (#119). Vela's libVLC now does the same correction but never more than 0.3 % (about 5 cents). Unlike 3.2.23's fix, no sound is thrown away (#133, #134); a small timing difference after a seek just takes longer to catch up.
+
 ## 3.2.26
 - ✨ **Remove black bars automatically** (Settings → Video, and the quick settings): black bars inside the video (letterbox, pillarbox) are found in the frames that play and cut off. Frames from several moments must agree, so a dark scene or a logo on black does not cut the picture. Your own crop goes first. Off by default (#137).
 - 🐛 **The whole picture again (Windows):** libVLC drew each frame a few rows taller than the video and Vela showed only its top: the picture was stretched a little and its bottom was cut off (7 % at 360p, 2.5 % at 720p, 1 % at 1080p). Frames now have the video's own size.

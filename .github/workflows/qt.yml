@@ -45,6 +45,31 @@ jobs:
           path: app/build/ffmpeg/out/${{ matrix.target }}/
           if-no-files-found: error
 
+  # #119: libvlccore from VLC's source with Vela's patches (app/build/libvlccore), for VideoLAN's Windows and macOS builds
+  # (Linux: in build/vlc-linux/bundle.sh, from Debian's source)
+  libvlccore:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: win64,      os: ubuntu-latest }
+          - { target: mac-arm64,  os: macos-15 }
+          - { target: mac-x64,    os: macos-15 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        run: |
+          case "${{ matrix.target }}" in
+            win64) docker run --rm -v "$PWD/app:/app:ro" -v "$PWD/core:/out" debian:bookworm bash /app/build/libvlccore/build-win64.sh ;;
+            mac-arm64) bash app/build/libvlccore/build-mac.sh arm64 core ;;
+            mac-x64) bash app/build/libvlccore/build-mac.sh x86_64 core ;;
+          esac
+          ls -la core
+      - uses: actions/upload-artifact@v4
+        with: { name: 'libvlccore-${{ matrix.target }}', path: core/, if-no-files-found: error }
+
   # the test media (qt/tests/make-media.sh needs a full FFmpeg: Ubuntu's)
   testmedia:
     runs-on: ubuntu-latest
@@ -57,7 +82,7 @@ jobs:
         with: { name: testmedia, path: testdata/, if-no-files-found: error }
 
   windows:
-    needs: [ffmpeg, testmedia]
+    needs: [ffmpeg, testmedia, libvlccore]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,6 +108,11 @@ jobs:
       - name: libVLC (VideoLAN's build, checked and trimmed)
         working-directory: app
         run: node scripts/fetch-vlc.js
+      - uses: actions/download-artifact@v4
+        with: { name: libvlccore-win64, path: corebin }
+      - name: libvlccore with Vela's patches (#119)
+        shell: bash
+        run: cp corebin/libvlccore.dll app/vendor/vlc/libvlccore.dll
       - name: API keys (from secrets, never committed)
         shell: bash
         env:
@@ -127,7 +157,7 @@ jobs:
             qt/dist/*.zip
 
   macos:
-    needs: [ffmpeg, testmedia]
+    needs: [ffmpeg, testmedia, libvlccore]
     strategy:
       fail-fast: false
       matrix:
@@ -151,6 +181,16 @@ jobs:
       - name: libVLC (VideoLAN's build for this processor)
         working-directory: app
         run: node scripts/fetch-vlc.js mac-${{ matrix.arch }}
+      - uses: actions/download-artifact@v4
+        with: { name: 'libvlccore-mac-${{ matrix.arch }}', path: corebin }
+      - name: libvlccore with Vela's patches (#119)
+        run: |
+          ORIG=$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" app/vendor/vlc/lib/libvlccore.dylib)
+          ID=$(otool -D "$ORIG" | tail -1)
+          cp corebin/libvlccore.dylib "$ORIG" && chmod 755 "$ORIG"
+          install_name_tool -id "$ID" "$ORIG"
+          codesign --force --sign - "$ORIG"
+          echo "$ORIG ($ID):"; otool -L "$ORIG"
       - name: API keys
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}

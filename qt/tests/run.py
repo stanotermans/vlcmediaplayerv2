@@ -5,7 +5,7 @@
 #   python qt/tests/run.py <app> <test media (make-media.sh)> [--vlc <libVLC folder>] [--ffmpeg <ffmpeg>]
 #                          [--soundfont <sf2/sf3>] [--out <folder>] [name …]
 # The app's own libVLC, FFmpeg and SoundFont are used when it is a packaged app; for a development build pass them.
-import argparse, functools, http.server, json, os, shutil, socketserver, subprocess, sys, tempfile, threading, time
+import argparse, functools, re, http.server, json, os, shutil, socketserver, subprocess, sys, tempfile, threading, time
 
 ap = argparse.ArgumentParser()
 ap.add_argument('app'); ap.add_argument('media')
@@ -309,6 +309,30 @@ def preview_av1(c):   # #94: AV1 videos (YouTube downloads) get a storyboard and
     if not os.path.exists(f): return c.ok(not os.environ.get('CI'), 'no extra/av1.mkv in the test media (no AV1 encoder?)')
     c.vals, _ = run(c.name, [f'playfile:{f}', 'wait:6000', 'log:"frames="+pb.frames.board.filter(x => x).length', 'log:"playing="+player.playing'])
     c.more('frames', 2); c.eq('playing', 'true')
+
+@test
+def audio_sync(c):   # #119, #133, #134: what libVLC does to the sound to stay in time. After quick seeks in an MP3, at 2× and in
+    # ordinary play: never more than 0.3 % faster or slower (VLC 3 went up to several percent: the pitch dropped for seconds),
+    # and nothing thrown away or silenced (3.2.23's patch flushed: the sound dropped out). Read from the log of Vela's core.
+    f = os.path.join(A.media, 'extra', 'seek.mp3')
+    if not os.path.exists(f): return c.ok(not os.environ.get('CI'), 'no extra/seek.mp3 in the test media')
+    # (seeking at 2×, VLC itself throws the sound that is late away once per seek: allowed, not more)
+    cases = (('mp3 seeks', 0, [f'playfile:{f}', 'wait:2000', 'seek:8', 'wait:200', 'seek:14', 'wait:200', 'seek:20', 'wait:200', 'seek:26', 'wait:5000']),
+             ('2x seeks', 2, [f'playfile:{f}', 'wait:1500', 'log:(player.rate = 2, "fast")', 'wait:1500', 'seek:10', 'wait:300', 'seek:30', 'wait:4000']),
+             ('video', 0, PLAY('video.mp4', 9000)))
+    for name, drops, steps in cases:
+        vlog = os.path.join(OUT, c.name, name.replace(' ', '_') + '.txt')
+        if os.path.exists(vlog): os.remove(vlog)
+        run(c.name, ['set:logLevel="info"', f'set:logFile={js(vlog)}', 'set:logOn=true', 'wait:300'] + steps)
+        text = open(vlog, encoding='utf-8', errors='replace').read() if os.path.exists(vlog) else ''
+        rs = [(int(m.group(1)), int(m.group(2))) for m in re.finditer(r'resampling ([+-]\d+) Hz of (\d+)', text)]
+        started = re.findall(r'(up|down)-sampling', text)
+        dropped = [l for l in text.splitlines() if re.search(r'flushing|playing silence|dropped', l)]
+        c.ok(not started or rs, f'{name}: libVLC resampled but the core does not say how much (not Vela\'s patched core?)')
+        worst = max([abs(r) * 1000.0 / rate for r, rate in rs] or [0])
+        c.ok(worst <= 3.01, f'{name}: resampling up to {worst / 10:.2f} % (at most 0.3 %)')
+        c.ok(len(dropped) <= drops, f'{name}: sound thrown away or silenced {len(dropped)} times (at most {drops}): {dropped[:2]!r}')
+        print(f'      {name}: {len(started)} corrections, at most {worst / 10:.2f} %, {len(dropped)} drops')
 
 @test
 def live_subs(c):   # #132: live subtitles: Whisper (tiny model) writes what is said in a speech sample as a subtitle track (paused: it works ahead), which can be saved as .srt
